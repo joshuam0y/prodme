@@ -2,38 +2,40 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Edge middleware must not use `@/` path aliases — Vercel can fail the deploy
- * with "referencing unsupported modules". Keep imports relative/package-only.
+ * Edge middleware: do not call request.cookies.set — it is read-only on
+ * Next.js / Vercel and throws → MIDDLEWARE_INVOCATION_FAILED. Only set cookies
+ * on the Response (see Supabase SSR docs).
  */
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) {
+      return NextResponse.next({ request });
+    }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) {
+    let response = NextResponse.next({ request });
+
+    const supabase = createServerClient(url, key, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          response = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+        },
+      },
+    });
+
+    await supabase.auth.getUser();
+
     return response;
+  } catch {
+    return NextResponse.next({ request });
   }
-
-  const supabase = createServerClient(url, key, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value),
-        );
-        response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options),
-        );
-      },
-    },
-  });
-
-  await supabase.auth.getUser();
-
-  return response;
 }
 
 export const config = {
