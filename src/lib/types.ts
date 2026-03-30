@@ -22,3 +22,13 @@ export type BeatBundle = {
   genres: string[];
   accent: string;
 };
+
+/** Row in `public.profiles` */
+export type DbProfile = {
+  id: string;
+  display_name: string | null;
+  role: string | null;
+  niche: string | null;
+  goal: string | null;
+  onboarding_completed_at: string | null;
+};

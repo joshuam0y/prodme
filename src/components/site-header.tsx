@@ -35,14 +35,22 @@ export function SiteHeader({ user, supabaseEnabled }: Props) {
           ))}
           {supabaseEnabled ? (
             user ? (
-              <form action={signOut} className="inline">
-                <button
-                  type="submit"
-                  className="rounded-lg px-2.5 py-1.5 text-sm text-zinc-300 transition hover:bg-white/5 sm:px-3"
+              <>
+                <Link
+                  href="/profile"
+                  className="rounded-lg px-2 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 sm:px-3"
                 >
-                  Sign out
-                </button>
-              </form>
+                  Profile
+                </Link>
+                <form action={signOut} className="inline">
+                  <button
+                    type="submit"
+                    className="rounded-lg px-2.5 py-1.5 text-sm text-zinc-300 transition hover:bg-white/5 sm:px-3"
+                  >
+                    Sign out
+                  </button>
+                </form>
+              </>
             ) : (
               <>
                 <Link

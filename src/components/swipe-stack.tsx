@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 import type { ProfileCard } from "@/lib/types";
+import { isUuid } from "@/lib/uuid";
 
 type Props = {
   profiles: ProfileCard[];
@@ -216,6 +218,14 @@ export function SwipeStack({ profiles }: Props) {
         >
           Interested — buy or work together
         </button>
+        {isUuid(current.id) ? (
+          <Link
+            href={`/p/${current.id}`}
+            className="block text-center text-sm font-medium text-amber-500/90 transition hover:text-amber-400"
+          >
+            View full profile
+          </Link>
+        ) : null}
         <p className="text-center text-xs text-zinc-600">
           Drag card left / right / up — or use the buttons
         </p>
