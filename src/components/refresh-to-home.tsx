@@ -17,8 +17,8 @@ export function RefreshToHome() {
 
   useEffect(() => {
     if (pathname === "/") return;
+    // Email/OAuth links must finish on /auth/callback (PKCE, code in URL).
     if (pathname.startsWith("/auth")) return;
-    if (pathname === "/login" || pathname === "/signup") return;
     if (!isReloadNavigation()) return;
     router.replace("/");
   }, [pathname, router]);

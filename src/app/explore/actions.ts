@@ -20,7 +20,10 @@ export async function recordDiscoverAction(
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || user.id === targetId) {
+  if (!user) {
+    return { ok: true };
+  }
+  if (user.id === targetId) {
     return { ok: false };
   }
 

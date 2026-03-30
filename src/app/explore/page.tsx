@@ -56,58 +56,6 @@ export default async function ExplorePage({
     teaserCount = Math.max(mockProfiles.length, count ?? 0);
   }
 
-  if (!viewerId) {
-    return (
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-14 sm:px-6">
-        <div className="rounded-2xl border border-white/10 bg-zinc-900/40 p-8 text-center shadow-xl sm:p-10">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
-            Discover is members-only
-          </h1>
-          <p className="mt-3 text-sm text-zinc-500 sm:text-base">
-            Create an account to unlock profiles, preview tracks, and save people you
-            want to work with.
-          </p>
-          <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left">
-            <p className="text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-              Community preview
-            </p>
-            <p className="mt-2 text-sm text-zinc-300">
-              {teaserCount}+ members currently on Discover
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-400 blur-[1px]">
-                Producer
-              </span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-400 blur-[1px]">
-                Artist
-              </span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-400 blur-[1px]">
-                DJ
-              </span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-400 blur-[1px]">
-                Venue
-              </span>
-            </div>
-          </div>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href="/signup?next=/explore"
-              className="inline-flex w-full justify-center rounded-full bg-amber-500 px-6 py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 sm:w-auto"
-            >
-              Create account
-            </Link>
-            <Link
-              href="/login?next=/explore"
-              className="inline-flex w-full justify-center rounded-full border border-white/15 bg-white/5 px-6 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-white/10 sm:w-auto"
-            >
-              Sign in
-            </Link>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
   if (viewerRole === "venue" && roleFilter === "venue") {
     redirect("/explore");
   }
@@ -133,11 +81,36 @@ export default async function ExplorePage({
           Discover
         </h1>
         <p className="mt-3 text-sm text-zinc-500">
-          Real completed profiles appear first; sample cards fill the rest.
-          Venues only see artists, producers, and DJs (not other venues).
-          Creatives see every role, including each other. Open
-          <span className="text-zinc-400"> View full profile </span>
-          on real members to see their public page.
+          {viewerId ? (
+            <>
+              Real completed profiles appear first; sample cards fill the rest.
+              Venues only see artists, producers, and DJs (not other venues).
+              Creatives see every role, including each other. Open
+              <span className="text-zinc-400"> View full profile </span>
+              on real members to see their public page.
+            </>
+          ) : (
+            <>
+              Swipe sample cards and real completed profiles first.{" "}
+              <Link
+                href="/signup?next=/explore"
+                className="text-amber-400/95 underline-offset-2 hover:underline"
+              >
+                Create an account
+              </Link>{" "}
+              or{" "}
+              <Link
+                href="/login?next=/explore"
+                className="text-amber-400/95 underline-offset-2 hover:underline"
+              >
+                sign in
+              </Link>{" "}
+              to save stars and interested lists. About {teaserCount} profiles in
+              the community. Open
+              <span className="text-zinc-400"> View full profile </span> on
+              members to see their public page.
+            </>
+          )}
         </p>
         {notice ? (
           <p className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-100">
