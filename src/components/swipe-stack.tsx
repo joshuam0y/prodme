@@ -447,16 +447,37 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           {star && heroCover ? (
             <div className="space-y-2 rounded-xl border border-white/5 bg-white/[0.04] p-3 sm:p-4">
               <div className="flex items-start gap-3">
-                <div className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-800 ring-1 ring-white/10">
-                  <Image
-                    src={heroCover}
-                    alt=""
-                    width={80}
-                    height={80}
-                    className="h-full w-full object-cover"
-                    unoptimized
-                  />
-                </div>
+                {isVenueProfile || isPhotoOnlyStar ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLightboxUrl(heroCover);
+                    }}
+                    className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-800 ring-1 ring-white/10 hover:ring-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                    aria-label="Open featured photo"
+                  >
+                    <Image
+                      src={heroCover}
+                      alt=""
+                      width={80}
+                      height={80}
+                      className="h-full w-full object-cover"
+                      unoptimized
+                    />
+                  </button>
+                ) : (
+                  <div className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-800 ring-1 ring-white/10">
+                    <Image
+                      src={heroCover}
+                      alt=""
+                      width={80}
+                      height={80}
+                      className="h-full w-full object-cover"
+                      unoptimized
+                    />
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <p
                     className={`text-[10px] font-semibold uppercase tracking-widest ${
