@@ -15,13 +15,17 @@ export function RefreshToHome() {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Run once per full document load. `PerformanceNavigationTiming.type` stays
+  // `"reload"` for the whole tab session after a refresh; re-running when
+  // `pathname` changes would wrongly send every client navigation to `/`.
   useEffect(() => {
     if (pathname === "/") return;
     // Email/OAuth links must finish on /auth/callback (PKCE, code in URL).
     if (pathname.startsWith("/auth")) return;
     if (!isReloadNavigation()) return;
     router.replace("/");
-  }, [pathname, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: only evaluate on mount
+  }, []);
 
   return null;
 }
