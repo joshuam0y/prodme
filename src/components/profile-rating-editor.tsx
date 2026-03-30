@@ -20,7 +20,7 @@ function StarButton({
       onClick={() => onPick(value)}
       disabled={disabled}
       aria-label={`Rate ${value} star${value === 1 ? "" : "s"}`}
-      className={`flex h-10 w-10 items-center justify-center rounded-lg border transition ${
+      className={`flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg border transition ${
         active
           ? "border-amber-400/60 bg-amber-500/15 text-amber-300"
           : "border-white/10 bg-white/5 text-white/30 hover:bg-white/10 hover:text-amber-200"
@@ -64,7 +64,7 @@ export function ProfileRatingEditor({
   }
 
   return (
-    <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+    <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-2 sm:p-3">
       <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
         Rate this profile
       </p>

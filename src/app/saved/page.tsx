@@ -147,7 +147,7 @@ export default async function SavedPage({
           const city = p.city?.trim();
           return (
             <li key={p.id}>
-              <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 sm:px-4">
                 <Link
                   href={`/p/${p.id}`}
                   className="flex flex-col transition hover:text-amber-300"
