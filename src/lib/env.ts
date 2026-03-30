@@ -4,3 +4,7 @@ export function isSupabaseConfigured(): boolean {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
 }
+
+export function isVercelRuntime(): boolean {
+  return process.env.VERCEL === "1";
+}
