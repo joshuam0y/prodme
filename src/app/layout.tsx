@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { User } from "@supabase/supabase-js";
 import { Geist, Geist_Mono } from "next/font/google";
+import { RefreshToHome } from "@/components/refresh-to-home";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -77,6 +78,7 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[var(--background)]">
+        <RefreshToHome />
         <SiteHeader
           user={user}
           supabaseEnabled={supabaseEnabled}
