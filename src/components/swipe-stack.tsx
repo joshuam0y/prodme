@@ -157,7 +157,8 @@ export function SwipeStack({ profiles, viewerId }: Props) {
       const action =
         dir === "left" ? "pass" : dir === "right" ? "save" : "interested";
       if (isUuid(top.id)) {
-        void recordDiscoverAction(top.id, action);
+        // Fire-and-forget, but swallow errors to avoid unhandled promise rejections.
+        void recordDiscoverAction(top.id, action).catch(() => {});
       }
       const a = audioRef.current;
       if (a) {
@@ -170,8 +171,11 @@ export function SwipeStack({ profiles, viewerId }: Props) {
         showToast("Added to Interested.");
       }
       window.setTimeout(() => {
+        // Allow the next card to render normally after the exit animation.
+        // (Previously this was only done for `!signedIn`, causing the next
+        // card to remain `opacity-0`/translated for signed-in users.)
+        setExitDir(null);
         if (!signedIn) {
-          setExitDir(null);
           setDismissed((prev) => {
             const next = new Set(prev);
             next.add(dismissedId);
