@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { isUuid } from "@/lib/uuid";
 
-export type DiscoverAction = "pass" | "save" | "interested";
+export type DiscoverAction = "pass" | "save";
 
 export async function recordDiscoverAction(
   targetId: string,
@@ -76,7 +76,7 @@ export async function setDiscoverAction(
     return { ok: false };
   }
 
-  if (action !== "interested") {
+  if (action === "pass") {
     const { error: pipelineErr } = await supabase
       .from("interested_pipeline")
       .delete()

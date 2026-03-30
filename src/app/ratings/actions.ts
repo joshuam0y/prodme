@@ -45,7 +45,7 @@ export async function setProfileRating(
       return { ok: false, error: "You can't rate yourself." };
     }
 
-    // Only allow rating after the user completed the "save / interested" event.
+    // Only allow rating after the user saved (starred) this profile on Discover.
     // If they already have a rating row, allow updates (even if they later undo the swipe).
     const { data: existingRating } = await supabase
       .from("profile_ratings")

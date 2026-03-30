@@ -13,7 +13,7 @@ export default async function SavedPage({
   searchParams: Promise<{
     notice?: string;
     undoTarget?: string;
-    undoAction?: "save" | "interested";
+    undoAction?: "save";
   }>;
 }) {
   if (!isSupabaseConfigured()) {
@@ -37,7 +37,7 @@ export default async function SavedPage({
     .from("discover_swipes")
     .select("target_id, created_at")
     .eq("viewer_id", user.id)
-    .eq("action", "save")
+    .in("action", ["save", "interested"])
     .order("created_at", { ascending: false });
 
   if (swipeError) {
@@ -126,11 +126,11 @@ export default async function SavedPage({
       {notice ? (
         <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
           <span>{notice}</span>
-          {undoTarget && (undoAction === "save" || undoAction === "interested") ? (
+          {undoTarget && undoAction === "save" ? (
             <form
               action={async () => {
                 "use server";
-                await setDiscoverAction(undoTarget, undoAction, "/saved");
+                await setDiscoverAction(undoTarget, "save", "/saved");
                 redirect("/saved?notice=Undone");
               }}
             >
@@ -183,22 +183,6 @@ export default async function SavedPage({
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 border-t border-white/5 px-4 py-2">
-                  <form
-                    action={async () => {
-                      "use server";
-                      await setDiscoverAction(p.id, "interested", "/saved");
-                      redirect(
-                        `/saved?notice=${encodeURIComponent("Moved to Interested")}&undoTarget=${encodeURIComponent(p.id)}&undoAction=save`,
-                      );
-                    }}
-                  >
-                    <button
-                      type="submit"
-                      className="rounded-full border border-amber-500/35 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-200 transition hover:bg-amber-500/20"
-                    >
-                      Interested
-                    </button>
-                  </form>
                   <form
                     action={async () => {
                       "use server";

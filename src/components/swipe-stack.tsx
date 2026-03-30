@@ -51,7 +51,7 @@ function isInteractivePointerTarget(target: EventTarget | null): boolean {
 }
 
 type PlayingMeta = { id: string; title: string; coverUrl: string };
-type SwipeDir = "left" | "right" | "up";
+type SwipeDir = "left" | "right";
 
 export function SwipeStack({ profiles, viewerId }: Props) {
   const signedIn = Boolean(viewerId && viewerId.trim());
@@ -60,8 +60,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
   const dismissedKey = signedIn && viewerId ? `prodme.discover.dismissedIds:${viewerId}` : "prodme.discover.dismissedIds:anon";
 
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
-  const [exitDir, setExitDir] = useState<"left" | "right" | "up" | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [exitDir, setExitDir] = useState<"left" | "right" | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [lastSwipe, setLastSwipe] = useState<{ id: string; dir: SwipeDir } | null>(null);
   const [drag, setDrag] = useState({ x: 0, y: 0 });
@@ -84,11 +83,6 @@ export function SwipeStack({ profiles, viewerId }: Props) {
 
   const current = visibleProfiles[0];
   const done = profiles.length > 0 && !current;
-
-  const showToast = useCallback((msg: string) => {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 2400);
-  }, []);
 
   const lightboxPhotos = useMemo(() => {
     if (!current) return [] as string[];
@@ -219,8 +213,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
     (dir: SwipeDir) => {
       const top = visibleProfiles[0];
       if (!top) return;
-      const action =
-        dir === "left" ? "pass" : dir === "right" ? "save" : "interested";
+      const action = dir === "left" ? "pass" : "save";
       if (isUuid(top.id)) {
         // Fire-and-forget, but swallow errors to avoid unhandled promise rejections.
         void recordDiscoverAction(top.id, action).catch(() => {});
@@ -233,9 +226,6 @@ export function SwipeStack({ profiles, viewerId }: Props) {
       setLastSwipe({ id: dismissedId, dir });
       setDrag({ x: 0, y: 0 });
       setExitDir(dir);
-      if (dir === "up") {
-        showToast("Added to Interested.");
-      }
       window.setTimeout(() => {
         // Allow the next card to render normally after the exit animation.
         // (Previously this was only done for `!signedIn`, causing the next
@@ -263,7 +253,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
         }
       }, 220);
     },
-    [visibleProfiles, showToast, signedIn, dismissedKey, router],
+    [visibleProfiles, signedIn, dismissedKey, router],
   );
 
   const undoLastSwipe = useCallback(() => {
@@ -304,9 +294,6 @@ export function SwipeStack({ profiles, viewerId }: Props) {
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
         advance("right");
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        advance("up");
       } else if (e.key.toLowerCase() === "z") {
         e.preventDefault();
         undoLastSwipe();
@@ -362,14 +349,9 @@ export function SwipeStack({ profiles, viewerId }: Props) {
     const dy = e.clientY - startRef.current.y;
 
     const horizontal = Math.abs(dx) > THRESHOLD_PX && Math.abs(dx) > Math.abs(dy) * 0.85;
-    const upward = dy < -THRESHOLD_PX && Math.abs(dy) > Math.abs(dx) * 0.85;
 
     if (horizontal) {
       advance(dx < 0 ? "left" : "right");
-      return;
-    }
-    if (upward) {
-      advance("up");
       return;
     }
 
@@ -459,15 +441,8 @@ export function SwipeStack({ profiles, viewerId }: Props) {
   const absX = Math.abs(drag.x);
   const absY = Math.abs(drag.y);
   const horizontalIntent = absX > absY * 0.85;
-  const verticalIntent = drag.y < 0 && absY > absX * 0.85;
   const hintAction =
-    showHint && horizontalIntent && absX > 18
-      ? drag.x < 0
-        ? "Pass"
-        : "Save"
-      : showHint && verticalIntent && absY > 18
-        ? "Interested"
-        : null;
+    showHint && horizontalIntent && absX > 18 ? (drag.x < 0 ? "Pass" : "Save") : null;
 
   return (
     <div className="relative mx-auto w-full max-w-md">
@@ -479,14 +454,6 @@ export function SwipeStack({ profiles, viewerId }: Props) {
         onPause={() => setAudioReady(false)}
         onEnded={() => setAudioReady(false)}
       />
-
-      {toast && (
-        <div className="pointer-events-none fixed inset-x-0 top-20 sm:top-24 z-[60] flex justify-center px-4">
-          <p className="rounded-full border border-white/15 bg-zinc-900/95 px-4 py-2 text-xs sm:text-sm text-zinc-100 shadow-lg backdrop-blur">
-            {toast}
-          </p>
-        </div>
-      )}
 
       {lightboxUrl && (
         <div
@@ -554,7 +521,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
 
       <div
         role="group"
-        aria-label="Profile card — drag to pass, save, or show interest"
+        aria-label="Profile card — drag left to pass, right to save"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerEnd}
@@ -569,9 +536,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
             ? "-translate-x-[120%] -rotate-6 opacity-0"
             : exitDir === "right"
               ? "translate-x-[120%] rotate-6 opacity-0"
-              : exitDir === "up"
-                ? "-translate-y-[140%] opacity-0"
-                : ""
+              : ""
         }`}
       >
         {hintAction ? (
@@ -852,13 +817,6 @@ export function SwipeStack({ profiles, viewerId }: Props) {
         >
           Undo last swipe (Z)
         </button>
-        <button
-          type="button"
-          onClick={() => advance("up")}
-          className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 py-3 text-xs sm:text-sm font-semibold text-zinc-950 shadow-lg shadow-orange-500/20 transition hover:opacity-95"
-        >
-          Interested — buy or work together
-        </button>
         {isUuid(current.id) ? (
           <Link
             href={`/p/${current.id}`}
@@ -868,7 +826,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           </Link>
         ) : null}
         <p className="text-center text-[11px] sm:text-xs text-zinc-600">
-          Drag card left / right / up — or use the buttons
+          Drag left or right, or use Pass / Save — keys: ← → and Z to undo
         </p>
       </div>
     </div>

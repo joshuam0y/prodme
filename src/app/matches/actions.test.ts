@@ -11,8 +11,8 @@ vi.mock("@/lib/env", () => ({
 
 const insert = vi.fn().mockResolvedValue({ error: null });
 const maybeSingle = vi.fn().mockResolvedValue({ data: { action: "save" } });
-const inFn = vi.fn(() => ({ maybeSingle }));
-const eqTarget = vi.fn(() => ({ in: inFn }));
+const inActions = vi.fn(() => ({ maybeSingle }));
+const eqTarget = vi.fn(() => ({ in: inActions }));
 const eqViewer = vi.fn(() => ({ eq: eqTarget }));
 const select = vi.fn(() => ({ eq: eqViewer }));
 const from = vi.fn((table: string) =>
