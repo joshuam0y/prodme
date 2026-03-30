@@ -5,15 +5,22 @@ import { resolvePostAuthRedirect } from "@/lib/auth-callback-path";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+const LINK_USED_HINT =
+  "This email link was already used or expired. If you already confirmed your account, sign in. Otherwise sign up again — confirmation links only work once for security.";
+
 function fullRedirect(path: string) {
   window.location.replace(
     `${window.location.origin}${path.startsWith("/") ? path : `/${path}`}`,
   );
 }
 
+function loginWithError(router: ReturnType<typeof useRouter>, message: string) {
+  router.replace(`/login?error=${encodeURIComponent(message)}`);
+}
+
 /**
- * PKCE `?code=` is exchanged in middleware (cookies). This only handles hash
- * tokens (implicit) and “already have session” edge cases.
+ * PKCE `?code=` is exchanged in middleware (cookies). This handles hash tokens
+ * (implicit), leftover query `code` fallbacks, and clear errors for used/expired links.
  */
 export function AuthCallbackClient() {
   const router = useRouter();
@@ -28,12 +35,29 @@ export function AuthCallbackClient() {
     async function finish() {
       const hash =
         typeof window !== "undefined" ? window.location.hash.replace(/^#/, "") : "";
+      const hashParams = hash ? new URLSearchParams(hash) : null;
+
+      const fragErr =
+        hashParams?.get("error_description")?.trim() ||
+        hashParams?.get("error")?.trim();
+      if (fragErr) {
+        loginWithError(router, fragErr);
+        return;
+      }
+
+      const qErr =
+        searchParams.get("error_description")?.trim() ||
+        searchParams.get("error")?.trim();
+      if (qErr) {
+        loginWithError(router, qErr);
+        return;
+      }
+
       const next = resolvePostAuthRedirect(searchParams, hash);
 
-      if (hash) {
-        const params = new URLSearchParams(hash);
-        const access_token = params.get("access_token");
-        const refresh_token = params.get("refresh_token");
+      if (hashParams) {
+        const access_token = hashParams.get("access_token");
+        const refresh_token = hashParams.get("refresh_token");
         if (access_token && refresh_token) {
           const { error } = await supabase.auth.setSession({
             access_token,
@@ -48,6 +72,33 @@ export function AuthCallbackClient() {
             fullRedirect(next);
             return;
           }
+          if (!cancelled && error) {
+            const msg =
+              /expired|invalid|already|consumed|used/i.test(error.message)
+                ? LINK_USED_HINT
+                : error.message;
+            loginWithError(router, msg);
+            return;
+          }
+        }
+      }
+
+      const code = searchParams.get("code");
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (!cancelled && !error) {
+          fullRedirect(resolvePostAuthRedirect(searchParams, ""));
+          return;
+        }
+        if (!cancelled && error) {
+          const msg =
+            /verifier|pkce|storage/i.test(error.message)
+              ? `${error.message} Try opening the link in the same browser where you started sign-up, or sign up again for a new email.`
+              : /expired|invalid|already/i.test(error.message)
+                ? LINK_USED_HINT
+                : error.message;
+          loginWithError(router, msg);
+          return;
         }
       }
 
@@ -61,7 +112,10 @@ export function AuthCallbackClient() {
 
       if (!cancelled) {
         setMessage("Redirecting…");
-        router.replace("/login?error=auth_callback");
+        loginWithError(
+          router,
+          "We couldn't finish signing you in from this link. If you already confirmed your email, try signing in.",
+        );
       }
     }
 

@@ -60,7 +60,38 @@ export async function signUp(formData: FormData) {
   }
 
   redirect(
-    `/signup?notice=${encodeURIComponent("Check your email to confirm your account, then sign in.")}`,
+    `/signup?notice=${encodeURIComponent("Check your email to confirm your account. Each confirmation link works once — use the latest email if you request another.")}`,
+  );
+}
+
+export async function resendSignupConfirmation(formData: FormData) {
+  if (!isSupabaseConfigured()) {
+    redirect("/signup?error=not_configured");
+  }
+
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) {
+    redirect(`/signup?error=${encodeURIComponent("Enter your email to resend the confirmation link.")}`);
+  }
+
+  const next = safeNext(String(formData.get("next") ?? "/onboarding"));
+  const origin = getSiteOrigin();
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+    options: {
+      emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
+    },
+  });
+
+  if (error) {
+    redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+  }
+
+  redirect(
+    `/signup?notice=${encodeURIComponent("If that address can receive mail, we sent a new confirmation link. Each link works once.")}`,
   );
 }
 

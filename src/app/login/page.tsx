@@ -44,7 +44,9 @@ export default async function LoginPage({
           <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
             {error === "not_configured"
               ? "Supabase is not configured on this deployment."
-              : decodeURIComponent(error)}
+              : error === "auth_callback"
+                ? "That sign-in link could not be completed. If you already confirmed your email, sign in below. Otherwise use a fresh link from your latest email — each link only works once."
+                : decodeURIComponent(error)}
           </p>
         ) : null}
 

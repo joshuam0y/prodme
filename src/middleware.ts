@@ -35,10 +35,14 @@ export async function middleware(request: NextRequest) {
       }
 
       const login = new URL("/login", request.url);
-      login.searchParams.set(
-        "error",
-        error.message || "Could not verify auth link",
-      );
+      let errMsg = error.message || "Could not verify auth link";
+      if (/verifier|pkce|storage/i.test(errMsg)) {
+        errMsg = `${errMsg} Use the same browser where you asked for the email, or request a new confirmation or reset link.`;
+      } else if (/expired|invalid|already|consumed|used/i.test(errMsg)) {
+        errMsg =
+          "This link was already used or expired. Confirmation links only work once — try signing in, or sign up again for a new email.";
+      }
+      login.searchParams.set("error", errMsg);
       return NextResponse.redirect(login);
     }
   }

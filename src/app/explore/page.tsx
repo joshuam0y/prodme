@@ -108,21 +108,22 @@ export default async function ExplorePage({
     );
   }
 
-  if (viewerRole && roleFilter && roleFilter === viewerRole) {
+  if (viewerRole === "venue" && roleFilter === "venue") {
     redirect("/explore");
   }
 
   const live = await getLiveProfileCards(viewerId, viewerId);
   const pool = [...live, ...mockProfiles];
-  const withoutSameRole = viewerRole
-    ? pool.filter((p) => p.role !== viewerRole)
-    : pool;
+  const peerFiltered =
+    viewerRole === "venue"
+      ? pool.filter((p) => p.role !== "venue")
+      : pool;
   const profiles = roleFilter
-    ? withoutSameRole.filter((p) => p.role === roleFilter)
-    : withoutSameRole;
+    ? peerFiltered.filter((p) => p.role === roleFilter)
+    : peerFiltered;
 
   const filterLinks = FILTERS.filter(
-    (f) => !f.role || !viewerRole || f.role !== viewerRole,
+    (f) => !(viewerRole === "venue" && f.role === "venue"),
   );
 
   return (
@@ -132,9 +133,9 @@ export default async function ExplorePage({
           Discover
         </h1>
         <p className="mt-3 text-sm text-zinc-500">
-          Real completed profiles appear first; sample cards fill the rest. You
-          won&apos;t see people with the same role as you (so venues don&apos;t
-          see venues, producers don&apos;t see producers, etc.). Open
+          Real completed profiles appear first; sample cards fill the rest.
+          Venues only see artists, producers, and DJs (not other venues).
+          Creatives see every role, including each other. Open
           <span className="text-zinc-400"> View full profile </span>
           on real members to see their public page.
         </p>

@@ -7,14 +7,24 @@ export function resolvePostAuthRedirect(
   if (explicit?.startsWith("/") && !explicit.startsWith("//")) {
     return explicit;
   }
-  if (searchParams.get("type") === "recovery") {
-    return "/update-password";
-  }
+
+  const typeQuery = searchParams.get("type");
+  if (typeQuery === "recovery") return "/update-password";
+  if (typeQuery === "signup") return "/onboarding";
+
   if (hashWithoutLeading) {
-    const fromHash = new URLSearchParams(hashWithoutLeading);
-    if (fromHash.get("type") === "recovery") {
-      return "/update-password";
+    const h = new URLSearchParams(hashWithoutLeading);
+    if (h.get("type") === "recovery") return "/update-password";
+    const ht = h.get("type");
+    if (
+      ht === "signup" ||
+      ht === "email" ||
+      ht === "invite" ||
+      ht === "email_change"
+    ) {
+      return "/onboarding";
     }
   }
+
   return "/explore";
 }

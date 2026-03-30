@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { signUp } from "@/app/auth/actions";
+import { resendSignupConfirmation, signUp } from "@/app/auth/actions";
 import { isSupabaseConfigured } from "@/lib/env";
 
 function safeNext(path: string | undefined): string {
@@ -94,6 +94,32 @@ export default async function SignupPage({
             Sign up
           </button>
         </form>
+
+        <div className="mt-10 border-t border-white/10 pt-8">
+          <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+            Didn&apos;t get a link or it expired?
+          </p>
+          <p className="mt-1 text-xs text-zinc-600">
+            Confirmation links are one-time. Enter your email to receive a new one.
+          </p>
+          <form action={resendSignupConfirmation} className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <input type="hidden" name="next" value={next} />
+            <input
+              name="email"
+              type="email"
+              required
+              placeholder="your@email.com"
+              autoComplete="email"
+              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-zinc-950/80 px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+            />
+            <button
+              type="submit"
+              className="rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
+            >
+              Resend confirmation
+            </button>
+          </form>
+        </div>
 
         <p className="mt-6 text-center text-sm text-zinc-500">
           Already have an account?{" "}
