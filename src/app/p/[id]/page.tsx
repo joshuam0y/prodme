@@ -7,6 +7,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { beatsFromProfileRow } from "@/lib/profile-beats";
 import { isUuid } from "@/lib/uuid";
 import type { DbProfile } from "@/lib/types";
+import { StarRatingDisplay } from "@/components/star-rating-display";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -71,6 +72,28 @@ export default async function PublicProfilePage({ params }: Props) {
     extra_beats: profile.extra_beats,
   });
 
+  const viewerId = viewer?.id ?? null;
+  const { data: ratingRows } = await supabase
+    .from("profile_ratings")
+    .select("rating")
+    .eq("target_id", id);
+  const ratingCount = ratingRows?.length ?? 0;
+  const ratingAvg =
+    ratingCount > 0
+      ? ratingRows!.reduce((sum, r) => sum + r.rating, 0) / ratingCount
+      : null;
+
+  let viewerRating: number | null = null;
+  if (viewerId) {
+    const { data: myRow } = await supabase
+      .from("profile_ratings")
+      .select("rating")
+      .eq("viewer_id", viewerId)
+      .eq("target_id", id)
+      .maybeSingle();
+    if (myRow?.rating) viewerRating = myRow.rating;
+  }
+
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
       <div
@@ -122,6 +145,22 @@ export default async function PublicProfilePage({ params }: Props) {
           <p className="mt-2 text-sm leading-relaxed text-zinc-300">
             {profile.niche}
           </p>
+        </section>
+      ) : null}
+
+      {ratingAvg !== null ? (
+        <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
+          <h2 className="text-xs font-medium uppercase tracking-wider text-amber-500/90">
+            Community rating
+          </h2>
+          <div className="mt-3">
+            <StarRatingDisplay average={ratingAvg} count={ratingCount} />
+          </div>
+          {viewerRating !== null ? (
+            <p className="mt-2 text-xs text-zinc-400">
+              You rated this profile {viewerRating}★
+            </p>
+          ) : null}
         </section>
       ) : null}
 

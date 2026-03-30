@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { removeDiscoverAction, setDiscoverAction } from "@/app/explore/actions";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { ProfileRatingEditor } from "@/components/profile-rating-editor";
 
 function roleLabel(raw: string | null): string {
   const s = (raw ?? "").toLowerCase();
@@ -88,6 +89,16 @@ export default async function InterestedPage({
       </main>
     );
   }
+
+  const { data: myRatings } = await supabase
+    .from("profile_ratings")
+    .select("target_id, rating")
+    .eq("viewer_id", user.id)
+    .in("target_id", orderedIds);
+
+  const ratingByTargetId = new Map(
+    (myRatings ?? []).map((r) => [r.target_id as string, r.rating as number]),
+  );
 
   const byId = new Map(profiles.map((p) => [p.id, p]));
   const ordered = orderedIds
@@ -175,6 +186,11 @@ export default async function InterestedPage({
                     </button>
                   </form>
                 </div>
+
+                <ProfileRatingEditor
+                  targetId={p.id}
+                  initialRating={ratingByTargetId.get(p.id) ?? null}
+                />
               </div>
             </li>
           );

@@ -7,6 +7,7 @@ import { isProfileQuestionnaireComplete } from "@/lib/profile-completion";
 import { parseExtraBeats } from "@/lib/profile-beats";
 import type { DbProfile } from "@/lib/types";
 import { ProfileBeatsForm } from "./profile-beats-form";
+import { StarRatingDisplay } from "@/components/star-rating-display";
 
 export default async function ProfilePage() {
   if (!isSupabaseConfigured()) {
@@ -33,6 +34,16 @@ export default async function ProfilePage() {
   const profile = row as DbProfile | null;
 
   const incomplete = !isProfileQuestionnaireComplete(profile);
+
+  const { data: ratingRows } = await supabase
+    .from("profile_ratings")
+    .select("rating")
+    .eq("target_id", user.id);
+  const ratingCount = ratingRows?.length ?? 0;
+  const ratingAvg =
+    ratingCount > 0
+      ? ratingRows!.reduce((sum, r) => sum + r.rating, 0) / ratingCount
+      : null;
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
@@ -82,6 +93,18 @@ export default async function ProfilePage() {
           </dt>
           <dd className="mt-1 text-zinc-100">
             {formatDisplayDate(profile?.onboarding_completed_at)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+            Community rating
+          </dt>
+          <dd className="mt-1 text-zinc-100">
+            {ratingAvg !== null ? (
+              <StarRatingDisplay average={ratingAvg} count={ratingCount} />
+            ) : (
+              "—"
+            )}
           </dd>
         </div>
       </dl>

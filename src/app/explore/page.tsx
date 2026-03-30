@@ -39,6 +39,10 @@ export default async function ExplorePage({
       data: { user },
     } = await supabase.auth.getUser();
     viewerId = user?.id ?? null;
+    if (!viewerId) {
+      const nextPath = `/explore${roleFilter ? `?role=${encodeURIComponent(roleFilter)}` : ""}`;
+      redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+    }
     if (viewerId) {
       const { data: prof } = await supabase
         .from("profiles")
