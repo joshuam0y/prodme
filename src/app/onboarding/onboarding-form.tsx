@@ -4,31 +4,45 @@ import { completeOnboarding } from "@/app/auth/actions";
 import { useTransition } from "react";
 import { useState } from "react";
 
-const STEPS = [
-  {
-    id: "role",
-    title: "What do you do?",
-    subtitle: "We’ll tune discovery and copy to your side of the table.",
-    options: ["Producer", "Artist / vocalist", "DJ", "Venue / promoter"],
-  },
-  {
-    id: "niche",
-    title: "What’s your niche?",
-    subtitle: "Genres, moods, or scenes — be specific.",
-    placeholder: "e.g. melodic trap, UK garage, R&B hooks…",
-  },
-  {
-    id: "goal",
-    title: "What are you trying to do right now?",
-    subtitle: "Sell beats, get booked, find collabs — pick what fits.",
-    options: [
-      "Sell beats or bundles",
-      "Get gigs or placements",
-      "Find collaborators",
-      "Book talent for events",
-    ],
-  },
-] as const;
+function isVenueRole(role?: string) {
+  const s = (role ?? "").toLowerCase();
+  return s.includes("venue") || s.includes("promoter");
+}
+
+function stepsForRole(role?: string) {
+  const venue = isVenueRole(role);
+
+  return [
+    {
+      id: "role",
+      title: "What do you do?",
+      subtitle: "We’ll tune discovery and copy to your side of the table.",
+      options: ["Producer", "Artist / vocalist", "DJ", "Venue / promoter"],
+    },
+    {
+      id: "niche",
+      title: venue ? "What kind of events do you run?" : "What’s your niche?",
+      subtitle: venue
+        ? "Tell us your vibe and audience — be specific."
+        : "Genres, moods, or scenes — be specific.",
+      placeholder: venue
+        ? "e.g. 200-cap electronic nights, live hip-hop, jazz brunches…"
+        : "e.g. melodic trap, UK garage, R&B hooks…",
+    },
+    {
+      id: "goal",
+      title: venue
+        ? "What are you trying to do for your next event?"
+        : "What are you trying to do right now?",
+      subtitle: venue
+        ? "Book talent, hire DJs, and fill the lineup — pick what fits."
+        : "Sell beats, get booked, find collabs — pick what fits.",
+      options: venue
+        ? ["Book performers for events", "Hire DJs / openers", "Find producers / artists"]
+        : ["Sell beats or bundles", "Get gigs or placements", "Find collaborators"],
+    },
+  ];
+}
 
 type Props = {
   error?: string;
@@ -39,9 +53,10 @@ export function OnboardingForm({ error }: Props) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
 
-  const current = STEPS[step];
-  const isLast = step === STEPS.length - 1;
-  const progress = ((step + 1) / STEPS.length) * 100;
+  const steps = stepsForRole(answers.role);
+  const current = steps[step];
+  const isLast = step === steps.length - 1;
+  const progress = ((step + 1) / steps.length) * 100;
 
   const canNext =
     current.id === "niche"

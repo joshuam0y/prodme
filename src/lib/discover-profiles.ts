@@ -73,6 +73,9 @@ export async function getLiveProfileCards(
     const name = row.display_name?.trim() || "Member";
     const niche = row.niche?.trim() || "—";
     const goal = row.goal?.trim() || "";
+    // In the discover card UI, we show "focus" (goal) in the top-right pill,
+    // and show the actual "niche" in the description copy.
+    const focus = goal || niche;
     const { starBeat, extraBeats } = beatsFromProfileRow({
       id: row.id,
       star_beat_title: row.star_beat_title ?? null,
@@ -85,9 +88,9 @@ export async function getLiveProfileCards(
       displayName: name,
       role,
       city: row.city?.trim() || "—",
-      niche,
-      bio: goal || niche,
-      highlight: goal || niche,
+      niche: focus,
+      bio: niche,
+      highlight: niche,
       accent: accentForRole(role),
       starBeat,
       extraBeats,

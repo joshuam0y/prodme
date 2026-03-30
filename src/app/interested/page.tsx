@@ -90,15 +90,21 @@ export default async function InterestedPage({
     );
   }
 
-  const { data: myRatings } = await supabase
-    .from("profile_ratings")
-    .select("target_id, rating")
-    .eq("viewer_id", user.id)
-    .in("target_id", orderedIds);
+  let ratingByTargetId = new Map<string, number>();
+  try {
+    const { data: myRatings } = await supabase
+      .from("profile_ratings")
+      .select("target_id, rating")
+      .eq("viewer_id", user.id)
+      .in("target_id", orderedIds);
 
-  const ratingByTargetId = new Map(
-    (myRatings ?? []).map((r) => [r.target_id as string, r.rating as number]),
-  );
+    ratingByTargetId = new Map(
+      (myRatings ?? []).map((r) => [r.target_id as string, r.rating as number]),
+    );
+  } catch {
+    // Ratings optional; if table doesn't exist yet, show rating editor in disabled mode.
+    ratingByTargetId = new Map();
+  }
 
   const byId = new Map(profiles.map((p) => [p.id, p]));
   const ordered = orderedIds

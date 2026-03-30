@@ -56,15 +56,24 @@ export default async function ProfilePage() {
 
   const incomplete = !isProfileQuestionnaireComplete(profile);
 
-  const { data: ratingRows } = await supabase
-    .from("profile_ratings")
-    .select("rating")
-    .eq("target_id", user.id);
-  const ratingCount = ratingRows?.length ?? 0;
-  const ratingAvg =
-    ratingCount > 0
-      ? ratingRows!.reduce((sum, r) => sum + r.rating, 0) / ratingCount
-      : null;
+  let ratingAvg: number | null = null;
+  let ratingCount = 0;
+  let ratingsDisabled = false;
+  try {
+    const { data: ratingRows } = await supabase
+      .from("profile_ratings")
+      .select("rating")
+      .eq("target_id", user.id);
+    ratingCount = ratingRows?.length ?? 0;
+    ratingAvg =
+      ratingCount > 0
+        ? ratingRows!.reduce((sum, r) => sum + r.rating, 0) / ratingCount
+        : null;
+  } catch {
+    ratingAvg = null;
+    ratingCount = 0;
+    ratingsDisabled = true;
+  }
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
@@ -121,7 +130,11 @@ export default async function ProfilePage() {
             Community rating
           </dt>
           <dd className="mt-1 text-zinc-100">
-            {ratingAvg !== null ? (
+            {ratingsDisabled ? (
+              <span className="text-xs text-zinc-400">
+                Ratings disabled for now.
+              </span>
+            ) : ratingAvg !== null ? (
               <StarRatingDisplay average={ratingAvg} count={ratingCount} />
             ) : (
               "—"

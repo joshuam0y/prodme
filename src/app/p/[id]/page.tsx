@@ -73,25 +73,37 @@ export default async function PublicProfilePage({ params }: Props) {
   });
 
   const viewerId = viewer?.id ?? null;
-  const { data: ratingRows } = await supabase
-    .from("profile_ratings")
-    .select("rating")
-    .eq("target_id", id);
-  const ratingCount = ratingRows?.length ?? 0;
-  const ratingAvg =
-    ratingCount > 0
-      ? ratingRows!.reduce((sum, r) => sum + r.rating, 0) / ratingCount
-      : null;
-
+  let ratingAvg: number | null = null;
+  let ratingCount = 0;
   let viewerRating: number | null = null;
-  if (viewerId) {
-    const { data: myRow } = await supabase
+  let ratingsDisabled = false;
+
+  try {
+    const { data: ratingRows } = await supabase
       .from("profile_ratings")
       .select("rating")
-      .eq("viewer_id", viewerId)
-      .eq("target_id", id)
-      .maybeSingle();
-    if (myRow?.rating) viewerRating = myRow.rating;
+      .eq("target_id", id);
+    ratingCount = ratingRows?.length ?? 0;
+    ratingAvg =
+      ratingCount > 0
+        ? ratingRows!.reduce((sum, r) => sum + r.rating, 0) / ratingCount
+        : null;
+
+    if (viewerId) {
+      const { data: myRow } = await supabase
+        .from("profile_ratings")
+        .select("rating")
+        .eq("viewer_id", viewerId)
+        .eq("target_id", id)
+        .maybeSingle();
+      if (myRow?.rating) viewerRating = myRow.rating;
+    }
+  } catch {
+    // Ratings are optional; if the table doesn't exist yet, just hide the section.
+    ratingAvg = null;
+    ratingCount = 0;
+    viewerRating = null;
+    ratingsDisabled = true;
   }
 
   return (
@@ -148,7 +160,17 @@ export default async function PublicProfilePage({ params }: Props) {
         </section>
       ) : null}
 
-      {ratingAvg !== null ? (
+      {ratingsDisabled ? (
+        <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
+          <h2 className="text-xs font-medium uppercase tracking-wider text-amber-500/90">
+            Community rating
+          </h2>
+          <p className="mt-3 text-sm text-zinc-400">
+            Ratings are disabled for now. Run the latest Supabase migration (
+            <code className="text-xs text-zinc-300">006_profile_ratings.sql</code>).
+          </p>
+        </section>
+      ) : ratingAvg !== null ? (
         <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
           <h2 className="text-xs font-medium uppercase tracking-wider text-amber-500/90">
             Community rating
