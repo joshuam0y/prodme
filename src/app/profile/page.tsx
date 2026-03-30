@@ -2,20 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { formatDisplayDate } from "@/lib/format-date";
 import type { DbProfile } from "@/lib/types";
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return "—";
-  }
-}
 
 export default async function ProfilePage() {
   if (!isSupabaseConfigured()) {
@@ -93,7 +81,7 @@ export default async function ProfilePage() {
             Profile completed
           </dt>
           <dd className="mt-1 text-zinc-100">
-            {formatDate(profile?.onboarding_completed_at ?? null)}
+            {formatDisplayDate(profile?.onboarding_completed_at)}
           </dd>
         </div>
       </dl>
