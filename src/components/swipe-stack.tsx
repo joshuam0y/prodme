@@ -20,6 +20,11 @@ const roleLabel: Record<ProfileCard["role"], string> = {
 const THRESHOLD_PX = 72;
 const MAX_EXTRA = 5;
 
+function isInteractivePointerTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  return Boolean(target.closest("button, a[href], [role='button']"));
+}
+
 type PlayingMeta = { id: string; title: string; coverUrl: string };
 
 export function SwipeStack({ profiles }: Props) {
@@ -114,6 +119,8 @@ export function SwipeStack({ profiles }: Props) {
   );
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isInteractivePointerTarget(e.target)) return;
+
     gestureStarted.current = true;
     const a = audioRef.current;
     if (
