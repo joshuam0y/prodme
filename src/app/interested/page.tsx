@@ -6,8 +6,14 @@ import {
   setInterestedPipelineStage,
   type InterestedStage,
 } from "@/app/interested/actions";
+import {
+  saveLeadOutreachDraft,
+  setLeadOutreachStatus,
+  type LeadOutreachStatus,
+} from "@/app/leads/actions";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { LeadMessageTools } from "@/components/lead-message-tools";
 import { ProfileRatingEditor } from "@/components/profile-rating-editor";
 
 function roleLabel(raw: string | null): string {
@@ -158,6 +164,30 @@ export default async function InterestedPage({
     pipelineByTarget = new Map();
   }
 
+  let outreachByTarget = new Map<
+    string,
+    { status: LeadOutreachStatus; messageDraft: string | null; lastContactedAt: string | null }
+  >();
+  try {
+    const { data: outreachRows } = await supabase
+      .from("lead_outreach")
+      .select("target_id, status, message_draft, last_contacted_at")
+      .eq("viewer_id", user.id)
+      .in("target_id", orderedIds);
+    outreachByTarget = new Map(
+      (outreachRows ?? []).map((r) => [
+        r.target_id as string,
+        {
+          status: (r.status as LeadOutreachStatus) ?? "draft",
+          messageDraft: (r.message_draft as string | null) ?? null,
+          lastContactedAt: (r.last_contacted_at as string | null) ?? null,
+        },
+      ]),
+    );
+  } catch {
+    outreachByTarget = new Map();
+  }
+
   if (stageFilter !== "all") {
     ordered = ordered.filter((p) => (pipelineByTarget.get(p.id)?.stage ?? "new") === stageFilter);
   }
@@ -253,6 +283,8 @@ export default async function InterestedPage({
           const city = p.city?.trim();
           const pipeline = pipelineByTarget.get(p.id);
           const stage = pipeline?.stage ?? "new";
+          const outreach = outreachByTarget.get(p.id);
+          const outreachStatus = outreach?.status ?? "draft";
           return (
             <li key={p.id}>
               <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 sm:px-4">
@@ -351,6 +383,63 @@ export default async function InterestedPage({
                       className="mt-2 rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
                     >
                       Save note
+                    </button>
+                  </form>
+                </div>
+
+                <div className="mt-3 rounded-lg border border-white/10 bg-zinc-950/30 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                    Outreach message
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(["draft", "sent", "follow_up"] as const).map((s) => (
+                      <form
+                        key={s}
+                        action={async () => {
+                          "use server";
+                          await setLeadOutreachStatus(p.id, s, "/interested");
+                          redirect(`/interested?notice=Outreach%20updated&${keepQuery}`);
+                        }}
+                      >
+                        <button
+                          type="submit"
+                          className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                            outreachStatus === s
+                              ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-500/35"
+                              : "border border-white/15 text-zinc-300 hover:bg-white/5"
+                          }`}
+                        >
+                          {s === "follow_up" ? "Follow-up" : s[0].toUpperCase() + s.slice(1)}
+                        </button>
+                      </form>
+                    ))}
+                  </div>
+                  {outreach?.lastContactedAt ? (
+                    <p className="mt-2 text-[11px] text-zinc-500">
+                      Last contacted {new Date(outreach.lastContactedAt).toLocaleString()}
+                    </p>
+                  ) : null}
+                  <form
+                    className="mt-3"
+                    action={async (formData) => {
+                      "use server";
+                      const draft = String(formData.get("draft") ?? "");
+                      await saveLeadOutreachDraft(p.id, draft, "/interested");
+                      redirect(`/interested?notice=Draft%20saved&${keepQuery}`);
+                    }}
+                  >
+                    <LeadMessageTools
+                      displayName={name}
+                      roleLabel={roleLabel(p.role)}
+                      context="interested"
+                      defaultDraft={outreach?.messageDraft ?? ""}
+                      textareaName="draft"
+                    />
+                    <button
+                      type="submit"
+                      className="mt-2 rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
+                    >
+                      Save draft
                     </button>
                   </form>
                 </div>

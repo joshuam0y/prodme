@@ -552,16 +552,6 @@ export function SwipeStack({ profiles, viewerId }: Props) {
         </div>
       )}
 
-      {nextProfile ? (
-        <div className="pointer-events-none absolute inset-x-3 top-2 z-0 h-full rounded-2xl border border-white/10 bg-zinc-800/30 opacity-70">
-          <div className={`h-20 rounded-t-2xl bg-gradient-to-br ${nextProfile.accent} opacity-60`} />
-          <div className="px-4 py-3">
-            <p className="truncate text-sm font-medium text-zinc-300">{nextProfile.displayName}</p>
-            <p className="mt-1 text-xs text-zinc-500">{roleLabel[nextProfile.role]}</p>
-          </div>
-        </div>
-      ) : null}
-
       <div
         role="group"
         aria-label="Profile card — drag to pass, save, or show interest"
@@ -825,6 +815,15 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           )}
         </div>
       </div>
+
+      {nextProfile ? (
+        <div className="pointer-events-none mt-2 rounded-xl border border-white/10 bg-zinc-900/45 px-3 py-2">
+          <p className="text-[10px] uppercase tracking-wider text-zinc-500">Up next</p>
+          <p className="mt-0.5 truncate text-sm font-medium text-zinc-300">
+            {nextProfile.displayName} · {roleLabel[nextProfile.role]}
+          </p>
+        </div>
+      ) : null}
 
       <div className="mt-8 flex flex-col gap-4">
         <div className="flex justify-center gap-4">

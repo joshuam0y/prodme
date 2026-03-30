@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { removeDiscoverAction, setDiscoverAction } from "@/app/explore/actions";
+import {
+  saveLeadOutreachDraft,
+  setLeadOutreachStatus,
+  type LeadOutreachStatus,
+} from "@/app/leads/actions";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { LeadMessageTools } from "@/components/lead-message-tools";
 import { ProfileRatingEditor } from "@/components/profile-rating-editor";
 
 function roleLabel(raw: string | null): string {
@@ -39,6 +45,7 @@ export default async function SavedPage({
   const notice = params.notice ? decodeURIComponent(params.notice) : null;
   const undoTarget = params.undoTarget ?? null;
   const undoAction = params.undoAction ?? null;
+  const keepQuery = "";
 
   const { data: rows, error: swipeError } = await supabase
     .from("discover_swipes")
@@ -111,6 +118,30 @@ export default async function SavedPage({
   const ordered = orderedIds
     .map((id) => byId.get(id))
     .filter((p): p is NonNullable<typeof p> => Boolean(p));
+
+  let outreachByTarget = new Map<
+    string,
+    { status: LeadOutreachStatus; messageDraft: string | null; lastContactedAt: string | null }
+  >();
+  try {
+    const { data: outreachRows } = await supabase
+      .from("lead_outreach")
+      .select("target_id, status, message_draft, last_contacted_at")
+      .eq("viewer_id", user.id)
+      .in("target_id", orderedIds);
+    outreachByTarget = new Map(
+      (outreachRows ?? []).map((r) => [
+        r.target_id as string,
+        {
+          status: (r.status as LeadOutreachStatus) ?? "draft",
+          messageDraft: (r.message_draft as string | null) ?? null,
+          lastContactedAt: (r.last_contacted_at as string | null) ?? null,
+        },
+      ]),
+    );
+  } catch {
+    outreachByTarget = new Map();
+  }
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
@@ -193,6 +224,69 @@ export default async function SavedPage({
                     </button>
                   </form>
                 </div>
+
+                {(() => {
+                  const outreach = outreachByTarget.get(p.id);
+                  const outreachStatus = outreach?.status ?? "draft";
+                  return (
+                    <div className="mt-3 rounded-lg border border-white/10 bg-zinc-950/30 p-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                        Outreach prep
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {(["draft", "sent", "follow_up"] as const).map((s) => (
+                          <form
+                            key={s}
+                            action={async () => {
+                              "use server";
+                              await setLeadOutreachStatus(p.id, s, "/saved");
+                              redirect(`/saved?notice=Outreach%20updated${keepQuery}`);
+                            }}
+                          >
+                            <button
+                              type="submit"
+                              className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                                outreachStatus === s
+                                  ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-500/35"
+                                  : "border border-white/15 text-zinc-300 hover:bg-white/5"
+                              }`}
+                            >
+                              {s === "follow_up" ? "Follow-up" : s[0].toUpperCase() + s.slice(1)}
+                            </button>
+                          </form>
+                        ))}
+                      </div>
+                      {outreach?.lastContactedAt ? (
+                        <p className="mt-2 text-[11px] text-zinc-500">
+                          Last contacted {new Date(outreach.lastContactedAt).toLocaleString()}
+                        </p>
+                      ) : null}
+                      <form
+                        className="mt-3"
+                        action={async (formData) => {
+                          "use server";
+                          const draft = String(formData.get("draft") ?? "");
+                          await saveLeadOutreachDraft(p.id, draft, "/saved");
+                          redirect(`/saved?notice=Draft%20saved${keepQuery}`);
+                        }}
+                      >
+                        <LeadMessageTools
+                          displayName={name}
+                          roleLabel={roleLabel(p.role)}
+                          context="saved"
+                          defaultDraft={outreach?.messageDraft ?? ""}
+                          textareaName="draft"
+                        />
+                        <button
+                          type="submit"
+                          className="mt-2 rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
+                        >
+                          Save draft
+                        </button>
+                      </form>
+                    </div>
+                  );
+                })()}
 
                 <ProfileRatingEditor
                   targetId={p.id}

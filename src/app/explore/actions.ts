@@ -129,6 +129,15 @@ export async function removeDiscoverAction(
     // Optional table in progressive rollouts.
   }
 
+  const { error: outreachErr } = await supabase
+    .from("lead_outreach")
+    .delete()
+    .eq("viewer_id", user.id)
+    .eq("target_id", targetId);
+  if (outreachErr) {
+    // Optional table in progressive rollouts.
+  }
+
   revalidatePath(pathToRevalidate);
   return { ok: true };
 }
