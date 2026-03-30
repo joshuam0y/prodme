@@ -86,7 +86,7 @@ export async function getLiveProfileCards(
       city: row.city?.trim() || "—",
       niche,
       bio: goal || niche,
-      highlight: niche,
+      highlight: goal || niche,
       accent: accentForRole(role),
       starBeat,
       extraBeats,

@@ -13,7 +13,7 @@ function roleLabel(raw: string | null): string {
   return "Artist";
 }
 
-export default async function SavedPage({
+export default async function InterestedPage({
   searchParams,
 }: {
   searchParams: Promise<{
@@ -32,7 +32,7 @@ export default async function SavedPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login?next=/saved");
+    redirect("/login?next=/interested");
   }
   const params = await searchParams;
   const notice = params.notice ? decodeURIComponent(params.notice) : null;
@@ -43,16 +43,14 @@ export default async function SavedPage({
     .from("discover_swipes")
     .select("target_id, created_at")
     .eq("viewer_id", user.id)
-    .eq("action", "save")
+    .eq("action", "interested")
     .order("created_at", { ascending: false });
 
   if (swipeError) {
     return (
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
         <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-          Couldn&apos;t load saved profiles. Run the latest Supabase migrations
-          (including <code className="text-red-100">004_discover_swipes</code>)
-          and try again.
+          Couldn&apos;t load interested profiles yet. Run the latest migrations and try again.
         </p>
       </main>
     );
@@ -63,10 +61,10 @@ export default async function SavedPage({
     return (
       <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 py-10 sm:px-6">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
-          Saved for later
+          Interested
         </h1>
         <p className="mt-3 text-sm text-zinc-500">
-          When you tap ★ on Discover, profiles show up here.
+          Swipe up on Discover to mark profiles you want to buy from or work with.
         </p>
         <Link
           href="/explore"
@@ -80,7 +78,7 @@ export default async function SavedPage({
 
   const { data: profiles, error: profileError } = await supabase
     .from("profiles")
-    .select("id, display_name, role, niche, city, onboarding_completed_at")
+    .select("id, display_name, role, niche, city")
     .in("id", orderedIds);
 
   if (profileError || !profiles?.length) {
@@ -99,10 +97,10 @@ export default async function SavedPage({
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
       <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
-        Saved for later
+        Interested
       </h1>
       <p className="mt-2 text-sm text-zinc-500">
-        From Discover — tap a name to open their public profile.
+        Profiles you swiped up on. Messaging and checkout are next.
       </p>
       {notice ? (
         <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-100">
@@ -111,8 +109,8 @@ export default async function SavedPage({
             <form
               action={async () => {
                 "use server";
-                await setDiscoverAction(undoTarget, undoAction, "/saved");
-                redirect("/saved?notice=Undone");
+                await setDiscoverAction(undoTarget, undoAction, "/interested");
+                redirect("/interested?notice=Undone");
               }}
             >
               <button
@@ -147,25 +145,25 @@ export default async function SavedPage({
                   <form
                     action={async () => {
                       "use server";
-                      await setDiscoverAction(p.id, "interested", "/saved");
+                      await setDiscoverAction(p.id, "save", "/interested");
                       redirect(
-                        `/saved?notice=${encodeURIComponent("Moved to Interested")}&undoTarget=${encodeURIComponent(p.id)}&undoAction=save`,
+                        `/interested?notice=${encodeURIComponent("Moved to Saved")}&undoTarget=${encodeURIComponent(p.id)}&undoAction=interested`,
                       );
                     }}
                   >
                     <button
                       type="submit"
-                      className="rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-300 transition hover:bg-amber-500/20"
+                      className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/20"
                     >
-                      Move to Interested
+                      Move to Saved
                     </button>
                   </form>
                   <form
                     action={async () => {
                       "use server";
-                      await removeDiscoverAction(p.id, "/saved");
+                      await removeDiscoverAction(p.id, "/interested");
                       redirect(
-                        `/saved?notice=${encodeURIComponent("Removed from Saved")}&undoTarget=${encodeURIComponent(p.id)}&undoAction=save`,
+                        `/interested?notice=${encodeURIComponent("Removed from Interested")}&undoTarget=${encodeURIComponent(p.id)}&undoAction=interested`,
                       );
                     }}
                   >

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { recordDiscoverAction } from "@/app/explore/actions";
 import type { BeatPreview, ProfileCard } from "@/lib/types";
 import { isUuid } from "@/lib/uuid";
@@ -21,6 +21,26 @@ const roleLabel: Record<ProfileCard["role"], string> = {
 const THRESHOLD_PX = 72;
 const MAX_EXTRA = 5;
 
+const DISMISSED_KEY = "prodme.discover.dismissedIds";
+
+function loadDismissedIds(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(DISMISSED_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw) as unknown;
+    if (!Array.isArray(arr)) return new Set();
+    return new Set(arr.filter((x): x is string => typeof x === "string"));
+  } catch {
+    return new Set();
+  }
+}
+
+function persistDismissedIds(ids: Set<string>) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(DISMISSED_KEY, JSON.stringify([...ids]));
+}
+
 function isInteractivePointerTarget(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
   return Boolean(target.closest("button, a[href], [role='button']"));
@@ -29,7 +49,7 @@ function isInteractivePointerTarget(target: EventTarget | null): boolean {
 type PlayingMeta = { id: string; title: string; coverUrl: string };
 
 export function SwipeStack({ profiles }: Props) {
-  const [index, setIndex] = useState(0);
+  const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const [exitDir, setExitDir] = useState<"left" | "right" | "up" | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [drag, setDrag] = useState({ x: 0, y: 0 });
@@ -41,8 +61,17 @@ export function SwipeStack({ profiles }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const gestureStarted = useRef(false);
 
-  const current = profiles[index];
-  const done = index >= profiles.length;
+  useEffect(() => {
+    setDismissed(loadDismissedIds());
+  }, []);
+
+  const visibleProfiles = useMemo(
+    () => profiles.filter((p) => !dismissed.has(p.id)),
+    [profiles, dismissed],
+  );
+
+  const current = visibleProfiles[0];
+  const done = profiles.length > 0 && !current;
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -76,7 +105,7 @@ export function SwipeStack({ profiles }: Props) {
       });
     };
     if (gestureStarted.current) tryPlay();
-  }, [index, current?.id, current?.starBeat]);
+  }, [current?.id, current?.starBeat]);
 
   const playBeat = useCallback((beat: BeatPreview) => {
     gestureStarted.current = true;
@@ -112,27 +141,34 @@ export function SwipeStack({ profiles }: Props) {
 
   const advance = useCallback(
     (dir: "left" | "right" | "up") => {
-      if (!current || done) return;
+      const top = visibleProfiles[0];
+      if (!top) return;
       const action =
         dir === "left" ? "pass" : dir === "right" ? "save" : "interested";
-      if (isUuid(current.id)) {
-        void recordDiscoverAction(current.id, action);
+      if (isUuid(top.id)) {
+        void recordDiscoverAction(top.id, action);
       }
       const a = audioRef.current;
       if (a) {
         a.pause();
       }
+      const dismissedId = top.id;
       setDrag({ x: 0, y: 0 });
       setExitDir(dir);
       if (dir === "up") {
-        showToast("We’ll connect you when messaging ships.");
+        showToast("Added to Interested.");
       }
       window.setTimeout(() => {
         setExitDir(null);
-        setIndex((i) => i + 1);
+        setDismissed((prev) => {
+          const next = new Set(prev);
+          next.add(dismissedId);
+          persistDismissedIds(next);
+          return next;
+        });
       }, 220);
     },
-    [current, done, showToast],
+    [visibleProfiles, showToast],
   );
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -212,7 +248,10 @@ export function SwipeStack({ profiles }: Props) {
         </p>
         <button
           type="button"
-          onClick={() => setIndex(0)}
+          onClick={() => {
+            setDismissed(new Set());
+            persistDismissedIds(new Set());
+          }}
           className="rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-zinc-950 transition-opacity hover:opacity-90"
         >
           Start over
@@ -292,7 +331,9 @@ export function SwipeStack({ profiles }: Props) {
               {current.niche}
             </span>
           </div>
-          <p className="text-sm leading-relaxed text-zinc-300">{current.bio}</p>
+          {star ? (
+            <p className="text-sm leading-relaxed text-zinc-300">{current.bio}</p>
+          ) : null}
 
           {star && heroCover ? (
             <div className="space-y-3 rounded-xl border border-white/5 bg-white/[0.04] p-4">
@@ -402,9 +443,11 @@ export function SwipeStack({ profiles }: Props) {
           ) : (
             <div className="rounded-xl border border-white/5 bg-white/[0.04] px-4 py-3">
               <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-                Best work
+                Profile note
               </p>
-              <p className="mt-1 text-sm text-zinc-200">{current.highlight}</p>
+              <p className="mt-1 text-sm text-zinc-200">
+                {current.bio || current.highlight}
+              </p>
             </div>
           )}
         </div>

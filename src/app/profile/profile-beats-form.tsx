@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import type { DbExtraBeat } from "@/lib/profile-beats";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { updateProfileBeats } from "./actions";
@@ -55,6 +55,7 @@ async function uploadToBucket(
 export function ProfileBeatsForm({ initial }: { initial: ProfileBeatsInitial }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const refreshTimer = useRef<number | null>(null);
   const [message, setMessage] = useState<
     { kind: "ok"; text: string } | { kind: "err"; text: string } | null
   >(null);
@@ -74,6 +75,14 @@ export function ProfileBeatsForm({ initial }: { initial: ProfileBeatsInitial }) 
         }))
       : [],
   );
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimer.current !== null) {
+        window.clearTimeout(refreshTimer.current);
+      }
+    };
+  }, []);
 
   function setSlot(i: number, patch: Partial<ExtraSlot>) {
     setSlots((rows) => rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
@@ -179,7 +188,12 @@ export function ProfileBeatsForm({ initial }: { initial: ProfileBeatsInitial }) 
           kind: "ok",
           text: "Saved — discover will use these previews.",
         });
-        router.refresh();
+        if (refreshTimer.current !== null) {
+          window.clearTimeout(refreshTimer.current);
+        }
+        refreshTimer.current = window.setTimeout(() => {
+          router.refresh();
+        }, 2500);
       } catch (e) {
         setMessage({
           kind: "err",

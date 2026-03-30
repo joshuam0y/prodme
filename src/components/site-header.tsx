@@ -5,6 +5,7 @@ import { signOut } from "@/app/auth/actions";
 const allNavLinks = [
   { href: "/explore", label: "Discover" },
   { href: "/saved", label: "Saved", authOnly: true },
+  { href: "/interested", label: "Interested", authOnly: true },
   { href: "/bundles", label: "Bundles" },
   { href: "/onboarding", label: "Profile", hideWhenProfileComplete: true },
 ] as const;

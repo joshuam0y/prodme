@@ -29,12 +29,12 @@ export default async function Home({
             Explore first · no payments at launch
           </p>
           <h1 className="text-balance text-4xl font-semibold tracking-tight text-zinc-50 sm:text-5xl">
-            LinkedIn meets Hinge for{" "}
-            <span className="text-amber-400">producers & artists</span>
+            Discover and connect with{" "}
+            <span className="text-amber-400">music collaborators</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-pretty text-lg leading-relaxed text-zinc-400">
-            Show your work, state your niche, and get in front of people who are
-            actually looking — not just another cold DM into the void.
+            Build a profile, share your sound, and find artists, producers, DJs,
+            and venues that match your niche and goals.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Link
