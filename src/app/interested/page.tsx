@@ -1,36 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { removeDiscoverAction, setDiscoverAction } from "@/app/explore/actions";
-import {
-  saveInterestedPipelineNote,
-  setInterestedPipelineStage,
-  type InterestedStage,
-} from "@/app/interested/actions";
-import {
-  saveLeadOutreachDraft,
-  setLeadOutreachStatus,
-  type LeadOutreachStatus,
-} from "@/app/leads/actions";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
-import { LeadMessageTools } from "@/components/lead-message-tools";
 import { ProfileRatingEditor } from "@/components/profile-rating-editor";
-
-function roleLabel(raw: string | null): string {
-  const s = (raw ?? "").toLowerCase();
-  if (s.includes("producer")) return "Producer";
-  if (s.includes("dj")) return "DJ";
-  if (s.includes("venue") || s.includes("promoter")) return "Venue";
-  if (s.includes("artist")) return "Artist";
-  return "Artist";
-}
-
-const STAGES: { id: InterestedStage; label: string }[] = [
-  { id: "new", label: "New" },
-  { id: "contacted", label: "Contacted" },
-  { id: "negotiating", label: "Negotiating" },
-  { id: "closed", label: "Closed" },
-];
+import { profileInitials } from "@/lib/match-ui";
+import { roleLabel } from "@/lib/role-label";
 
 export default async function InterestedPage({
   searchParams,
@@ -39,8 +14,6 @@ export default async function InterestedPage({
     notice?: string;
     undoTarget?: string;
     undoAction?: "save" | "interested";
-    stage?: InterestedStage | "all";
-    sort?: "recent" | "stage";
   }>;
 }) {
   if (!isSupabaseConfigured()) {
@@ -59,16 +32,6 @@ export default async function InterestedPage({
   const notice = params.notice ? decodeURIComponent(params.notice) : null;
   const undoTarget = params.undoTarget ?? null;
   const undoAction = params.undoAction ?? null;
-  const stageFilter =
-    params.stage === "new" ||
-    params.stage === "contacted" ||
-    params.stage === "negotiating" ||
-    params.stage === "closed" ||
-    params.stage === "all"
-      ? params.stage
-      : "all";
-  const sortMode = params.sort === "stage" ? "stage" : "recent";
-  const keepQuery = `stage=${encodeURIComponent(stageFilter)}&sort=${encodeURIComponent(sortMode)}`;
 
   const { data: rows, error: swipeError } = await supabase
     .from("discover_swipes")
@@ -88,17 +51,24 @@ export default async function InterestedPage({
   }
 
   const orderedIds = rows?.map((r) => r.target_id) ?? [];
-  const createdAtByTarget = new Map(
-    (rows ?? []).map((r) => [r.target_id as string, r.created_at as string]),
+
+  const { data: incomingMutuals } = await supabase
+    .from("discover_swipes")
+    .select("viewer_id")
+    .eq("target_id", user.id)
+    .in("action", ["save", "interested"]);
+
+  const likedMeBack = new Set(
+    (incomingMutuals ?? []).map((r) => r.viewer_id as string),
   );
+
   if (!orderedIds.length) {
     return (
       <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 py-10 sm:px-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
-          Interested
-        </h1>
-        <p className="mt-3 text-sm text-zinc-500">
-          Swipe up on Discover to mark profiles you want to buy from or work with.
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">Interested</h1>
+        <p className="mt-3 max-w-md text-sm leading-relaxed text-zinc-500">
+          Swipe up on Discover on people you want to work with. If you both like each other,
+          you&apos;ll match and can chat in Messages — no extra steps.
         </p>
         <Link
           href="/explore"
@@ -135,136 +105,33 @@ export default async function InterestedPage({
       (myRatings ?? []).map((r) => [r.target_id as string, r.rating as number]),
     );
   } catch {
-    // Ratings optional; if table doesn't exist yet, show rating editor in disabled mode.
     ratingByTargetId = new Map();
   }
 
   const byId = new Map(profiles.map((p) => [p.id, p]));
-  let ordered = orderedIds
+  const ordered = orderedIds
     .map((id) => byId.get(id))
     .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
-  let pipelineByTarget = new Map<string, { stage: InterestedStage; note: string | null }>();
-  try {
-    const { data: pipelineRows } = await supabase
-      .from("interested_pipeline")
-      .select("target_id, stage, note")
-      .eq("viewer_id", user.id)
-      .in("target_id", orderedIds);
-    pipelineByTarget = new Map(
-      (pipelineRows ?? []).map((r) => [
-        r.target_id as string,
-        {
-          stage: (r.stage as InterestedStage) ?? "new",
-          note: (r.note as string | null) ?? null,
-        },
-      ]),
-    );
-  } catch {
-    pipelineByTarget = new Map();
-  }
-
-  let outreachByTarget = new Map<
-    string,
-    { status: LeadOutreachStatus; messageDraft: string | null; lastContactedAt: string | null }
-  >();
-  try {
-    const { data: outreachRows } = await supabase
-      .from("lead_outreach")
-      .select("target_id, status, message_draft, last_contacted_at")
-      .eq("viewer_id", user.id)
-      .in("target_id", orderedIds);
-    outreachByTarget = new Map(
-      (outreachRows ?? []).map((r) => [
-        r.target_id as string,
-        {
-          status: (r.status as LeadOutreachStatus) ?? "draft",
-          messageDraft: (r.message_draft as string | null) ?? null,
-          lastContactedAt: (r.last_contacted_at as string | null) ?? null,
-        },
-      ]),
-    );
-  } catch {
-    outreachByTarget = new Map();
-  }
-
-  if (stageFilter !== "all") {
-    ordered = ordered.filter((p) => (pipelineByTarget.get(p.id)?.stage ?? "new") === stageFilter);
-  }
-  if (sortMode === "stage") {
-    const rank: Record<InterestedStage, number> = {
-      new: 0,
-      contacted: 1,
-      negotiating: 2,
-      closed: 3,
-    };
-    ordered = [...ordered].sort((a, b) => {
-      const sa = pipelineByTarget.get(a.id)?.stage ?? "new";
-      const sb = pipelineByTarget.get(b.id)?.stage ?? "new";
-      const byStage = rank[sa] - rank[sb];
-      if (byStage !== 0) return byStage;
-      return (createdAtByTarget.get(b.id) ?? "").localeCompare(createdAtByTarget.get(a.id) ?? "");
-    });
-  }
-
   return (
-    <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
-      <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
-        Interested
-      </h1>
-      <p className="mt-2 text-sm text-zinc-500">
-        Profiles you swiped up on. Messaging and checkout are next.
+    <main className="mx-auto w-full max-w-lg flex-1 px-4 pb-12 pt-8 sm:px-6">
+      <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">Interested</h1>
+      <p className="mt-2 max-w-md text-sm leading-relaxed text-zinc-500">
+        People you swiped up on. Mutual matches can message in{" "}
+        <Link href="/matches" className="font-medium text-amber-400/90 underline-offset-2 hover:underline">
+          Messages
+        </Link>
+        .
       </p>
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <span className="text-[11px] uppercase tracking-wider text-zinc-500">Stage</span>
-        {(["all", "new", "contacted", "negotiating", "closed"] as const).map((stage) => {
-          const href = `/interested?stage=${stage}&sort=${sortMode}`;
-          const active = stageFilter === stage;
-          return (
-            <Link
-              key={stage}
-              href={href}
-              className={`rounded-full px-2.5 py-1 text-xs transition ${
-                active
-                  ? "bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40"
-                  : "border border-white/15 text-zinc-300 hover:bg-white/5"
-              }`}
-            >
-              {stage === "all" ? "All" : stage[0].toUpperCase() + stage.slice(1)}
-            </Link>
-          );
-        })}
-        <span className="ml-2 text-[11px] uppercase tracking-wider text-zinc-500">Sort</span>
-        <Link
-          href={`/interested?stage=${stageFilter}&sort=recent`}
-          className={`rounded-full px-2.5 py-1 text-xs transition ${
-            sortMode === "recent"
-              ? "bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40"
-              : "border border-white/15 text-zinc-300 hover:bg-white/5"
-          }`}
-        >
-          Recent
-        </Link>
-        <Link
-          href={`/interested?stage=${stageFilter}&sort=stage`}
-          className={`rounded-full px-2.5 py-1 text-xs transition ${
-            sortMode === "stage"
-              ? "bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40"
-              : "border border-white/15 text-zinc-300 hover:bg-white/5"
-          }`}
-        >
-          By stage
-        </Link>
-      </div>
       {notice ? (
-        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-100">
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
           <span>{notice}</span>
           {undoTarget && (undoAction === "save" || undoAction === "interested") ? (
             <form
               action={async () => {
                 "use server";
                 await setDiscoverAction(undoTarget, undoAction, "/interested");
-                redirect(`/interested?notice=Undone&${keepQuery}`);
+                redirect("/interested?notice=Undone");
               }}
             >
               <button
@@ -277,43 +144,61 @@ export default async function InterestedPage({
           ) : null}
         </div>
       ) : null}
-      <ul className="mt-8 space-y-3">
+      <ul className="mt-8 space-y-2">
         {ordered.map((p) => {
           const name = p.display_name?.trim() || "Member";
           const city = p.city?.trim();
-          const pipeline = pipelineByTarget.get(p.id);
-          const stage = pipeline?.stage ?? "new";
-          const outreach = outreachByTarget.get(p.id);
-          const outreachStatus = outreach?.status ?? "draft";
+          const isMatch = likedMeBack.has(p.id);
+          const initials = profileInitials(p.display_name);
           return (
             <li key={p.id}>
-              <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 sm:px-4">
-                <Link
-                  href={`/p/${p.id}`}
-                  className="flex flex-col transition hover:text-amber-300"
-                >
-                  <span className="font-medium text-zinc-100">{name}</span>
-                  <span className="mt-0.5 text-xs text-zinc-500">
-                    {roleLabel(p.role)}
-                    {city ? ` · ${city}` : ""}
-                    {p.niche?.trim() ? ` · ${p.niche.trim()}` : ""}
-                  </span>
-                </Link>
-                <div className="mt-3 flex flex-wrap gap-2">
+              <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02]">
+                <div className="flex gap-3 p-4">
+                  <div
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-500/30 to-amber-700/20 text-xs font-semibold text-amber-50"
+                    aria-hidden
+                  >
+                    {initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={`/p/${p.id}`}
+                      className="font-semibold text-zinc-100 transition hover:text-amber-300"
+                    >
+                      {name}
+                    </Link>
+                    <p className="mt-0.5 text-xs text-zinc-500">
+                      {roleLabel(p.role)}
+                      {city ? ` · ${city}` : ""}
+                      {p.niche?.trim() ? ` · ${p.niche.trim()}` : ""}
+                    </p>
+                    {isMatch ? (
+                      <Link
+                        href={`/matches/${p.id}`}
+                        className="mt-3 inline-flex rounded-full bg-emerald-500/20 px-3 py-1.5 text-xs font-semibold text-emerald-200 ring-1 ring-emerald-500/35 transition hover:bg-emerald-500/30"
+                      >
+                        Open chat — you matched
+                      </Link>
+                    ) : (
+                      <p className="mt-2 text-xs text-zinc-500">Waiting for them to like you back.</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 border-t border-white/5 px-4 py-2">
                   <form
                     action={async () => {
                       "use server";
                       await setDiscoverAction(p.id, "save", "/interested");
                       redirect(
-                        `/interested?notice=${encodeURIComponent("Moved to Saved")}&undoTarget=${encodeURIComponent(p.id)}&undoAction=interested&${keepQuery}`,
+                        `/interested?notice=${encodeURIComponent("Moved to Saved")}&undoTarget=${encodeURIComponent(p.id)}&undoAction=interested`,
                       );
                     }}
                   >
                     <button
                       type="submit"
-                      className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/20"
+                      className="rounded-full border border-white/12 px-3 py-1 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
                     >
-                      Move to Saved
+                      Save for later
                     </button>
                   </form>
                   <form
@@ -321,133 +206,24 @@ export default async function InterestedPage({
                       "use server";
                       await removeDiscoverAction(p.id, "/interested");
                       redirect(
-                        `/interested?notice=${encodeURIComponent("Removed from Interested")}&undoTarget=${encodeURIComponent(p.id)}&undoAction=interested&${keepQuery}`,
+                        `/interested?notice=${encodeURIComponent("Removed")}&undoTarget=${encodeURIComponent(p.id)}&undoAction=interested`,
                       );
                     }}
                   >
                     <button
                       type="submit"
-                      className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
+                      className="rounded-full px-3 py-1 text-xs font-medium text-zinc-500 transition hover:text-red-300/90"
                     >
                       Remove
                     </button>
                   </form>
                 </div>
-
-                <div className="mt-3 rounded-lg border border-white/10 bg-zinc-950/30 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                    Pipeline stage
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {STAGES.map((s) => (
-                      <form
-                        key={s.id}
-                        action={async () => {
-                          "use server";
-                          await setInterestedPipelineStage(p.id, s.id, "/interested");
-                          redirect(`/interested?notice=Pipeline%20updated&${keepQuery}`);
-                        }}
-                      >
-                        <button
-                          type="submit"
-                          className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                            stage === s.id
-                              ? "bg-amber-500/25 text-amber-200 ring-1 ring-amber-500/40"
-                              : "border border-white/15 text-zinc-300 hover:bg-white/5"
-                          }`}
-                        >
-                          {s.label}
-                        </button>
-                      </form>
-                    ))}
-                  </div>
-                  <form
-                    className="mt-3"
-                    action={async (formData) => {
-                      "use server";
-                      const note = String(formData.get("note") ?? "");
-                      await saveInterestedPipelineNote(p.id, note, "/interested");
-                      redirect(`/interested?notice=Note%20saved&${keepQuery}`);
-                    }}
-                  >
-                    <label className="text-[11px] text-zinc-500">Private note</label>
-                    <textarea
-                      name="note"
-                      rows={2}
-                      defaultValue={pipeline?.note ?? ""}
-                      className="mt-1 w-full rounded-md border border-white/10 bg-zinc-900/70 px-2 py-1.5 text-xs text-zinc-200 outline-none focus:border-amber-500/60"
-                      placeholder="Contact details, timeline, budget, follow-up..."
-                    />
-                    <button
-                      type="submit"
-                      className="mt-2 rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
-                    >
-                      Save note
-                    </button>
-                  </form>
+                <div className="border-t border-white/5 px-4 pb-4 pt-2">
+                  <ProfileRatingEditor
+                    targetId={p.id}
+                    initialRating={ratingByTargetId.get(p.id) ?? null}
+                  />
                 </div>
-
-                <div className="mt-3 rounded-lg border border-white/10 bg-zinc-950/30 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                    Outreach message
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {(["draft", "sent", "follow_up"] as const).map((s) => (
-                      <form
-                        key={s}
-                        action={async () => {
-                          "use server";
-                          await setLeadOutreachStatus(p.id, s, "/interested");
-                          redirect(`/interested?notice=Outreach%20updated&${keepQuery}`);
-                        }}
-                      >
-                        <button
-                          type="submit"
-                          className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                            outreachStatus === s
-                              ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-500/35"
-                              : "border border-white/15 text-zinc-300 hover:bg-white/5"
-                          }`}
-                        >
-                          {s === "follow_up" ? "Follow-up" : s[0].toUpperCase() + s.slice(1)}
-                        </button>
-                      </form>
-                    ))}
-                  </div>
-                  {outreach?.lastContactedAt ? (
-                    <p className="mt-2 text-[11px] text-zinc-500">
-                      Last contacted {new Date(outreach.lastContactedAt).toLocaleString()}
-                    </p>
-                  ) : null}
-                  <form
-                    className="mt-3"
-                    action={async (formData) => {
-                      "use server";
-                      const draft = String(formData.get("draft") ?? "");
-                      await saveLeadOutreachDraft(p.id, draft, "/interested");
-                      redirect(`/interested?notice=Draft%20saved&${keepQuery}`);
-                    }}
-                  >
-                    <LeadMessageTools
-                      displayName={name}
-                      roleLabel={roleLabel(p.role)}
-                      context="interested"
-                      defaultDraft={outreach?.messageDraft ?? ""}
-                      textareaName="draft"
-                    />
-                    <button
-                      type="submit"
-                      className="mt-2 rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
-                    >
-                      Save draft
-                    </button>
-                  </form>
-                </div>
-
-                <ProfileRatingEditor
-                  targetId={p.id}
-                  initialRating={ratingByTargetId.get(p.id) ?? null}
-                />
               </div>
             </li>
           );

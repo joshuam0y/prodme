@@ -30,7 +30,7 @@ export default async function ExplorePage({
 
   let viewerId: string | null = null;
   let viewerRole: Role | null = null;
-  let teaserCount = mockProfiles.length;
+  let communityCount = mockProfiles.length;
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
     const {
@@ -43,21 +43,19 @@ export default async function ExplorePage({
       }`;
       redirect(`/login?next=${encodeURIComponent(nextPath)}`);
     }
-    if (viewerId) {
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", viewerId)
-        .maybeSingle();
-      if (prof?.role?.trim()) {
-        viewerRole = inferProfileRole(prof.role);
-      }
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", viewerId)
+      .maybeSingle();
+    if (prof?.role?.trim()) {
+      viewerRole = inferProfileRole(prof.role);
     }
     const { count } = await supabase
       .from("profiles")
       .select("id", { count: "exact", head: true })
       .not("onboarding_completed_at", "is", null);
-    teaserCount = viewerId ? count ?? 0 : Math.max(mockProfiles.length, count ?? 0);
+    communityCount = count ?? 0;
   }
 
   // Venues can only see creatives. If they request "Venues" filter, send them back.
@@ -66,7 +64,6 @@ export default async function ExplorePage({
   }
 
   const live = await getLiveProfileCards(viewerId, viewerId);
-  // Mix live profiles with local AI-synthetic cards to keep Discover populated.
   const pool = [...live, ...mockProfiles];
   const peerFiltered =
     viewerRole === "venue"
@@ -89,37 +86,27 @@ export default async function ExplorePage({
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
           Discover
         </h1>
-        <p className="mt-3 text-sm text-zinc-500">
+        <p className="mt-3 mx-auto max-w-xl text-sm leading-relaxed text-zinc-500">
           {viewerId ? (
             <>
-              Real completed profiles appear first; sample cards fill the rest.
+              Completed profiles rank first; sample cards keep the deck full.
               {viewerRole === "venue"
-                ? "As a venue, you only see creatives (producers, artists, and DJs)."
-                : "Producers/creatives can browse creatives together; switch to 'Venues' to see venue profiles."}{" "}
-              Open
-              <span className="text-zinc-400"> View full profile </span>
-              on real members to see their public page.
+                ? " You only browse creatives."
+                : " Filter by creatives or venues."}{" "}
+              <span className="text-zinc-400">Open a card → View full profile</span> for the public
+              page.
             </>
           ) : (
             <>
-              Swipe sample cards and real completed profiles first.{" "}
+              Demo stack ({communityCount} sample profiles). Add Supabase in{" "}
+              <code className="text-zinc-400">.env.local</code>, then{" "}
               <Link
                 href="/signup?next=/explore"
                 className="text-amber-400/95 underline-offset-2 hover:underline"
               >
-                Create an account
+                sign up
               </Link>{" "}
-              or{" "}
-              <Link
-                href="/login?next=/explore"
-                className="text-amber-400/95 underline-offset-2 hover:underline"
-              >
-                sign in
-              </Link>{" "}
-              to save stars and interested lists. About {teaserCount} profiles in
-              the community. Open
-              <span className="text-zinc-400"> View full profile </span> on
-              members to see their public page.
+              for real Discover, Likes, and Messages.
             </>
           )}
         </p>
@@ -133,7 +120,7 @@ export default async function ExplorePage({
             id="discover-filters"
             className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-zinc-500"
           >
-            Filter
+            Show
           </p>
           <div
             className="flex flex-wrap items-center justify-center gap-2"

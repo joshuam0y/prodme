@@ -76,7 +76,6 @@ export async function setDiscoverAction(
     return { ok: false };
   }
 
-  // Keep pipeline focused on active "interested" leads.
   if (action !== "interested") {
     const { error: pipelineErr } = await supabase
       .from("interested_pipeline")
@@ -84,7 +83,15 @@ export async function setDiscoverAction(
       .eq("viewer_id", user.id)
       .eq("target_id", targetId);
     if (pipelineErr) {
-      // Migration may not exist in some envs yet; ignore to keep core flow resilient.
+      /* optional table */
+    }
+    const { error: outreachErr } = await supabase
+      .from("lead_outreach")
+      .delete()
+      .eq("viewer_id", user.id)
+      .eq("target_id", targetId);
+    if (outreachErr) {
+      /* optional table */
     }
   }
 

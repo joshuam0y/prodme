@@ -3,15 +3,8 @@ import { redirect } from "next/navigation";
 import { setDiscoverAction } from "@/app/explore/actions";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
-
-function roleLabel(raw: string | null): string {
-  const s = (raw ?? "").toLowerCase();
-  if (s.includes("producer")) return "Producer";
-  if (s.includes("dj")) return "DJ";
-  if (s.includes("venue") || s.includes("promoter")) return "Venue";
-  if (s.includes("artist")) return "Artist";
-  return "Artist";
-}
+import { profileInitials } from "@/lib/match-ui";
+import { roleLabel } from "@/lib/role-label";
 
 export default async function LikesPage({
   searchParams,
@@ -79,72 +72,97 @@ export default async function LikesPage({
     null;
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
+    <main className="mx-auto w-full max-w-lg flex-1 px-4 pb-12 pt-8 sm:px-6">
       <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">Likes</h1>
-      <p className="mt-2 text-sm text-zinc-500">
-        Hinge-style flow: see who liked you, who you liked, and convert mutuals into matches.
+      <p className="mt-2 max-w-md text-sm leading-relaxed text-zinc-500">
+        Like someone back to match — then you&apos;ll chat in{" "}
+        <Link href="/matches" className="font-medium text-amber-400/90 underline-offset-2 hover:underline">
+          Messages
+        </Link>
+        .
       </p>
       {notice ? (
-        <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-100">
+        <p className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
           {notice}
         </p>
       ) : null}
       {queryError ? (
-        <p className="mt-4 rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-2.5 text-sm text-red-200">
+        <p className="mt-4 rounded-2xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           {queryError}
         </p>
       ) : null}
 
-      <section className="mt-8">
-        <h2 className="text-xs font-medium uppercase tracking-wider text-amber-500/90">Likes you</h2>
+      <section className="mt-10">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-400/90">
+          Likes you
+        </h2>
         {likesYouIds.length === 0 ? (
-          <p className="mt-3 text-sm text-zinc-500">No incoming likes yet.</p>
+          <p className="mt-4 rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-8 text-center text-sm text-zinc-500">
+            No one new yet. Keep swiping on Discover.
+          </p>
         ) : (
-          <ul className="mt-3 space-y-3">
+          <ul className="mt-4 space-y-2">
             {likesYouIds.map((id) => {
               const p = byId.get(id);
               const name = p?.display_name?.trim() || "Member";
+              const initials = profileInitials(p?.display_name ?? null);
               return (
-                <li key={id} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                  <Link href={`/p/${id}`} className="font-medium text-zinc-100 hover:text-amber-300">
-                    {name}
-                  </Link>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {p
-                      ? `${roleLabel(p.role)}${p.city?.trim() ? ` · ${p.city.trim()}` : ""}${
-                          p.niche?.trim() ? ` · ${p.niche.trim()}` : ""
-                        }`
-                      : "Profile unavailable — you can still like back or pass."}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <form
-                      action={async () => {
-                        "use server";
-                        await setDiscoverAction(id, "save", "/likes");
-                        redirect("/matches?notice=You%20matched");
-                      }}
-                    >
-                      <button
-                        type="submit"
-                        className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/20"
+                <li key={id}>
+                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.02]">
+                    <div className="flex gap-3 p-4">
+                      <div
+                        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-500/40 to-rose-500/20 text-sm font-semibold text-amber-50 ring-2 ring-amber-500/25"
+                        aria-hidden
                       >
-                        Like back
-                      </button>
-                    </form>
-                    <form
-                      action={async () => {
-                        "use server";
-                        await setDiscoverAction(id, "pass", "/likes");
-                        redirect("/likes?notice=Passed");
-                      }}
-                    >
-                      <button
-                        type="submit"
-                        className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
+                        {initials}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <Link
+                          href={`/p/${id}`}
+                          className="font-semibold text-zinc-50 transition hover:text-amber-300"
+                        >
+                          {name}
+                        </Link>
+                        <p className="mt-1 text-xs text-zinc-500">
+                          {p
+                            ? `${roleLabel(p.role)}${p.city?.trim() ? ` · ${p.city.trim()}` : ""}${
+                                p.niche?.trim() ? ` · ${p.niche.trim()}` : ""
+                              }`
+                            : "Profile hidden — you can still match or pass."}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 border-t border-white/5 px-4 py-3">
+                      <form
+                        className="flex-1"
+                        action={async () => {
+                          "use server";
+                          await setDiscoverAction(id, "save", "/likes");
+                          redirect("/matches?notice=It%27s%20a%20match");
+                        }}
                       >
-                        Pass
-                      </button>
-                    </form>
+                        <button
+                          type="submit"
+                          className="w-full rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-amber-500/20 transition hover:from-amber-400 hover:to-amber-500"
+                        >
+                          Like back
+                        </button>
+                      </form>
+                      <form
+                        action={async () => {
+                          "use server";
+                          await setDiscoverAction(id, "pass", "/likes");
+                          redirect("/likes?notice=Passed");
+                        }}
+                      >
+                        <button
+                          type="submit"
+                          className="rounded-full border border-white/15 px-4 py-2.5 text-sm font-medium text-zinc-400 transition hover:bg-white/5 hover:text-zinc-200"
+                        >
+                          Pass
+                        </button>
+                      </form>
+                    </div>
                   </div>
                 </li>
               );
@@ -153,23 +171,40 @@ export default async function LikesPage({
         )}
       </section>
 
-      <section className="mt-10">
-        <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">You liked</h2>
+      <section className="mt-12">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+          You liked
+        </h2>
         {youLikedIds.length === 0 ? (
-          <p className="mt-3 text-sm text-zinc-500">No outgoing likes yet.</p>
+          <p className="mt-4 text-sm text-zinc-500">No outgoing likes yet.</p>
         ) : (
-          <ul className="mt-3 space-y-3">
+          <ul className="mt-4 space-y-2">
             {youLikedIds.map((id) => {
               const p = byId.get(id);
               const name = p?.display_name?.trim() || "Member";
+              const initials = profileInitials(p?.display_name ?? null);
               return (
-                <li key={id} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                  <Link href={`/p/${id}`} className="font-medium text-zinc-100 hover:text-amber-300">
-                    {name}
+                <li key={id}>
+                  <Link
+                    href={`/p/${id}`}
+                    className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] p-3 transition hover:border-white/15 hover:bg-white/[0.05]"
+                  >
+                    <div
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-700/50 text-xs font-semibold text-zinc-200"
+                      aria-hidden
+                    >
+                      {initials}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="font-medium text-zinc-200">{name}</span>
+                      <p className="text-xs text-zinc-500">
+                        {p ? "We’ll notify you if they like you back." : "Like is saved."}
+                      </p>
+                    </div>
+                    <span className="text-zinc-600" aria-hidden>
+                      →
+                    </span>
                   </Link>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {p ? "Waiting for mutual like." : "Profile unavailable — your like is still recorded."}
-                  </p>
                 </li>
               );
             })}
