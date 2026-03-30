@@ -380,9 +380,9 @@ export function SwipeStack({ profiles, viewerId }: Props) {
             <Image
               src={lightboxUrl}
               alt=""
-              fill
-              sizes="(max-width: 768px) 100vw, 768px"
-              className="h-auto rounded-2xl object-contain"
+              width={1200}
+              height={1200}
+              className="max-h-[80vh] w-full rounded-2xl object-contain"
               unoptimized={lightboxUrl.includes("picsum.photos")}
             />
             <button
