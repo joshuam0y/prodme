@@ -26,3 +26,12 @@ Google Fonts in email are often stripped; templates use system fonts
 (Segoe UI, Roboto, Helvetica, Arial) for reliable rendering in Gmail/Outlook.
 
 Variables must stay exactly as Supabase expects: {{ .ConfirmationURL }}, {{ .Email }}, etc.
+
+Password reset / auth callback
+-----------------------------
+Under Authentication → URL configuration → Redirect URLs, allow your callback on every domain:
+  https://YOUR_PRODUCTION_DOMAIN/auth/callback
+  https://YOUR_PRODUCTION_DOMAIN/auth/callback?next=%2Fupdate-password
+(local + preview URLs as needed)
+
+If reset links redirect to Site URL with an error, the redirect URL is not allowlisted.

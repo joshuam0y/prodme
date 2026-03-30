@@ -2,8 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { getServerOrigin } from "@/lib/server-origin";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 
 function safeNext(path: string | null): string {
   if (!path || !path.startsWith("/") || path.startsWith("//")) {
@@ -42,11 +42,7 @@ export async function signUp(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const next = safeNext(String(formData.get("next") ?? "/onboarding"));
 
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const origin =
-    host != null ? `${proto}://${host}` : "http://localhost:3000";
+  const origin = await getServerOrigin();
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
@@ -76,6 +72,75 @@ export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/");
+}
+
+export async function requestPasswordReset(formData: FormData) {
+  if (!isSupabaseConfigured()) {
+    redirect("/forgot-password?error=not_configured");
+  }
+
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) {
+    redirect("/forgot-password?error=missing_email");
+  }
+
+  const origin = await getServerOrigin();
+  const callback = new URL("/auth/callback", origin);
+  callback.searchParams.set("next", "/update-password");
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: callback.toString(),
+  });
+
+  if (error) {
+    redirect(
+      `/forgot-password?error=${encodeURIComponent(error.message)}`,
+    );
+  }
+
+  redirect(
+    `/forgot-password?notice=${encodeURIComponent("If that email has an account, we sent a reset link.")}`,
+  );
+}
+
+export async function updatePassword(formData: FormData) {
+  if (!isSupabaseConfigured()) {
+    redirect("/update-password?error=not_configured");
+  }
+
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+
+  if (password.length < 8) {
+    redirect("/update-password?error=short");
+  }
+  if (password !== confirm) {
+    redirect("/update-password?error=mismatch");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(
+      `/forgot-password?error=${encodeURIComponent("Session expired — request a new reset link.")}`,
+    );
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    redirect(
+      `/update-password?error=${encodeURIComponent(error.message)}`,
+    );
+  }
+
+  redirect(
+    `/login?notice=${encodeURIComponent("Password updated. Sign in with your new password.")}`,
+  );
 }
 
 export type OnboardingPayload = {
