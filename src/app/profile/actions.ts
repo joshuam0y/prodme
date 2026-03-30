@@ -36,27 +36,38 @@ export async function updateProfileBeats(
     return { ok: false, error: "Sign in to save previews." };
   }
 
+  const { data: myRow } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const role = (myRow?.role ?? "").toLowerCase();
+  const isVenue = role.includes("venue") || role.includes("promoter");
+
   const extras = payload.extra_beats.slice(0, 5);
   if (extras.length !== payload.extra_beats.length) {
     return { ok: false, error: "You can add at most five extra beats." };
   }
 
-  let starAudio = payload.star_beat_audio_url?.trim() || null;
-  let starCover = payload.star_beat_cover_url?.trim() || null;
+  const starAudio = payload.star_beat_audio_url?.trim() || null;
+  const starCover = payload.star_beat_cover_url?.trim() || null;
   let starTitle = payload.star_beat_title?.trim() || null;
 
+  if (starCover && !isHttps(starCover)) {
+    return { ok: false, error: "Star track cover must use an HTTPS URL." };
+  }
+
   if (!starAudio) {
-    starTitle = null;
-    starCover = null;
+    // Venues: cover-only is expected.
+    // Creators: allow cover-only so users can add artwork / moodboard visuals.
+    if (!isVenue) starTitle = null;
   } else {
-    if (!starTitle) {
+    if (!starTitle && !isVenue) {
       return { ok: false, error: "Add a title for your star track." };
     }
     if (!isHttps(starAudio)) {
       return { ok: false, error: "Star track audio must use an HTTPS URL." };
-    }
-    if (starCover && !isHttps(starCover)) {
-      return { ok: false, error: "Star track cover must use an HTTPS URL." };
     }
   }
 
@@ -66,13 +77,40 @@ export async function updateProfileBeats(
     if (!t) {
       return { ok: false, error: `Extra beat ${i + 1}: add a title.` };
     }
-    if (!isHttps(e.audio_url)) {
+    const cover = (e.cover_url ?? "").trim();
+    const audio = e.audio_url?.trim() || null;
+
+    if (isVenue) {
+      // Venues: require cover photos; audio is optional.
+      if (!cover) {
+        return { ok: false, error: `Extra beat ${i + 1}: add a cover image URL.` };
+      }
+      if (!isHttps(cover)) {
+        return { ok: false, error: `Extra beat “${t}”: cover must use an HTTPS URL.` };
+      }
+      if (audio && !isHttps(audio)) {
+        return {
+          ok: false,
+          error: `Extra beat “${t}”: audio (if provided) must use an HTTPS URL.`,
+        };
+      }
+      continue;
+    }
+
+    // Creators/DJs: allow audio-only, cover-only, or both (moodboard visuals).
+    if (!audio && !cover) {
+      return {
+        ok: false,
+        error: `Extra beat “${t}”: add an audio URL or a cover image URL.`,
+      };
+    }
+    if (audio && !isHttps(audio)) {
       return {
         ok: false,
         error: `Extra beat “${t}”: audio must use an HTTPS URL.`,
       };
     }
-    if (e.cover_url.trim() && !isHttps(e.cover_url)) {
+    if (cover && !isHttps(cover)) {
       return {
         ok: false,
         error: `Extra beat “${t}”: cover must use an HTTPS URL.`,

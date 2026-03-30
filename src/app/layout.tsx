@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
 });
 
 const description =
-  "A bridge between artists, producers, DJs, and venues. Build your profile, discover by niche, explore bundles — payments later.";
+  "A bridge between artists, producers, DJs, and venues. Build your profile, discover by style, explore bundles — payments later.";
 
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),

@@ -66,9 +66,8 @@ export default async function ExplorePage({
   }
 
   const live = await getLiveProfileCards(viewerId, viewerId);
-  // Signed-in users should see only real profiles (so swipe outcomes stay
-  // globally consistent across devices). Mocks are for anonymous browsing only.
-  const pool = viewerId ? live : [...live, ...mockProfiles];
+  // Mix live profiles with local AI-synthetic cards to keep Discover populated.
+  const pool = [...live, ...mockProfiles];
   const peerFiltered =
     viewerRole === "venue"
       ? pool.filter((p) => p.role !== "venue")

@@ -21,7 +21,7 @@ function stepsForRole(role?: string) {
     },
     {
       id: "niche",
-      title: venue ? "What kind of events do you run?" : "What’s your niche?",
+      title: venue ? "What kind of events do you run?" : "What’s your style?",
       subtitle: venue
         ? "Tell us your vibe and audience — be specific."
         : "Genres, moods, or scenes — be specific.",

@@ -7,6 +7,7 @@ import { isProfileQuestionnaireComplete } from "@/lib/profile-completion";
 import { parseExtraBeats } from "@/lib/profile-beats";
 import type { DbProfile } from "@/lib/types";
 import { ProfileBeatsForm } from "./profile-beats-form";
+import { ProfileVenuePhotosForm } from "./profile-venue-photos-form";
 import { StarRatingDisplay } from "@/components/star-rating-display";
 
 export default async function ProfilePage() {
@@ -55,6 +56,8 @@ export default async function ProfilePage() {
   }
 
   const incomplete = !isProfileQuestionnaireComplete(profile);
+  const roleLower = (profile?.role ?? "").toLowerCase();
+  const isVenueProfile = roleLower.includes("venue") || roleLower.includes("promoter");
 
   let ratingAvg: number | null = null;
   let ratingCount = 0;
@@ -81,7 +84,7 @@ export default async function ProfilePage() {
         Your profile
       </h1>
       <p className="mt-1 text-sm text-zinc-500">
-        What others will use to understand your niche and goals.
+        What others will use to understand your style and goals.
       </p>
 
       {showError && error ? (
@@ -107,7 +110,7 @@ export default async function ProfilePage() {
         </div>
         <div>
           <dt className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-            Niche
+            Style
           </dt>
           <dd className="mt-1 text-zinc-100">{profile?.niche ?? "—"}</dd>
         </div>
@@ -167,15 +170,25 @@ export default async function ProfilePage() {
       </div>
 
       {!incomplete ? (
-        <ProfileBeatsForm
-          key={`${profile?.updated_at ?? ""}-${profile?.star_beat_audio_url ?? ""}`}
-          initial={{
-            starTitle: profile?.star_beat_title?.trim() ?? "",
-            starAudioUrl: profile?.star_beat_audio_url?.trim() ?? "",
-            starCoverUrl: profile?.star_beat_cover_url?.trim() ?? "",
-            extras: parseExtraBeats(profile?.extra_beats),
-          }}
-        />
+        isVenueProfile ? (
+          <ProfileVenuePhotosForm
+            key={`${profile?.updated_at ?? ""}-${profile?.star_beat_cover_url ?? ""}`}
+            initial={{
+              starCoverUrl: profile?.star_beat_cover_url?.trim() ?? "",
+              extras: parseExtraBeats(profile?.extra_beats),
+            }}
+          />
+        ) : (
+          <ProfileBeatsForm
+            key={`${profile?.updated_at ?? ""}-${profile?.star_beat_audio_url ?? ""}`}
+            initial={{
+              starTitle: profile?.star_beat_title?.trim() ?? "",
+              starAudioUrl: profile?.star_beat_audio_url?.trim() ?? "",
+              starCoverUrl: profile?.star_beat_cover_url?.trim() ?? "",
+              extras: parseExtraBeats(profile?.extra_beats),
+            }}
+          />
+        )
       ) : (
         <p className="mt-10 rounded-xl border border-white/5 bg-zinc-950/30 px-4 py-3 text-center text-sm text-zinc-500">
           Finish onboarding to add discover previews (star track + extra beats).

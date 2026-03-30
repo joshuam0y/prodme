@@ -4,7 +4,8 @@ export type Role = "producer" | "artist" | "dj" | "venue";
 export type BeatPreview = {
   id: string;
   title: string;
-  audioUrl: string;
+  /** Optional for venues (photos-only). */
+  audioUrl?: string;
   coverUrl: string;
 };
 

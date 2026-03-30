@@ -10,7 +10,7 @@ export async function middleware(request: NextRequest) {
     const code = url.searchParams.get("code");
     if (code) {
       const nextPath = resolvePostAuthRedirect(url.searchParams);
-      let redirectResponse = NextResponse.redirect(new URL(nextPath, request.url));
+      const redirectResponse = NextResponse.redirect(new URL(nextPath, request.url));
 
       const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,

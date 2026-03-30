@@ -73,6 +73,10 @@ export default async function PublicProfilePage({ params }: Props) {
   });
 
   const viewerId = viewer?.id ?? null;
+  const isVenueProfile =
+    profile.role?.toLowerCase().includes("venue") ||
+    profile.role?.toLowerCase().includes("promoter");
+  const anyExtraAudio = Boolean(extraBeats?.some((b) => Boolean(b.audioUrl)));
   let ratingAvg: number | null = null;
   let ratingCount = 0;
   let viewerRating: number | null = null;
@@ -187,40 +191,68 @@ export default async function PublicProfilePage({ params }: Props) {
       ) : null}
 
       {starBeat ? (
-        <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-amber-500/90">
-            Star track
-          </h2>
-          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-zinc-800 ring-1 ring-white/10">
-              <Image
-                src={starBeat.coverUrl}
-                alt=""
-                width={96}
-                height={96}
-                className="h-full w-full object-cover"
-                unoptimized={starBeat.coverUrl.includes("picsum.photos")}
-              />
+        isVenueProfile ? (
+          <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-amber-500/90">
+              Photo highlight
+            </h2>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-zinc-800 ring-1 ring-white/10">
+                <Image
+                  src={starBeat.coverUrl}
+                  alt=""
+                  width={96}
+                  height={96}
+                  className="h-full w-full object-cover"
+                  unoptimized={starBeat.coverUrl.includes("picsum.photos")}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-zinc-100">{starBeat.title}</p>
+                <p className="mt-1 text-sm text-zinc-400">
+                  Venue photos — swipe/discover for more.
+                </p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-medium text-zinc-100">{starBeat.title}</p>
-              <audio
-                controls
-                preload="none"
-                src={starBeat.audioUrl}
-                className="mt-2 h-9 w-full max-w-md"
-              >
-                <track kind="captions" />
-              </audio>
+          </section>
+        ) : (
+          <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-amber-500/90">
+              {starBeat.audioUrl ? "Star track" : "Featured photo"}
+            </h2>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-zinc-800 ring-1 ring-white/10">
+                <Image
+                  src={starBeat.coverUrl}
+                  alt=""
+                  width={96}
+                  height={96}
+                  className="h-full w-full object-cover"
+                  unoptimized={starBeat.coverUrl.includes("picsum.photos")}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-zinc-100">{starBeat.title}</p>
+                {starBeat.audioUrl ? (
+                  <audio
+                    controls
+                    preload="none"
+                    src={starBeat.audioUrl}
+                    className="mt-2 h-9 w-full max-w-md"
+                  >
+                    <track kind="captions" />
+                  </audio>
+                ) : null}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )
       ) : null}
 
       {extraBeats?.length ? (
         <section className="mt-6">
           <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-            More beats
+            {isVenueProfile ? "More photos" : anyExtraAudio ? "More beats" : "More photos"}
           </h2>
           <ul className="mt-3 space-y-3">
             {extraBeats.map((b) => (
@@ -239,9 +271,17 @@ export default async function PublicProfilePage({ params }: Props) {
                   />
                 </div>
                 <span className="min-w-0 flex-1 text-sm text-zinc-200">{b.title}</span>
-                <audio controls preload="none" src={b.audioUrl} className="h-8 w-full sm:w-48">
-                  <track kind="captions" />
-                </audio>
+                {profile.role?.toLowerCase().includes("venue") ||
+                profile.role?.toLowerCase().includes("promoter") ? null : b.audioUrl ? (
+                  <audio
+                    controls
+                    preload="none"
+                    src={b.audioUrl}
+                    className="h-8 w-full sm:w-48"
+                  >
+                    <track kind="captions" />
+                  </audio>
+                ) : null}
               </li>
             ))}
           </ul>

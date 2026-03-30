@@ -52,9 +52,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
   const signedIn = Boolean(viewerId && viewerId.trim());
   const router = useRouter();
 
-  const dismissedKey = signedIn
-    ? null
-    : "prodme.discover.dismissedIds:anon";
+  const dismissedKey = signedIn && viewerId ? `prodme.discover.dismissedIds:${viewerId}` : "prodme.discover.dismissedIds:anon";
 
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const [exitDir, setExitDir] = useState<"left" | "right" | "up" | null>(null);
@@ -69,9 +67,8 @@ export function SwipeStack({ profiles, viewerId }: Props) {
   const gestureStarted = useRef(false);
 
   useEffect(() => {
-    if (!signedIn && dismissedKey) setDismissed(loadDismissedIds(dismissedKey));
-    if (signedIn) setDismissed(new Set());
-  }, []);
+    setDismissed(loadDismissedIds(dismissedKey));
+  }, [dismissedKey]);
 
   const visibleProfiles = useMemo(
     () => profiles.filter((p) => !dismissed.has(p.id)),
@@ -87,9 +84,13 @@ export function SwipeStack({ profiles, viewerId }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!current?.starBeat) {
+    const isVenueProfile = current?.role === "venue";
+    const star = current?.starBeat;
+    const a = audioRef.current;
+
+    // Venues are photo-first: no autoplay / no track playback.
+    if (!a || !star || isVenueProfile || !star.audioUrl) {
       setPlayingMeta(null);
-      const a = audioRef.current;
       if (a) {
         a.pause();
         a.removeAttribute("src");
@@ -99,13 +100,12 @@ export function SwipeStack({ profiles, viewerId }: Props) {
     }
 
     setPlayingMeta({
-      id: current.starBeat.id,
-      title: current.starBeat.title,
-      coverUrl: current.starBeat.coverUrl,
+      id: star.id,
+      title: star.title,
+      coverUrl: star.coverUrl,
     });
-    const a = audioRef.current;
-    if (!a) return;
-    a.src = current.starBeat.audioUrl;
+
+    a.src = star.audioUrl;
     a.load();
     const tryPlay = () => {
       void a.play().catch(() => {
@@ -113,9 +113,11 @@ export function SwipeStack({ profiles, viewerId }: Props) {
       });
     };
     if (gestureStarted.current) tryPlay();
-  }, [current?.id, current?.starBeat]);
+  }, [current?.id, current?.starBeat, current?.role]);
 
   const playBeat = useCallback((beat: BeatPreview) => {
+    if (current?.role === "venue") return;
+    if (!beat.audioUrl) return;
     gestureStarted.current = true;
     const a = audioRef.current;
     if (!a) return;
@@ -126,15 +128,16 @@ export function SwipeStack({ profiles, viewerId }: Props) {
     });
     a.src = beat.audioUrl;
     void a.play().catch(() => {});
-  }, []);
+  }, [current?.role]);
 
   const toggleMainPlay = useCallback(() => {
+    if (current?.role === "venue") return;
     const a = audioRef.current;
     if (!a?.src) return;
     gestureStarted.current = true;
     if (a.paused) void a.play().catch(() => {});
     else a.pause();
-  }, []);
+  }, [current?.role]);
 
   const toggleBeatOrPlay = useCallback(
     (beat: BeatPreview) => {
@@ -172,7 +175,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           setDismissed((prev) => {
             const next = new Set(prev);
             next.add(dismissedId);
-            if (dismissedKey) persistDismissedIds(dismissedKey, next);
+            persistDismissedIds(dismissedKey, next);
             return next;
           });
         } else {
@@ -181,6 +184,9 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           setDismissed((prev) => {
             const next = new Set(prev);
             next.add(dismissedId);
+            // Real profiles are removed by server refresh via `discover_swipes`.
+            // Mock cards are not, so we persist only non-UUID IDs locally.
+            if (!isUuid(dismissedId)) persistDismissedIds(dismissedKey, next);
             return next;
           });
           router.refresh();
@@ -196,6 +202,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
     gestureStarted.current = true;
     const a = audioRef.current;
     if (
+      current?.role !== "venue" &&
       a &&
       current?.starBeat &&
       playingMeta?.id === current.starBeat.id &&
@@ -261,16 +268,15 @@ export function SwipeStack({ profiles, viewerId }: Props) {
         <button
           type="button"
           onClick={() => {
+            setDismissed(new Set());
+            persistDismissedIds(dismissedKey, new Set());
             if (signedIn) {
               const path =
                 typeof window !== "undefined"
                   ? window.location.pathname + window.location.search
                   : "/explore";
               void resetDiscoverSwipes(path).then(() => router.refresh());
-              return;
             }
-            setDismissed(new Set());
-            if (dismissedKey) persistDismissedIds(dismissedKey, new Set());
           }}
           className="rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-zinc-950 transition-opacity hover:opacity-90"
         >
@@ -295,6 +301,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           onClick={() => {
             if (signedIn) {
               setDismissed(new Set());
+              persistDismissedIds(dismissedKey, new Set());
               const path =
                 typeof window !== "undefined"
                   ? window.location.pathname + window.location.search
@@ -304,7 +311,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
             }
 
             setDismissed(new Set());
-            if (dismissedKey) persistDismissedIds(dismissedKey, new Set());
+            persistDismissedIds(dismissedKey, new Set());
           }}
           className="rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-zinc-950 transition-opacity hover:opacity-90 disabled:opacity-40"
         >
@@ -323,6 +330,8 @@ export function SwipeStack({ profiles, viewerId }: Props) {
 
   const star = current.starBeat;
   const extras = (current.extraBeats ?? []).slice(0, MAX_EXTRA);
+  const isVenueProfile = current.role === "venue";
+  const isPhotoOnlyStar = !isVenueProfile && Boolean(star) && !star?.audioUrl;
   const heroCover = playingMeta?.coverUrl ?? star?.coverUrl;
   const playingStar = Boolean(star && playingMeta?.id === star.id);
 
@@ -408,39 +417,53 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                       playingStar ? "text-amber-500/90" : "text-zinc-400"
                     }`}
                   >
-                    {playingStar ? "Star track" : "Now playing"}
+                    {isVenueProfile
+                      ? "Photo"
+                      : isPhotoOnlyStar
+                        ? "Featured photo"
+                      : playingStar
+                        ? "Star track"
+                        : "Now playing"}
                   </p>
                   <p className="mt-0.5 truncate text-sm font-medium text-zinc-100">
-                    {playingMeta?.title ?? star.title}
+                    {isVenueProfile ? star.title : playingMeta?.title ?? star.title}
                   </p>
                   <p className="mt-1 text-[11px] text-zinc-500">
-                    {playingStar
-                      ? "Plays when you open this card — swipe for the next sound."
-                      : "Extra preview on this profile — swipe for the next person."}
+                    {isVenueProfile
+                      ? "Photo highlights — swipe for the next person."
+                      : isPhotoOnlyStar
+                        ? "Photo highlight — swipe for the next person."
+                      : playingStar
+                        ? "Plays when you open this card — swipe for the next sound."
+                        : "Extra preview on this profile — swipe for the next person."}
                   </p>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleMainPlay();
-                      }}
-                      className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-medium text-amber-300 ring-1 ring-amber-500/35 transition hover:bg-amber-500/30"
-                    >
-                      {audioReady ? "Pause" : "Play"}
-                    </button>
-                    {star && !playingStar ? (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          playBeat(star);
-                        }}
-                        className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
-                      >
-                        Play star track
-                      </button>
-                    ) : null}
+                    {isVenueProfile || isPhotoOnlyStar ? null : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleMainPlay();
+                          }}
+                          className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-medium text-amber-300 ring-1 ring-amber-500/35 transition hover:bg-amber-500/30"
+                        >
+                          {audioReady ? "Pause" : "Play"}
+                        </button>
+                        {star && !playingStar ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              playBeat(star);
+                            }}
+                            className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
+                          >
+                            Play star track
+                          </button>
+                        ) : null}
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -448,10 +471,44 @@ export function SwipeStack({ profiles, viewerId }: Props) {
               {extras.length > 0 ? (
                 <div>
                   <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
-                    More beats
+                    {isVenueProfile ? "More photos" : "More beats"}
                   </p>
                   <ul className="flex flex-wrap gap-2">
                     {extras.map((beat) => {
+                      if (isVenueProfile) {
+                        return (
+                          <li key={beat.id} className="relative">
+                            <div className="relative h-12 w-12 sm:h-14 sm:w-14 overflow-hidden rounded-lg ring-1 ring-white/10">
+                              <Image
+                                src={beat.coverUrl}
+                                alt=""
+                                width={56}
+                                height={56}
+                                className="h-full w-full object-cover"
+                                unoptimized
+                              />
+                            </div>
+                          </li>
+                        );
+                      }
+
+                      if (!beat.audioUrl) {
+                        return (
+                          <li key={beat.id} className="relative">
+                            <div className="relative h-12 w-12 sm:h-14 sm:w-14 overflow-hidden rounded-lg ring-1 ring-white/10">
+                              <Image
+                                src={beat.coverUrl}
+                                alt=""
+                                width={56}
+                                height={56}
+                                className="h-full w-full object-cover"
+                                unoptimized
+                              />
+                            </div>
+                          </li>
+                        );
+                      }
+
                       const active = playingMeta?.id === beat.id;
                       return (
                         <li key={beat.id} className="relative">

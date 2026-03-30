@@ -26,7 +26,7 @@ export default async function Home({
         />
         <div className="relative mx-auto max-w-3xl text-center">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-amber-500/90">
-            Explore first · no payments at launch
+            Explore first · FREE TO USE
           </p>
           <h1 className="text-balance text-4xl font-semibold tracking-tight text-zinc-50 sm:text-5xl">
             Discover and connect with{" "}
@@ -34,7 +34,7 @@ export default async function Home({
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-pretty text-lg leading-relaxed text-zinc-400">
             Build a profile, share your sound, and find artists, producers, DJs,
-            and venues that match your niche and goals.
+            and venues that match your style and goals.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Link
@@ -56,12 +56,12 @@ export default async function Home({
       <section className="mx-auto grid max-w-5xl gap-10 px-4 py-16 sm:grid-cols-3 sm:px-6">
         {[
           {
-            title: "Double-sided",
-            body: "Artists meet producers and venues; everyone has a reason to show real work, not just a link in bio.",
+            title: "Two-way discovery",
+            body: "Artists meet producers and venues—everyone has a reason to show real work, not just a link in bio.",
           },
           {
-            title: "Niche, not noise",
-            body: "Profiles built from prompts so matches lean on taste and role — not only follower counts.",
+            title: "Style, not noise",
+            body: "Profiles are built around taste and role—so matches feel intentional, not random.",
           },
           {
             title: "Bundles & previews",
