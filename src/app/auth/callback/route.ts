@@ -2,9 +2,11 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { getRequestOrigin } from "@/lib/request-origin";
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const origin = getRequestOrigin(request);
+  const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const nextRaw = searchParams.get("next") ?? "/explore";
   const next = nextRaw.startsWith("/") && !nextRaw.startsWith("//") ? nextRaw : "/explore";
