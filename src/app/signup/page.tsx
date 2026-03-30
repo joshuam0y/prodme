@@ -48,7 +48,20 @@ export default async function SignupPage({
           <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
             {error === "not_configured"
               ? "Supabase is not configured on this deployment."
-              : decodeURIComponent(error)}
+              : error === "account_exists"
+                ? (
+                    <>
+                      An account with this email already exists. Please{" "}
+                      <Link
+                        href={`/login?next=${encodeURIComponent(next)}`}
+                        className="font-medium text-amber-500 hover:underline"
+                      >
+                        sign in
+                      </Link>{" "}
+                      instead.
+                    </>
+                  )
+                : decodeURIComponent(error)}
           </p>
         ) : null}
 

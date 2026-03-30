@@ -54,6 +54,22 @@ export async function signUp(formData: FormData) {
   });
 
   if (error) {
+    const msg = error.message ?? "";
+    const lower = msg.toLowerCase();
+
+    const accountExists =
+      /user already registered/i.test(msg) ||
+      /already registered/i.test(msg) ||
+      /email.*already.*(exists|registered)/i.test(lower) ||
+      /duplicate key/i.test(lower) ||
+      /already been registered/i.test(lower);
+
+    if (accountExists) {
+      redirect(
+        `/signup?error=account_exists&next=${encodeURIComponent(next)}`,
+      );
+    }
+
     redirect(
       `/signup?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`,
     );

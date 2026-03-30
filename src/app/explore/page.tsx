@@ -7,27 +7,25 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { Role } from "@/lib/types";
 
-const FILTERS: { param: string; label: string; role?: Role }[] = [
-  { param: "", label: "All" },
-  { param: "producer", label: "Producers", role: "producer" },
-  { param: "artist", label: "Artists", role: "artist" },
-  { param: "dj", label: "DJs", role: "dj" },
-  { param: "venue", label: "Venues", role: "venue" },
+type DiscoverGroup = "creatives" | "venues";
+
+const FILTERS: { group: DiscoverGroup | ""; label: string }[] = [
+  { group: "", label: "All" },
+  { group: "creatives", label: "Creatives" },
+  { group: "venues", label: "Venues" },
 ];
 
-function isRole(s: string | undefined): s is Role {
-  return (
-    s === "producer" || s === "artist" || s === "dj" || s === "venue"
-  );
+function isGroup(s: string | undefined): s is DiscoverGroup | "" {
+  return s === "" || s === "creatives" || s === "venues";
 }
 
 export default async function ExplorePage({
   searchParams,
 }: {
-  searchParams: Promise<{ role?: string; notice?: string }>;
+  searchParams: Promise<{ group?: string; notice?: string }>;
 }) {
   const params = await searchParams;
-  const roleFilter = isRole(params.role) ? params.role : undefined;
+  const groupFilter = isGroup(params.group) ? params.group : "";
   const notice = params.notice ? decodeURIComponent(params.notice) : null;
 
   let viewerId: string | null = null;
@@ -40,7 +38,9 @@ export default async function ExplorePage({
     } = await supabase.auth.getUser();
     viewerId = user?.id ?? null;
     if (!viewerId) {
-      const nextPath = `/explore${roleFilter ? `?role=${encodeURIComponent(roleFilter)}` : ""}`;
+      const nextPath = `/explore${
+        groupFilter ? `?group=${encodeURIComponent(groupFilter)}` : ""
+      }`;
       redirect(`/login?next=${encodeURIComponent(nextPath)}`);
     }
     if (viewerId) {
@@ -60,8 +60,9 @@ export default async function ExplorePage({
     teaserCount = Math.max(mockProfiles.length, count ?? 0);
   }
 
-  if (viewerRole === "venue" && roleFilter === "venue") {
-    redirect("/explore");
+  // Venues can only see creatives. If they request "Venues" filter, send them back.
+  if (viewerRole === "venue" && groupFilter === "venues") {
+    redirect("/explore?group=creatives");
   }
 
   const live = await getLiveProfileCards(viewerId, viewerId);
@@ -70,12 +71,15 @@ export default async function ExplorePage({
     viewerRole === "venue"
       ? pool.filter((p) => p.role !== "venue")
       : pool;
-  const profiles = roleFilter
-    ? peerFiltered.filter((p) => p.role === roleFilter)
-    : peerFiltered;
+  const profiles =
+    groupFilter === "creatives"
+      ? peerFiltered.filter((p) => p.role !== "venue")
+      : groupFilter === "venues"
+        ? peerFiltered.filter((p) => p.role === "venue")
+        : peerFiltered;
 
   const filterLinks = FILTERS.filter(
-    (f) => !(viewerRole === "venue" && f.role === "venue"),
+    (f) => !(viewerRole === "venue" && f.group === "venues"),
   );
 
   return (
@@ -88,8 +92,10 @@ export default async function ExplorePage({
           {viewerId ? (
             <>
               Real completed profiles appear first; sample cards fill the rest.
-              Venues only see artists, producers, and DJs (not other venues).
-              Creatives see every role, including each other. Open
+              {viewerRole === "venue"
+                ? "As a venue, you only see creatives (producers, artists, and DJs)."
+                : "Producers/creatives can browse creatives together; switch to 'Venues' to see venue profiles."}{" "}
+              Open
               <span className="text-zinc-400"> View full profile </span>
               on real members to see their public page.
             </>
@@ -133,13 +139,13 @@ export default async function ExplorePage({
             role="group"
             aria-labelledby="discover-filters"
           >
-            {filterLinks.map(({ param, label, role }) => {
-              const href = param ? `/explore?role=${param}` : "/explore";
+            {filterLinks.map(({ group, label }) => {
+              const href = group ? `/explore?group=${group}` : "/explore";
               const linkActive =
-                param === "" ? roleFilter === undefined : roleFilter === role;
+                group === "" ? groupFilter === "" : groupFilter === group;
               return (
                 <Link
-                  key={param || "all"}
+                  key={group || "all"}
                   href={href}
                   className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition sm:text-sm ${
                     linkActive
@@ -156,7 +162,7 @@ export default async function ExplorePage({
       </div>
 
       <SwipeStack
-        key={`${roleFilter ?? "all"}-${viewerRole ?? "?"}`}
+        key={`${groupFilter || "all"}-${viewerRole ?? "?"}`}
         profiles={profiles}
       />
     </main>
