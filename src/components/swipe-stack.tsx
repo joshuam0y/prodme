@@ -3,12 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { recordDiscoverAction } from "@/app/explore/actions";
+import { useRouter } from "next/navigation";
+import { recordDiscoverAction, resetDiscoverSwipes } from "@/app/explore/actions";
 import type { BeatPreview, ProfileCard } from "@/lib/types";
 import { isUuid } from "@/lib/uuid";
 
 type Props = {
   profiles: ProfileCard[];
+  viewerId?: string | null;
 };
 
 const roleLabel: Record<ProfileCard["role"], string> = {
@@ -21,12 +23,10 @@ const roleLabel: Record<ProfileCard["role"], string> = {
 const THRESHOLD_PX = 72;
 const MAX_EXTRA = 5;
 
-const DISMISSED_KEY = "prodme.discover.dismissedIds";
-
-function loadDismissedIds(): Set<string> {
+function loadDismissedIds(key: string): Set<string> {
   if (typeof window === "undefined") return new Set();
   try {
-    const raw = localStorage.getItem(DISMISSED_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return new Set();
     const arr = JSON.parse(raw) as unknown;
     if (!Array.isArray(arr)) return new Set();
@@ -36,9 +36,9 @@ function loadDismissedIds(): Set<string> {
   }
 }
 
-function persistDismissedIds(ids: Set<string>) {
+function persistDismissedIds(key: string, ids: Set<string>) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(DISMISSED_KEY, JSON.stringify([...ids]));
+  localStorage.setItem(key, JSON.stringify([...ids]));
 }
 
 function isInteractivePointerTarget(target: EventTarget | null): boolean {
@@ -48,7 +48,14 @@ function isInteractivePointerTarget(target: EventTarget | null): boolean {
 
 type PlayingMeta = { id: string; title: string; coverUrl: string };
 
-export function SwipeStack({ profiles }: Props) {
+export function SwipeStack({ profiles, viewerId }: Props) {
+  const signedIn = Boolean(viewerId && viewerId.trim());
+  const router = useRouter();
+
+  const dismissedKey = signedIn
+    ? null
+    : "prodme.discover.dismissedIds:anon";
+
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const [exitDir, setExitDir] = useState<"left" | "right" | "up" | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -62,7 +69,8 @@ export function SwipeStack({ profiles }: Props) {
   const gestureStarted = useRef(false);
 
   useEffect(() => {
-    setDismissed(loadDismissedIds());
+    if (!signedIn && dismissedKey) setDismissed(loadDismissedIds(dismissedKey));
+    if (signedIn) setDismissed(new Set());
   }, []);
 
   const visibleProfiles = useMemo(
@@ -159,16 +167,27 @@ export function SwipeStack({ profiles }: Props) {
         showToast("Added to Interested.");
       }
       window.setTimeout(() => {
-        setExitDir(null);
-        setDismissed((prev) => {
-          const next = new Set(prev);
-          next.add(dismissedId);
-          persistDismissedIds(next);
-          return next;
-        });
+        if (!signedIn) {
+          setExitDir(null);
+          setDismissed((prev) => {
+            const next = new Set(prev);
+            next.add(dismissedId);
+            if (dismissedKey) persistDismissedIds(dismissedKey, next);
+            return next;
+          });
+        } else {
+          // Optimistic UI: hide the swiped card immediately (in-memory only),
+          // then reconcile globally via server refresh.
+          setDismissed((prev) => {
+            const next = new Set(prev);
+            next.add(dismissedId);
+            return next;
+          });
+          router.refresh();
+        }
       }, 220);
     },
-    [visibleProfiles, showToast],
+    [visibleProfiles, showToast, signedIn, dismissedKey, router],
   );
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -249,10 +268,20 @@ export function SwipeStack({ profiles }: Props) {
         <button
           type="button"
           onClick={() => {
+            if (signedIn) {
+              setDismissed(new Set());
+              const path =
+                typeof window !== "undefined"
+                  ? window.location.pathname + window.location.search
+                  : "/explore";
+              void resetDiscoverSwipes(path).then(() => router.refresh());
+              return;
+            }
+
             setDismissed(new Set());
-            persistDismissedIds(new Set());
+            if (dismissedKey) persistDismissedIds(dismissedKey, new Set());
           }}
-          className="rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-zinc-950 transition-opacity hover:opacity-90"
+          className="rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-zinc-950 transition-opacity hover:opacity-90 disabled:opacity-40"
         >
           Start over
         </button>

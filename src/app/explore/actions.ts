@@ -111,3 +111,33 @@ export async function removeDiscoverAction(
   revalidatePath(pathToRevalidate);
   return { ok: true };
 }
+
+export async function resetDiscoverSwipes(
+  pathToRevalidate: string,
+): Promise<{ ok: boolean }> {
+  if (!isSupabaseConfigured()) {
+    return { ok: false };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false };
+  }
+
+  const { error } = await supabase
+    .from("discover_swipes")
+    .delete()
+    .eq("viewer_id", user.id);
+
+  if (error) {
+    console.error("resetDiscoverSwipes", error.message);
+    return { ok: false };
+  }
+
+  revalidatePath(pathToRevalidate);
+  return { ok: true };
+}

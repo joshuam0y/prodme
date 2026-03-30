@@ -57,7 +57,7 @@ export default async function ExplorePage({
       .from("profiles")
       .select("id", { count: "exact", head: true })
       .not("onboarding_completed_at", "is", null);
-    teaserCount = Math.max(mockProfiles.length, count ?? 0);
+    teaserCount = viewerId ? count ?? 0 : Math.max(mockProfiles.length, count ?? 0);
   }
 
   // Venues can only see creatives. If they request "Venues" filter, send them back.
@@ -66,7 +66,9 @@ export default async function ExplorePage({
   }
 
   const live = await getLiveProfileCards(viewerId, viewerId);
-  const pool = [...live, ...mockProfiles];
+  // Signed-in users should see only real profiles (so swipe outcomes stay
+  // globally consistent across devices). Mocks are for anonymous browsing only.
+  const pool = viewerId ? live : [...live, ...mockProfiles];
   const peerFiltered =
     viewerRole === "venue"
       ? pool.filter((p) => p.role !== "venue")
@@ -164,6 +166,7 @@ export default async function ExplorePage({
       <SwipeStack
         key={`${groupFilter || "all"}-${viewerRole ?? "?"}`}
         profiles={profiles}
+        viewerId={viewerId}
       />
     </main>
   );
