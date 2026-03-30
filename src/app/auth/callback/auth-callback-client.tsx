@@ -1,50 +1,20 @@
 "use client";
 
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
+import { resolvePostAuthRedirect } from "@/lib/auth-callback-path";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-function safeNext(path: string | null): string {
-  if (!path || !path.startsWith("/") || path.startsWith("//")) {
-    return "/explore";
-  }
-  return path;
-}
-
-/** Supabase often drops custom query params on the redirect; recovery uses `type=recovery` in query or hash. */
-function resolvePostAuthPath(
-  searchParams: URLSearchParams,
-  hashWithoutLeading: string,
-): string {
-  const explicit = searchParams.get("next");
-  if (explicit) {
-    return safeNext(explicit);
-  }
-  const typeInQuery = searchParams.get("type");
-  if (typeInQuery === "recovery") {
-    return "/update-password";
-  }
-  if (hashWithoutLeading) {
-    const fromHash = new URLSearchParams(hashWithoutLeading);
-    if (fromHash.get("type") === "recovery") {
-      return "/update-password";
-    }
-  }
-  return "/explore";
-}
-
-function redirectAfterAuth() {
-  const path = resolvePostAuthPath(
-    new URLSearchParams(
-      typeof window !== "undefined" ? window.location.search : "",
-    ),
-    typeof window !== "undefined" ? window.location.hash.replace(/^#/, "") : "",
-  );
+function fullRedirect(path: string) {
   window.location.replace(
     `${window.location.origin}${path.startsWith("/") ? path : `/${path}`}`,
   );
 }
 
+/**
+ * PKCE `?code=` is exchanged in middleware (cookies). This only handles hash
+ * tokens (implicit) and “already have session” edge cases.
+ */
 export function AuthCallbackClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -56,23 +26,10 @@ export function AuthCallbackClient() {
     let cancelled = false;
 
     async function finish() {
-      const code = searchParams.get("code");
-
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (!cancelled && !error) {
-          redirectAfterAuth();
-          return;
-        }
-        if (error && !cancelled) {
-          setMessage("Could not verify link. Try requesting a new one.");
-          router.replace(`/login?error=${encodeURIComponent(error.message)}`);
-          return;
-        }
-      }
-
       const hash =
         typeof window !== "undefined" ? window.location.hash.replace(/^#/, "") : "";
+      const next = resolvePostAuthRedirect(searchParams, hash);
+
       if (hash) {
         const params = new URLSearchParams(hash);
         const access_token = params.get("access_token");
@@ -83,8 +40,12 @@ export function AuthCallbackClient() {
             refresh_token,
           });
           if (!cancelled && !error) {
-            window.history.replaceState(null, "", window.location.pathname + window.location.search);
-            redirectAfterAuth();
+            window.history.replaceState(
+              null,
+              "",
+              window.location.pathname + window.location.search,
+            );
+            fullRedirect(next);
             return;
           }
         }
@@ -94,7 +55,7 @@ export function AuthCallbackClient() {
         data: { session },
       } = await supabase.auth.getSession();
       if (!cancelled && session) {
-        redirectAfterAuth();
+        fullRedirect(resolvePostAuthRedirect(searchParams, ""));
         return;
       }
 
