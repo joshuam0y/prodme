@@ -76,6 +76,18 @@ export async function setDiscoverAction(
     return { ok: false };
   }
 
+  // Keep pipeline focused on active "interested" leads.
+  if (action !== "interested") {
+    const { error: pipelineErr } = await supabase
+      .from("interested_pipeline")
+      .delete()
+      .eq("viewer_id", user.id)
+      .eq("target_id", targetId);
+    if (pipelineErr) {
+      // Migration may not exist in some envs yet; ignore to keep core flow resilient.
+    }
+  }
+
   revalidatePath(pathToRevalidate);
   return { ok: true };
 }
@@ -106,6 +118,15 @@ export async function removeDiscoverAction(
   if (error) {
     console.error("removeDiscoverAction", error.message);
     return { ok: false };
+  }
+
+  const { error: pipelineErr } = await supabase
+    .from("interested_pipeline")
+    .delete()
+    .eq("viewer_id", user.id)
+    .eq("target_id", targetId);
+  if (pipelineErr) {
+    // Optional table in progressive rollouts.
   }
 
   revalidatePath(pathToRevalidate);

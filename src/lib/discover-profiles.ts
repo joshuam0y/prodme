@@ -48,7 +48,7 @@ export async function getLiveProfileCards(
   let q = supabase
     .from("profiles")
     .select(
-      "id, display_name, role, niche, goal, city, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, display_name, role, niche, goal, city, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .not("onboarding_completed_at", "is", null)
     .order("updated_at", { ascending: false })
@@ -68,7 +68,52 @@ export async function getLiveProfileCards(
     return [];
   }
 
-  return rows.map((row) => {
+  // Lightweight ranking pass: prefer higher-rated profiles while keeping recency.
+  const ratingStats = new Map<string, { avg: number; count: number }>();
+  try {
+    const ids = rows.map((r) => r.id);
+    const { data: ratings } = await supabase
+      .from("profile_ratings")
+      .select("target_id, rating")
+      .in("target_id", ids);
+    const bucket = new Map<string, number[]>();
+    for (const r of ratings ?? []) {
+      const arr = bucket.get(r.target_id) ?? [];
+      arr.push(r.rating);
+      bucket.set(r.target_id, arr);
+    }
+    for (const [id, vals] of bucket) {
+      const count = vals.length;
+      if (!count) continue;
+      const avg = vals.reduce((s, n) => s + n, 0) / count;
+      ratingStats.set(id, { avg, count });
+    }
+  } catch {
+    // Ratings are optional in early envs; keep default ordering if unavailable.
+  }
+
+  const rankScore = (row: (typeof rows)[number]) => {
+    const stats = ratingStats.get(row.id);
+    if (!stats) return 0;
+    const confidence = Math.min(1, stats.count / 8);
+    const quality = stats.avg / 5;
+    return quality * (0.35 + 0.65 * confidence);
+  };
+
+  const rankedRows = [...rows].sort((a, b) => {
+    const byScore = rankScore(b) - rankScore(a);
+    if (Math.abs(byScore) > 0.001) return byScore;
+    return (b.updated_at ?? "").localeCompare(a.updated_at ?? "");
+  });
+
+  const reasonFor = (row: (typeof rows)[number]) => {
+    const stats = ratingStats.get(row.id);
+    if (stats && stats.count >= 6 && stats.avg >= 4.3) return "Highly rated";
+    if (stats && stats.count >= 3 && stats.avg >= 4.0) return "Trending";
+    return "Newly active";
+  };
+
+  return rankedRows.map((row) => {
     const role = inferProfileRole(row.role);
     const name = row.display_name?.trim() || "Member";
     const niche = row.niche?.trim() || "—";
@@ -94,6 +139,7 @@ export async function getLiveProfileCards(
       accent: accentForRole(role),
       starBeat,
       extraBeats,
+      rankReason: reasonFor(row),
     };
   });
 }

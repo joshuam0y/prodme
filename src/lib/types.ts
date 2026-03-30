@@ -23,6 +23,8 @@ export type ProfileCard = {
   starBeat?: BeatPreview;
   /** Additional previews (UI shows up to five). */
   extraBeats?: BeatPreview[];
+  /** Optional discover explanation badge, e.g. "Highly rated". */
+  rankReason?: string;
 };
 
 export type BeatBundle = {
