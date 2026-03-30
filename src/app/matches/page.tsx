@@ -81,33 +81,27 @@ export default async function MatchesPage({
     string,
     { body: string; createdAt: string; mine: boolean; unreadIncoming: number }
   >();
-  for (const m of mySentToMatches) {
-    const key = m.recipient_id as string;
-    const prev = byMatchMessage.get(key);
-    const payload = {
-      body: m.body as string,
-      createdAt: m.created_at as string,
-      mine: true,
-      unreadIncoming: prev?.unreadIncoming ?? 0,
-    };
-    if (!prev || prev.createdAt < payload.createdAt) byMatchMessage.set(key, payload);
-  }
-  for (const m of recvFromMatches) {
-    const key = m.sender_id as string;
-    const prev = byMatchMessage.get(key);
-    const unreadIncoming =
-      (prev?.unreadIncoming ?? 0) + (m.read_at === null ? 1 : 0);
-    const payload = {
-      body: m.body as string,
-      createdAt: m.created_at as string,
-      mine: false,
+  for (const id of matchIds) {
+    const sent = mySentToMatches.filter((m) => m.recipient_id === id);
+    const recv = recvFromMatches.filter((m) => m.sender_id === id);
+    const unreadIncoming = recv.filter((m) => m.read_at === null).length;
+    const combined = [
+      ...sent.map((m) => ({ ...m, mine: true as const })),
+      ...recv.map((m) => ({ ...m, mine: false as const })),
+    ];
+    if (combined.length === 0) continue;
+    combined.sort(
+      (a, b) =>
+        new Date(a.created_at as string).getTime() -
+        new Date(b.created_at as string).getTime(),
+    );
+    const latest = combined[combined.length - 1]!;
+    byMatchMessage.set(id, {
+      body: latest.body as string,
+      createdAt: latest.created_at as string,
+      mine: latest.mine,
       unreadIncoming,
-    };
-    if (!prev || prev.createdAt < payload.createdAt) {
-      byMatchMessage.set(key, { ...payload, unreadIncoming });
-    } else {
-      byMatchMessage.set(key, { ...prev, unreadIncoming });
-    }
+    });
   }
 
   const mutualAt = (id: string) => {
@@ -194,8 +188,7 @@ export default async function MatchesPage({
       <ul className="mt-8 space-y-3">
         {orderedMatchIds.map((id) => {
           const p = byId.get(id);
-          if (!p) return null;
-          const name = p.display_name?.trim() || "Member";
+          const name = p?.display_name?.trim() || "Member";
           const outreach = outreachByTarget.get(id);
           const outreachStatus = outreach?.status ?? "draft";
           const chat = byMatchMessage.get(id);
@@ -225,8 +218,9 @@ export default async function MatchesPage({
                 </div>
               </div>
               <p className="mt-1 text-xs text-zinc-500">
-                {roleLabel(p.role)}{p.city?.trim() ? ` · ${p.city.trim()}` : ""}
-                {p.niche?.trim() ? ` · ${p.niche.trim()}` : ""}
+                {roleLabel(p?.role ?? null)}
+                {p?.city?.trim() ? ` · ${p.city.trim()}` : ""}
+                {p?.niche?.trim() ? ` · ${p.niche.trim()}` : ""}
               </p>
               <p className="mt-1 text-xs text-zinc-400">
                 {chat?.body
@@ -316,7 +310,7 @@ export default async function MatchesPage({
                 >
                   <LeadMessageTools
                     displayName={name}
-                    roleLabel={roleLabel(p.role)}
+                    roleLabel={roleLabel(p?.role ?? null)}
                     context="interested"
                     defaultDraft={outreach?.messageDraft ?? ""}
                     textareaName="draft"

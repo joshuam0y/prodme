@@ -28,12 +28,18 @@ export default async function LikesPage({
   const params = await searchParams;
   const notice = params.notice ? decodeURIComponent(params.notice) : null;
 
-  const { data: outgoing } = await supabase
+  const {
+    data: outgoing,
+    error: outgoingError,
+  } = await supabase
     .from("discover_swipes")
     .select("target_id, action, created_at")
     .eq("viewer_id", user.id)
     .in("action", ["save", "interested"]);
-  const { data: incoming } = await supabase
+  const {
+    data: incoming,
+    error: incomingError,
+  } = await supabase
     .from("discover_swipes")
     .select("viewer_id, action, created_at")
     .eq("target_id", user.id)
@@ -56,13 +62,21 @@ export default async function LikesPage({
     niche: string | null;
   };
   let byId = new Map<string, MiniProfile>();
+  let profilesError: string | null = null;
   if (allIds.length) {
-    const { data: profiles } = await supabase
+    const { data: profiles, error: profErr } = await supabase
       .from("profiles")
       .select("id, display_name, role, city, niche")
       .in("id", allIds);
+    if (profErr) profilesError = profErr.message;
     byId = new Map((profiles as MiniProfile[] | null | undefined ?? []).map((p) => [p.id, p]));
   }
+
+  const queryError =
+    outgoingError?.message ??
+    incomingError?.message ??
+    profilesError ??
+    null;
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
@@ -75,6 +89,11 @@ export default async function LikesPage({
           {notice}
         </p>
       ) : null}
+      {queryError ? (
+        <p className="mt-4 rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-2.5 text-sm text-red-200">
+          {queryError}
+        </p>
+      ) : null}
 
       <section className="mt-8">
         <h2 className="text-xs font-medium uppercase tracking-wider text-amber-500/90">Likes you</h2>
@@ -84,23 +103,25 @@ export default async function LikesPage({
           <ul className="mt-3 space-y-3">
             {likesYouIds.map((id) => {
               const p = byId.get(id);
-              if (!p) return null;
-              const name = p.display_name?.trim() || "Member";
+              const name = p?.display_name?.trim() || "Member";
               return (
                 <li key={id} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
                   <Link href={`/p/${id}`} className="font-medium text-zinc-100 hover:text-amber-300">
                     {name}
                   </Link>
                   <p className="mt-1 text-xs text-zinc-500">
-                    {roleLabel(p.role)}{p.city?.trim() ? ` · ${p.city.trim()}` : ""}
-                    {p.niche?.trim() ? ` · ${p.niche.trim()}` : ""}
+                    {p
+                      ? `${roleLabel(p.role)}${p.city?.trim() ? ` · ${p.city.trim()}` : ""}${
+                          p.niche?.trim() ? ` · ${p.niche.trim()}` : ""
+                        }`
+                      : "Profile unavailable — you can still like back or pass."}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <form
                       action={async () => {
                         "use server";
                         await setDiscoverAction(id, "save", "/likes");
-                        redirect("/likes?notice=Liked%20back%20%E2%80%94%20now%20you%20matched");
+                        redirect("/matches?notice=You%20matched");
                       }}
                     >
                       <button
@@ -140,15 +161,14 @@ export default async function LikesPage({
           <ul className="mt-3 space-y-3">
             {youLikedIds.map((id) => {
               const p = byId.get(id);
-              if (!p) return null;
-              const name = p.display_name?.trim() || "Member";
+              const name = p?.display_name?.trim() || "Member";
               return (
                 <li key={id} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
                   <Link href={`/p/${id}`} className="font-medium text-zinc-100 hover:text-amber-300">
                     {name}
                   </Link>
                   <p className="mt-1 text-xs text-zinc-500">
-                    Waiting for mutual like.
+                    {p ? "Waiting for mutual like." : "Profile unavailable — your like is still recorded."}
                   </p>
                 </li>
               );
