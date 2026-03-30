@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getSiteUrl } from "@/lib/site-url";
+import { isProfileQuestionnaireComplete } from "@/lib/profile-completion";
 import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
 
@@ -46,6 +47,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   let user: User | null = null;
+  let showBuildProfileNav = true;
   const supabaseEnabled = isSupabaseConfigured();
 
   if (supabaseEnabled) {
@@ -53,6 +55,16 @@ export default async function RootLayout({
       const supabase = await createClient();
       const { data } = await supabase.auth.getUser();
       user = data.user;
+      if (user) {
+        const { data: profileRow } = await supabase
+          .from("profiles")
+          .select("onboarding_completed_at, niche, role")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (isProfileQuestionnaireComplete(profileRow)) {
+          showBuildProfileNav = false;
+        }
+      }
     } catch {
       user = null;
     }
@@ -64,7 +76,11 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[var(--background)]">
-        <SiteHeader user={user} supabaseEnabled={supabaseEnabled} />
+        <SiteHeader
+          user={user}
+          supabaseEnabled={supabaseEnabled}
+          showBuildProfileNav={showBuildProfileNav}
+        />
         <div className="flex flex-1 flex-col">{children}</div>
       </body>
     </html>

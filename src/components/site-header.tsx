@@ -2,18 +2,28 @@ import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
 
-const links = [
+const allNavLinks = [
   { href: "/explore", label: "Discover" },
   { href: "/bundles", label: "Bundles" },
-  { href: "/onboarding", label: "Build profile" },
+  { href: "/onboarding", label: "Build profile", hideWhenProfileComplete: true },
 ] as const;
 
 type Props = {
   user: User | null;
   supabaseEnabled: boolean;
+  /** When false, hide “Build profile” (user finished onboarding; they use Profile). */
+  showBuildProfileNav?: boolean;
 };
 
-export function SiteHeader({ user, supabaseEnabled }: Props) {
+export function SiteHeader({
+  user,
+  supabaseEnabled,
+  showBuildProfileNav = true,
+}: Props) {
+  const links = showBuildProfileNav
+    ? allNavLinks
+    : allNavLinks.filter((l) => !("hideWhenProfileComplete" in l && l.hideWhenProfileComplete));
+
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[var(--surface)]/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">

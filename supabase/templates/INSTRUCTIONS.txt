@@ -1,0 +1,28 @@
+prod.me — Supabase auth email templates
+=======================================
+
+Supabase does not read these files automatically on the hosted dashboard.
+Copy the HTML from each file into the Dashboard:
+
+  Dashboard → Authentication → Email Templates
+
+1) Confirm signup
+   - Subject: Confirm your prod.me account
+   - Body: paste full contents of confirmation.html
+
+2) Reset password
+   - Subject: Reset your prod.me password
+   - Body: paste full contents of recovery.html
+
+Optional: add a logo image
+--------------------------
+Upload a PNG (e.g. 240×64) to your site public/ folder, deploy, then in the
+templates replace the text wordmark block with:
+
+  <img src="https://YOUR_DOMAIN/logo.png" width="120" alt="prod.me"
+       style="display:block;margin:0 auto 12px;border:0;" />
+
+Google Fonts in email are often stripped; templates use system fonts
+(Segoe UI, Roboto, Helvetica, Arial) for reliable rendering in Gmail/Outlook.
+
+Variables must stay exactly as Supabase expects: {{ .ConfirmationURL }}, {{ .Email }}, etc.

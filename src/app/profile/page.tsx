@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { formatDisplayDate } from "@/lib/format-date";
+import { isProfileQuestionnaireComplete } from "@/lib/profile-completion";
 import type { DbProfile } from "@/lib/types";
 
 export default async function ProfilePage() {
@@ -29,10 +30,7 @@ export default async function ProfilePage() {
 
   const profile = row as DbProfile | null;
 
-  const incomplete =
-    !profile?.onboarding_completed_at ||
-    !profile?.niche?.trim() ||
-    !profile?.role?.trim();
+  const incomplete = !isProfileQuestionnaireComplete(profile);
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
