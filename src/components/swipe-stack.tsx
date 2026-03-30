@@ -251,7 +251,32 @@ export function SwipeStack({ profiles, viewerId }: Props) {
 
   if (profiles.length === 0) {
     return (
-      <p className="text-center text-zinc-500">No profiles to show yet.</p>
+      <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-10 text-center">
+        <p className="text-lg font-medium text-zinc-200">
+          No profiles to show yet.
+        </p>
+        <p className="max-w-sm text-sm text-zinc-500">
+          You may have already swiped everything that matches your filters.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            if (signedIn) {
+              const path =
+                typeof window !== "undefined"
+                  ? window.location.pathname + window.location.search
+                  : "/explore";
+              void resetDiscoverSwipes(path).then(() => router.refresh());
+              return;
+            }
+            setDismissed(new Set());
+            if (dismissedKey) persistDismissedIds(dismissedKey, new Set());
+          }}
+          className="rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-zinc-950 transition-opacity hover:opacity-90"
+        >
+          Start over
+        </button>
+      </div>
     );
   }
 
