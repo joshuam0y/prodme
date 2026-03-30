@@ -31,7 +31,28 @@ export default async function ProfilePage() {
     .eq("id", user.id)
     .maybeSingle();
 
-  const profile = row as DbProfile | null;
+  // If optional preview columns (star/extra_beats) are missing in the DB yet,
+  // the whole select can fail and we incorrectly show "Complete setup".
+  // Fallback to the minimal fields needed for completion status.
+  let profile = row as DbProfile | null;
+  let showError = Boolean(error);
+  if (error) {
+    const { data: minimalRow, error: minimalErr } = await supabase
+      .from("profiles")
+      .select(
+        "id, display_name, role, niche, goal, onboarding_completed_at, updated_at",
+      )
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (minimalErr || !minimalRow) {
+      showError = true;
+      profile = row as DbProfile | null;
+    } else {
+      showError = false;
+      profile = minimalRow as DbProfile;
+    }
+  }
 
   const incomplete = !isProfileQuestionnaireComplete(profile);
 
@@ -54,7 +75,7 @@ export default async function ProfilePage() {
         What others will use to understand your niche and goals.
       </p>
 
-      {error ? (
+      {showError && error ? (
         <p className="mt-8 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {error.message}
         </p>

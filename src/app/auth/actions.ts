@@ -202,23 +202,39 @@ export async function completeOnboarding(payload: OnboardingPayload) {
 
   const city = payload.city?.trim() ?? "";
 
-  const { error } = await supabase.from("profiles").upsert(
+  const baseUpsert = {
+    id: user.id,
+    display_name: displayName,
+    role: payload.role,
+    niche: payload.niche,
+    goal: payload.goal,
+    onboarding_completed_at: new Date().toISOString(),
+  };
+
+  // If the DB hasn't run migration `005_profiles_city.sql` yet, `city` may
+  // not exist. In that case, retry without city so onboarding still works.
+  const { error: upsertError } = await supabase.from("profiles").upsert(
     {
-      id: user.id,
-      display_name: displayName,
-      role: payload.role,
-      niche: payload.niche,
-      goal: payload.goal,
+      ...baseUpsert,
       ...(city ? { city } : {}),
-      onboarding_completed_at: new Date().toISOString(),
     },
     { onConflict: "id" },
   );
 
-  if (error) {
-    redirect(
-      `/onboarding?error=${encodeURIComponent(error.message)}`,
-    );
+  if (upsertError) {
+    const msg = upsertError.message ?? "";
+    const cityMissing =
+      /column\\s+\"?city\"?/i.test(msg) && /does not exist/i.test(msg);
+    if (cityMissing && city) {
+      const { error: retryError } = await supabase
+        .from("profiles")
+        .upsert(baseUpsert, { onConflict: "id" });
+      if (retryError) {
+        redirect(`/onboarding?error=${encodeURIComponent(retryError.message)}`);
+      }
+    } else {
+      redirect(`/onboarding?error=${encodeURIComponent(upsertError.message)}`);
+    }
   }
 
   redirect("/explore");
