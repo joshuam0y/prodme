@@ -57,6 +57,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const [exitDir, setExitDir] = useState<"left" | "right" | "up" | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [drag, setDrag] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const pointerDown = useRef(false);
@@ -82,6 +83,15 @@ export function SwipeStack({ profiles, viewerId }: Props) {
     setToast(msg);
     window.setTimeout(() => setToast(null), 2400);
   }, []);
+
+  useEffect(() => {
+    if (!lightboxUrl) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxUrl(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [lightboxUrl]);
 
   useEffect(() => {
     const isVenueProfile = current?.role === "venue";
@@ -358,6 +368,38 @@ export function SwipeStack({ profiles, viewerId }: Props) {
         </div>
       )}
 
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Photo preview"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <div className="relative w-full max-w-xl">
+            <Image
+              src={lightboxUrl}
+              alt=""
+              fill
+              sizes="(max-width: 768px) 100vw, 768px"
+              className="h-auto rounded-2xl object-contain"
+              unoptimized={lightboxUrl.includes("picsum.photos")}
+            />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxUrl(null);
+              }}
+              className="absolute -top-2 -right-2 rounded-full border border-white/20 bg-zinc-900/80 px-3 py-1 text-sm text-zinc-100 shadow hover:bg-zinc-900"
+              aria-label="Close photo preview"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       <div
         role="group"
         aria-label="Profile card — drag to pass, save, or show interest"
@@ -482,7 +524,15 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                       if (isVenueProfile) {
                         return (
                           <li key={beat.id} className="relative">
-                            <div className="relative h-12 w-12 sm:h-14 sm:w-14 overflow-hidden rounded-lg ring-1 ring-white/10">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLightboxUrl(beat.coverUrl);
+                              }}
+                              className="relative h-12 w-12 sm:h-14 sm:w-14 overflow-hidden rounded-lg ring-1 ring-white/10 hover:ring-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                              aria-label={`Open photo: ${beat.title}`}
+                            >
                               <Image
                                 src={beat.coverUrl}
                                 alt=""
@@ -491,7 +541,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                                 className="h-full w-full object-cover"
                                 unoptimized
                               />
-                            </div>
+                            </button>
                           </li>
                         );
                       }
@@ -499,7 +549,15 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                       if (!beat.audioUrl) {
                         return (
                           <li key={beat.id} className="relative">
-                            <div className="relative h-12 w-12 sm:h-14 sm:w-14 overflow-hidden rounded-lg ring-1 ring-white/10">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLightboxUrl(beat.coverUrl);
+                              }}
+                              className="relative h-12 w-12 sm:h-14 sm:w-14 overflow-hidden rounded-lg ring-1 ring-white/10 hover:ring-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                              aria-label={`Open photo: ${beat.title}`}
+                            >
                               <Image
                                 src={beat.coverUrl}
                                 alt=""
@@ -508,7 +566,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                                 className="h-full w-full object-cover"
                                 unoptimized
                               />
-                            </div>
+                            </button>
                           </li>
                         );
                       }
