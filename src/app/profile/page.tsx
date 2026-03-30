@@ -4,7 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { formatDisplayDate } from "@/lib/format-date";
 import { isProfileQuestionnaireComplete } from "@/lib/profile-completion";
+import { parseExtraBeats } from "@/lib/profile-beats";
 import type { DbProfile } from "@/lib/types";
+import { ProfileBeatsForm } from "./profile-beats-form";
 
 export default async function ProfilePage() {
   if (!isSupabaseConfigured()) {
@@ -23,7 +25,7 @@ export default async function ProfilePage() {
   const { data: row, error } = await supabase
     .from("profiles")
     .select(
-      "id, display_name, role, niche, goal, onboarding_completed_at",
+      "id, display_name, role, niche, goal, onboarding_completed_at, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -106,6 +108,22 @@ export default async function ProfilePage() {
           </Link>
         ) : null}
       </div>
+
+      {!incomplete ? (
+        <ProfileBeatsForm
+          key={`${profile?.updated_at ?? ""}-${profile?.star_beat_audio_url ?? ""}`}
+          initial={{
+            starTitle: profile?.star_beat_title?.trim() ?? "",
+            starAudioUrl: profile?.star_beat_audio_url?.trim() ?? "",
+            starCoverUrl: profile?.star_beat_cover_url?.trim() ?? "",
+            extras: parseExtraBeats(profile?.extra_beats),
+          }}
+        />
+      ) : (
+        <p className="mt-10 rounded-xl border border-white/5 bg-zinc-950/30 px-4 py-3 text-center text-sm text-zinc-500">
+          Finish onboarding to add discover previews (star track + extra beats).
+        </p>
+      )}
     </main>
   );
 }

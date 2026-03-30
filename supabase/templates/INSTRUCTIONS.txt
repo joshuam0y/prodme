@@ -14,6 +14,10 @@ Copy the HTML from each file into the Dashboard:
    - Subject: Reset your prod.me password
    - Body: paste full contents of recovery.html
 
+3) Magic Link (if you enable passwordless email sign-in)
+   - Subject: Your prod.me sign-in link
+   - Body: paste full contents of magic_link.html
+
 Optional: add a logo image
 --------------------------
 Upload a PNG (e.g. 240×64) to your site public/ folder, deploy, then in the

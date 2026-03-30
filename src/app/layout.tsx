@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { User } from "@supabase/supabase-js";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getSiteUrl } from "@/lib/site-url";
@@ -82,6 +83,7 @@ export default async function RootLayout({
           showBuildProfileNav={showBuildProfileNav}
         />
         <div className="flex flex-1 flex-col">{children}</div>
+        <SiteFooter />
       </body>
     </html>
   );

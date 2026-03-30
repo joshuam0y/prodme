@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useRef, useState } from "react";
-import type { ProfileCard } from "@/lib/types";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { BeatPreview, ProfileCard } from "@/lib/types";
 import { isUuid } from "@/lib/uuid";
 
 type Props = {
@@ -17,6 +18,9 @@ const roleLabel: Record<ProfileCard["role"], string> = {
 };
 
 const THRESHOLD_PX = 72;
+const MAX_EXTRA = 5;
+
+type PlayingMeta = { id: string; title: string; coverUrl: string };
 
 export function SwipeStack({ profiles }: Props) {
   const [index, setIndex] = useState(0);
@@ -26,6 +30,10 @@ export function SwipeStack({ profiles }: Props) {
   const [dragging, setDragging] = useState(false);
   const pointerDown = useRef(false);
   const startRef = useRef({ x: 0, y: 0 });
+  const [playingMeta, setPlayingMeta] = useState<PlayingMeta | null>(null);
+  const [audioReady, setAudioReady] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const gestureStarted = useRef(false);
 
   const current = profiles[index];
   const done = index >= profiles.length;
@@ -35,9 +43,63 @@ export function SwipeStack({ profiles }: Props) {
     window.setTimeout(() => setToast(null), 2400);
   }, []);
 
+  useEffect(() => {
+    if (!current?.starBeat) {
+      setPlayingMeta(null);
+      const a = audioRef.current;
+      if (a) {
+        a.pause();
+        a.removeAttribute("src");
+        a.load();
+      }
+      return;
+    }
+
+    setPlayingMeta({
+      id: current.starBeat.id,
+      title: current.starBeat.title,
+      coverUrl: current.starBeat.coverUrl,
+    });
+    const a = audioRef.current;
+    if (!a) return;
+    a.src = current.starBeat.audioUrl;
+    a.load();
+    const tryPlay = () => {
+      void a.play().catch(() => {
+        /* autoplay blocked until gesture */
+      });
+    };
+    if (gestureStarted.current) tryPlay();
+  }, [index, current?.id, current?.starBeat]);
+
+  const playBeat = useCallback((beat: BeatPreview) => {
+    gestureStarted.current = true;
+    const a = audioRef.current;
+    if (!a) return;
+    setPlayingMeta({
+      id: beat.id,
+      title: beat.title,
+      coverUrl: beat.coverUrl,
+    });
+    a.src = beat.audioUrl;
+    void a.play().catch(() => {});
+  }, []);
+
+  const toggleMainPlay = useCallback(() => {
+    const a = audioRef.current;
+    if (!a?.src) return;
+    gestureStarted.current = true;
+    if (a.paused) void a.play().catch(() => {});
+    else a.pause();
+  }, []);
+
   const advance = useCallback(
     (dir: "left" | "right" | "up") => {
       if (!current || done) return;
+      const a = audioRef.current;
+      if (a) {
+        a.pause();
+      }
       setDrag({ x: 0, y: 0 });
       setExitDir(dir);
       if (dir === "up") {
@@ -52,6 +114,16 @@ export function SwipeStack({ profiles }: Props) {
   );
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    gestureStarted.current = true;
+    const a = audioRef.current;
+    if (
+      a &&
+      current?.starBeat &&
+      playingMeta?.id === current.starBeat.id &&
+      a.paused
+    ) {
+      void a.play().catch(() => {});
+    }
     if (exitDir || done) return;
     pointerDown.current = true;
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -132,8 +204,21 @@ export function SwipeStack({ profiles }: Props) {
           transform: `translate(${drag.x}px, ${drag.y}px) rotate(${drag.x * 0.05}deg)`,
         };
 
+  const star = current.starBeat;
+  const extras = (current.extraBeats ?? []).slice(0, MAX_EXTRA);
+  const heroCover = playingMeta?.coverUrl ?? star?.coverUrl;
+
   return (
     <div className="relative mx-auto w-full max-w-md">
+      <audio
+        ref={audioRef}
+        className="hidden"
+        preload="auto"
+        onPlay={() => setAudioReady(true)}
+        onPause={() => setAudioReady(false)}
+        onEnded={() => setAudioReady(false)}
+      />
+
       {toast && (
         <div className="pointer-events-none fixed inset-x-0 top-24 z-[60] flex justify-center px-4">
           <p className="rounded-full border border-white/15 bg-zinc-900/95 px-4 py-2 text-sm text-zinc-100 shadow-lg backdrop-blur">
@@ -150,7 +235,7 @@ export function SwipeStack({ profiles }: Props) {
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerEnd}
         style={dragTransform}
-        className={`relative min-h-[420px] touch-none overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/50 shadow-2xl select-none ${
+        className={`relative min-h-[480px] touch-none overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/50 shadow-2xl select-none ${
           dragging && !exitDir ? "cursor-grabbing" : "cursor-grab"
         } ${
           dragging && !exitDir ? "transition-none" : "transition-transform duration-200 ease-out"
@@ -165,7 +250,7 @@ export function SwipeStack({ profiles }: Props) {
         }`}
       >
         <div
-          className={`h-36 bg-gradient-to-br ${current.accent} opacity-90`}
+          className={`h-28 bg-gradient-to-br ${current.accent} opacity-90`}
           aria-hidden
         />
         <div className="space-y-4 px-6 pb-8 pt-2">
@@ -183,12 +268,104 @@ export function SwipeStack({ profiles }: Props) {
             </span>
           </div>
           <p className="text-sm leading-relaxed text-zinc-300">{current.bio}</p>
-          <div className="rounded-xl border border-white/5 bg-white/[0.04] px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-              Best work
-            </p>
-            <p className="mt-1 text-sm text-zinc-200">{current.highlight}</p>
-          </div>
+
+          {star && heroCover ? (
+            <div className="space-y-3 rounded-xl border border-white/5 bg-white/[0.04] p-4">
+              <div className="flex items-start gap-3">
+                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-800 ring-1 ring-white/10">
+                  <Image
+                    src={heroCover}
+                    alt=""
+                    width={80}
+                    height={80}
+                    className="h-full w-full object-cover"
+                    unoptimized
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-amber-500/90">
+                    Star track
+                  </p>
+                  <p className="mt-0.5 truncate text-sm font-medium text-zinc-100">
+                    {playingMeta?.title ?? star.title}
+                  </p>
+                  <p className="mt-1 text-[11px] text-zinc-500">
+                    Plays when you open this card — swipe for the next sound.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (playingMeta?.id !== star.id) {
+                        playBeat(star);
+                      } else {
+                        toggleMainPlay();
+                      }
+                    }}
+                    className="mt-2 rounded-full bg-amber-500/20 px-3 py-1 text-xs font-medium text-amber-300 ring-1 ring-amber-500/35 transition hover:bg-amber-500/30"
+                  >
+                    {audioReady && playingMeta?.id === star.id
+                      ? "Pause"
+                      : "Play star"}
+                  </button>
+                </div>
+              </div>
+
+              {extras.length > 0 ? (
+                <div>
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
+                    More beats
+                  </p>
+                  <ul className="flex flex-wrap gap-2">
+                    {extras.map((beat) => {
+                      const active = playingMeta?.id === beat.id;
+                      return (
+                        <li key={beat.id} className="relative">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              playBeat(beat);
+                            }}
+                            className={`group relative h-14 w-14 overflow-hidden rounded-lg ring-1 transition ${
+                              active
+                                ? "ring-amber-400/80"
+                                : "ring-white/10 hover:ring-amber-500/50"
+                            }`}
+                            aria-label={`Play ${beat.title}`}
+                          >
+                            <Image
+                              src={beat.coverUrl}
+                              alt=""
+                              width={56}
+                              height={56}
+                              className="h-full w-full object-cover"
+                              unoptimized
+                            />
+                            <span
+                              className={`absolute inset-0 flex items-center justify-center bg-black/45 text-lg text-white transition ${
+                                active ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                              }`}
+                              aria-hidden
+                            >
+                              ▶
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-white/5 bg-white/[0.04] px-4 py-3">
+              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+                Best work
+              </p>
+              <p className="mt-1 text-sm text-zinc-200">{current.highlight}</p>
+            </div>
+          )}
         </div>
       </div>
 

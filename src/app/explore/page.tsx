@@ -49,32 +49,43 @@ export default async function ExplorePage({
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
           Discover
         </h1>
-        <p className="mt-2 text-sm text-zinc-500">
+        <p className="mt-3 text-sm text-zinc-500">
           Real completed profiles appear first; sample cards fill the rest. Open
           <span className="text-zinc-400"> View full profile </span>
           on real members to see their public page.
         </p>
-      </div>
-
-      <div className="mb-8 flex flex-wrap items-center justify-center gap-2">
-        {FILTERS.map(({ param, label, role }) => {
-          const href = param ? `/explore?role=${param}` : "/explore";
-          const linkActive =
-            param === "" ? roleFilter === undefined : roleFilter === role;
-          return (
-            <Link
-              key={param || "all"}
-              href={href}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition sm:text-sm ${
-                linkActive
-                  ? "bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40"
-                  : "bg-white/5 text-zinc-400 ring-1 ring-white/10 hover:bg-white/10 hover:text-zinc-200"
-              }`}
-            >
-              {label}
-            </Link>
-          );
-        })}
+        <div className="mt-8">
+          <p
+            id="discover-filters"
+            className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-zinc-500"
+          >
+            Filter
+          </p>
+          <div
+            className="flex flex-wrap items-center justify-center gap-2"
+            role="group"
+            aria-labelledby="discover-filters"
+          >
+            {FILTERS.map(({ param, label, role }) => {
+              const href = param ? `/explore?role=${param}` : "/explore";
+              const linkActive =
+                param === "" ? roleFilter === undefined : roleFilter === role;
+              return (
+                <Link
+                  key={param || "all"}
+                  href={href}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition sm:text-sm ${
+                    linkActive
+                      ? "bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40"
+                      : "bg-white/5 text-zinc-400 ring-1 ring-white/10 hover:bg-white/10 hover:text-zinc-200"
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <SwipeStack profiles={profiles} />

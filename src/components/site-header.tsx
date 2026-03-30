@@ -5,13 +5,13 @@ import { signOut } from "@/app/auth/actions";
 const allNavLinks = [
   { href: "/explore", label: "Discover" },
   { href: "/bundles", label: "Bundles" },
-  { href: "/onboarding", label: "Build profile", hideWhenProfileComplete: true },
+  { href: "/onboarding", label: "Profile", hideWhenProfileComplete: true },
 ] as const;
 
 type Props = {
   user: User | null;
   supabaseEnabled: boolean;
-  /** When false, hide “Build profile” (user finished onboarding; they use Profile). */
+  /** When false, hide the Profile → onboarding link (user finished questionnaire). */
   showBuildProfileNav?: boolean;
 };
 
@@ -29,7 +29,7 @@ export function SiteHeader({
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
         <Link
           href="/"
-          className="shrink-0 font-semibold tracking-tight text-[var(--foreground)]"
+          className="shrink-0 text-xl font-semibold tracking-tight text-[var(--foreground)] sm:text-2xl"
         >
           prod<span className="text-[var(--accent)]">.me</span>
         </Link>
@@ -46,12 +46,14 @@ export function SiteHeader({
           {supabaseEnabled ? (
             user ? (
               <>
-                <Link
-                  href="/profile"
-                  className="rounded-lg px-2 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 sm:px-3"
-                >
-                  Profile
-                </Link>
+                {!showBuildProfileNav ? (
+                  <Link
+                    href="/profile"
+                    className="rounded-lg px-2 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 sm:px-3"
+                  >
+                    Profile
+                  </Link>
+                ) : null}
                 <form action={signOut} className="inline">
                   <button
                     type="submit"

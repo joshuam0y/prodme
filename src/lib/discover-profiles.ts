@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { beatsFromProfileRow } from "@/lib/profile-beats";
 import type { ProfileCard, Role } from "@/lib/types";
 
 function inferRole(raw: string | null): Role {
@@ -32,7 +33,9 @@ export async function getLiveProfileCards(
   const supabase = await createClient();
   let q = supabase
     .from("profiles")
-    .select("id, display_name, role, niche, goal")
+    .select(
+      "id, display_name, role, niche, goal, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+    )
     .not("onboarding_completed_at", "is", null)
     .order("updated_at", { ascending: false })
     .limit(24);
@@ -51,6 +54,13 @@ export async function getLiveProfileCards(
     const name = row.display_name?.trim() || "Member";
     const niche = row.niche?.trim() || "—";
     const goal = row.goal?.trim() || "";
+    const { starBeat, extraBeats } = beatsFromProfileRow({
+      id: row.id,
+      star_beat_title: row.star_beat_title ?? null,
+      star_beat_audio_url: row.star_beat_audio_url ?? null,
+      star_beat_cover_url: row.star_beat_cover_url ?? null,
+      extra_beats: row.extra_beats,
+    });
     return {
       id: row.id,
       displayName: name,
@@ -60,6 +70,8 @@ export async function getLiveProfileCards(
       bio: goal || niche,
       highlight: niche,
       accent: accentForRole(role),
+      starBeat,
+      extraBeats,
     };
   });
 }

@@ -1,5 +1,13 @@
 export type Role = "producer" | "artist" | "dj" | "venue";
 
+/** Short audio preview for discover cards (URLs must allow streaming). */
+export type BeatPreview = {
+  id: string;
+  title: string;
+  audioUrl: string;
+  coverUrl: string;
+};
+
 export type ProfileCard = {
   id: string;
   displayName: string;
@@ -10,6 +18,10 @@ export type ProfileCard = {
   highlight: string;
   /** CSS gradient or color for card header */
   accent: string;
+  /** Featured track — auto-plays when the card is shown (after user has interacted with the page). */
+  starBeat?: BeatPreview;
+  /** Additional previews (UI shows up to five). */
+  extraBeats?: BeatPreview[];
 };
 
 export type BeatBundle = {
@@ -31,4 +43,10 @@ export type DbProfile = {
   niche: string | null;
   goal: string | null;
   onboarding_completed_at: string | null;
+  updated_at?: string | null;
+  star_beat_title?: string | null;
+  star_beat_audio_url?: string | null;
+  star_beat_cover_url?: string | null;
+  /** JSON array of `{ title, audio_url, cover_url }` — max 5 enforced in app */
+  extra_beats?: unknown;
 };
