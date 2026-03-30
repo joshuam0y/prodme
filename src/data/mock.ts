@@ -1,0 +1,77 @@
+import type { BeatBundle, ProfileCard } from "@/lib/types";
+
+export const mockProfiles: ProfileCard[] = [
+  {
+    id: "1",
+    displayName: "Maya Lin",
+    role: "producer",
+    city: "Boston",
+    niche: "melodic trap · soul samples",
+    bio: "Beats for artists who want hooks that stick. Collab-friendly, stems on request.",
+    highlight: "Latest: placement with an indie vocalist from Toronto.",
+    accent: "from-violet-600 to-fuchsia-600",
+  },
+  {
+    id: "2",
+    displayName: "DJ Kairo",
+    role: "dj",
+    city: "NYC",
+    niche: "house · UK garage · open format",
+    bio: "Rooftops, warehouses, and rooms that need energy without chaos.",
+    highlight: "Residency: monthly party in Brooklyn.",
+    accent: "from-amber-500 to-orange-600",
+  },
+  {
+    id: "3",
+    displayName: "Soleil",
+    role: "artist",
+    city: "LA",
+    niche: "R&B · alt-pop",
+    bio: "Looking for producers who care about vocal production as much as drums.",
+    highlight: "50k monthly listeners — EP dropping spring.",
+    accent: "from-emerald-600 to-teal-600",
+  },
+  {
+    id: "4",
+    displayName: "North End Audio",
+    role: "venue",
+    city: "Boston",
+    niche: "200 cap · live + DJ",
+    bio: "We book Thursday electronic and Friday hip-hop. Need reliable openers.",
+    highlight: "In-house PA; backline negotiable.",
+    accent: "from-slate-600 to-zinc-700",
+  },
+];
+
+export const mockBundles: BeatBundle[] = [
+  {
+    id: "b1",
+    creatorId: "1",
+    creatorName: "Maya Lin",
+    title: "Late Night Keys Pack",
+    priceLabel: "$45",
+    trackCount: 8,
+    genres: ["trap", "R&B"],
+    accent: "from-violet-500/30 to-fuchsia-500/20",
+  },
+  {
+    id: "b2",
+    creatorId: "x",
+    creatorName: "Greyscale",
+    title: "Lo-fi Sketchbook",
+    priceLabel: "$32",
+    trackCount: 12,
+    genres: ["lo-fi", "boom bap"],
+    accent: "from-zinc-600/40 to-neutral-800/30",
+  },
+  {
+    id: "b3",
+    creatorId: "y",
+    creatorName: "Studio 4AM",
+    title: "Club Starter Kit",
+    priceLabel: "$60",
+    trackCount: 15,
+    genres: ["house", "techno"],
+    accent: "from-cyan-500/25 to-blue-600/20",
+  },
+];
