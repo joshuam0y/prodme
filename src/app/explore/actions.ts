@@ -128,10 +128,14 @@ export async function resetDiscoverSwipes(
     return { ok: false };
   }
 
+  // "Start over" should replay only profiles you previously dismissed ("pass").
+  // Profiles in Saved / Interested are intentionally kept out of Discover
+  // until the user explicitly removes them.
   const { error } = await supabase
     .from("discover_swipes")
     .delete()
-    .eq("viewer_id", user.id);
+    .eq("viewer_id", user.id)
+    .eq("action", "pass");
 
   if (error) {
     console.error("resetDiscoverSwipes", error.message);
