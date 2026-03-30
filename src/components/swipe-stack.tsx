@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { recordDiscoverAction } from "@/app/explore/actions";
 import type { BeatPreview, ProfileCard } from "@/lib/types";
 import { isUuid } from "@/lib/uuid";
 
@@ -98,9 +99,25 @@ export function SwipeStack({ profiles }: Props) {
     else a.pause();
   }, []);
 
+  const toggleBeatOrPlay = useCallback(
+    (beat: BeatPreview) => {
+      if (playingMeta?.id === beat.id) {
+        toggleMainPlay();
+      } else {
+        playBeat(beat);
+      }
+    },
+    [playingMeta?.id, playBeat, toggleMainPlay],
+  );
+
   const advance = useCallback(
     (dir: "left" | "right" | "up") => {
       if (!current || done) return;
+      const action =
+        dir === "left" ? "pass" : dir === "right" ? "save" : "interested";
+      if (isUuid(current.id)) {
+        void recordDiscoverAction(current.id, action);
+      }
       const a = audioRef.current;
       if (a) {
         a.pause();
@@ -214,6 +231,7 @@ export function SwipeStack({ profiles }: Props) {
   const star = current.starBeat;
   const extras = (current.extraBeats ?? []).slice(0, MAX_EXTRA);
   const heroCover = playingMeta?.coverUrl ?? star?.coverUrl;
+  const playingStar = Boolean(star && playingMeta?.id === star.id);
 
   return (
     <div className="relative mx-auto w-full max-w-md">
@@ -290,31 +308,45 @@ export function SwipeStack({ profiles }: Props) {
                   />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-amber-500/90">
-                    Star track
+                  <p
+                    className={`text-[10px] font-semibold uppercase tracking-widest ${
+                      playingStar ? "text-amber-500/90" : "text-zinc-400"
+                    }`}
+                  >
+                    {playingStar ? "Star track" : "Now playing"}
                   </p>
                   <p className="mt-0.5 truncate text-sm font-medium text-zinc-100">
                     {playingMeta?.title ?? star.title}
                   </p>
                   <p className="mt-1 text-[11px] text-zinc-500">
-                    Plays when you open this card — swipe for the next sound.
+                    {playingStar
+                      ? "Plays when you open this card — swipe for the next sound."
+                      : "Extra preview on this profile — swipe for the next person."}
                   </p>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (playingMeta?.id !== star.id) {
-                        playBeat(star);
-                      } else {
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
                         toggleMainPlay();
-                      }
-                    }}
-                    className="mt-2 rounded-full bg-amber-500/20 px-3 py-1 text-xs font-medium text-amber-300 ring-1 ring-amber-500/35 transition hover:bg-amber-500/30"
-                  >
-                    {audioReady && playingMeta?.id === star.id
-                      ? "Pause"
-                      : "Play star"}
-                  </button>
+                      }}
+                      className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-medium text-amber-300 ring-1 ring-amber-500/35 transition hover:bg-amber-500/30"
+                    >
+                      {audioReady ? "Pause" : "Play"}
+                    </button>
+                    {star && !playingStar ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          playBeat(star);
+                        }}
+                        className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
+                      >
+                        Play star track
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
 
@@ -332,14 +364,16 @@ export function SwipeStack({ profiles }: Props) {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              playBeat(beat);
+                              toggleBeatOrPlay(beat);
                             }}
                             className={`group relative h-14 w-14 overflow-hidden rounded-lg ring-1 transition ${
                               active
                                 ? "ring-amber-400/80"
                                 : "ring-white/10 hover:ring-amber-500/50"
                             }`}
-                            aria-label={`Play ${beat.title}`}
+                            aria-label={
+                              active && audioReady ? `Pause ${beat.title}` : `Play ${beat.title}`
+                            }
                           >
                             <Image
                               src={beat.coverUrl}
@@ -355,7 +389,7 @@ export function SwipeStack({ profiles }: Props) {
                               }`}
                               aria-hidden
                             >
-                              ▶
+                              {active && audioReady ? "⏸" : "▶"}
                             </span>
                           </button>
                         </li>

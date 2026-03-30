@@ -64,6 +64,7 @@ export function OnboardingForm({ error }: Props) {
         role,
         niche: niche.trim(),
         goal,
+        city: (answers.city ?? "").trim(),
       });
     });
   };
@@ -131,13 +132,33 @@ export function OnboardingForm({ error }: Props) {
             ))}
           </ul>
         ) : (
-          <textarea
-            className="mt-8 w-full rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
-            rows={4}
-            placeholder={"placeholder" in current ? current.placeholder : ""}
-            value={answers.niche ?? ""}
-            onChange={(e) => setAnswer("niche", e.target.value)}
-          />
+          <div className="mt-8 space-y-6">
+            <textarea
+              className="w-full rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+              rows={4}
+              placeholder={"placeholder" in current ? current.placeholder : ""}
+              value={answers.niche ?? ""}
+              onChange={(e) => setAnswer("niche", e.target.value)}
+            />
+            <div>
+              <label
+                htmlFor="city"
+                className="text-xs font-medium text-zinc-500"
+              >
+                City or region (optional)
+              </label>
+              <input
+                id="city"
+                name="city"
+                type="text"
+                autoComplete="address-level2"
+                placeholder="e.g. London, Atlanta, Berlin"
+                value={answers.city ?? ""}
+                onChange={(e) => setAnswer("city", e.target.value)}
+                className="mt-1.5 w-full rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+              />
+            </div>
+          </div>
         )}
       </div>
 

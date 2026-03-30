@@ -4,6 +4,7 @@ import { signOut } from "@/app/auth/actions";
 
 const allNavLinks = [
   { href: "/explore", label: "Discover" },
+  { href: "/saved", label: "Saved", authOnly: true },
   { href: "/bundles", label: "Bundles" },
   { href: "/onboarding", label: "Profile", hideWhenProfileComplete: true },
 ] as const;
@@ -20,9 +21,12 @@ export function SiteHeader({
   supabaseEnabled,
   showBuildProfileNav = true,
 }: Props) {
-  const links = showBuildProfileNav
+  const links = (showBuildProfileNav
     ? allNavLinks
-    : allNavLinks.filter((l) => !("hideWhenProfileComplete" in l && l.hideWhenProfileComplete));
+    : allNavLinks.filter(
+        (l) => !("hideWhenProfileComplete" in l && l.hideWhenProfileComplete),
+      )
+  ).filter((l) => !("authOnly" in l && l.authOnly) || Boolean(user));
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[var(--surface)]/80 backdrop-blur-md">

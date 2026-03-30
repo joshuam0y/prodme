@@ -28,7 +28,9 @@ export function AuthCallbackClient() {
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (!cancelled && !error) {
-          router.replace(next);
+          window.location.replace(
+            `${window.location.origin}${next.startsWith("/") ? next : `/${next}`}`,
+          );
           return;
         }
         if (error && !cancelled) {
@@ -51,7 +53,9 @@ export function AuthCallbackClient() {
           });
           if (!cancelled && !error) {
             window.history.replaceState(null, "", window.location.pathname + window.location.search);
-            router.replace(next);
+            window.location.replace(
+              `${window.location.origin}${next.startsWith("/") ? next : `/${next}`}`,
+            );
             return;
           }
         }
@@ -61,7 +65,9 @@ export function AuthCallbackClient() {
         data: { session },
       } = await supabase.auth.getSession();
       if (!cancelled && session) {
-        router.replace(next);
+        window.location.replace(
+          `${window.location.origin}${next.startsWith("/") ? next : `/${next}`}`,
+        );
         return;
       }
 

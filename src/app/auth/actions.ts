@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
-import { getServerOrigin } from "@/lib/server-origin";
+import { getSiteOrigin } from "@/lib/site-url";
 import { redirect } from "next/navigation";
 
 function safeNext(path: string | null): string {
@@ -42,7 +42,7 @@ export async function signUp(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const next = safeNext(String(formData.get("next") ?? "/onboarding"));
 
-  const origin = await getServerOrigin();
+  const origin = getSiteOrigin();
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
@@ -84,7 +84,7 @@ export async function requestPasswordReset(formData: FormData) {
     redirect("/forgot-password?error=missing_email");
   }
 
-  const origin = await getServerOrigin();
+  const origin = getSiteOrigin();
   const callback = new URL("/auth/callback", origin);
   callback.searchParams.set("next", "/update-password");
 
@@ -139,7 +139,7 @@ export async function updatePassword(formData: FormData) {
   }
 
   redirect(
-    `/login?notice=${encodeURIComponent("Password updated. Sign in with your new password.")}`,
+    `/explore?notice=${encodeURIComponent("Password updated — you’re signed in.")}`,
   );
 }
 
@@ -148,6 +148,7 @@ export type OnboardingPayload = {
   role: string;
   niche: string;
   goal: string;
+  city?: string;
 };
 
 export async function completeOnboarding(payload: OnboardingPayload) {
@@ -168,6 +169,8 @@ export async function completeOnboarding(payload: OnboardingPayload) {
     payload.display_name.trim() ||
     (user.email?.split("@")[0] ?? "Member");
 
+  const city = payload.city?.trim() ?? "";
+
   const { error } = await supabase.from("profiles").upsert(
     {
       id: user.id,
@@ -175,6 +178,7 @@ export async function completeOnboarding(payload: OnboardingPayload) {
       role: payload.role,
       niche: payload.niche,
       goal: payload.goal,
+      ...(city ? { city } : {}),
       onboarding_completed_at: new Date().toISOString(),
     },
     { onConflict: "id" },

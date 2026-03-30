@@ -25,20 +25,33 @@ function accentForRole(r: Role): string {
 /** Real users from Supabase (IDs are UUIDs → /p/:id works). */
 export async function getLiveProfileCards(
   excludeUserId?: string | null,
+  viewerId?: string | null,
 ): Promise<ProfileCard[]> {
   if (!isSupabaseConfigured()) {
     return [];
   }
 
   const supabase = await createClient();
+
+  let swipedIds = new Set<string>();
+  if (viewerId) {
+    const { data: swipes, error: swipeErr } = await supabase
+      .from("discover_swipes")
+      .select("target_id")
+      .eq("viewer_id", viewerId);
+    if (!swipeErr && swipes?.length) {
+      swipedIds = new Set(swipes.map((s) => s.target_id));
+    }
+  }
+
   let q = supabase
     .from("profiles")
     .select(
-      "id, display_name, role, niche, goal, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, display_name, role, niche, goal, city, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .not("onboarding_completed_at", "is", null)
     .order("updated_at", { ascending: false })
-    .limit(24);
+    .limit(48);
 
   if (excludeUserId) {
     q = q.neq("id", excludeUserId);
@@ -49,7 +62,12 @@ export async function getLiveProfileCards(
     return [];
   }
 
-  return data.map((row) => {
+  const rows = data.filter((row) => !swipedIds.has(row.id));
+  if (!rows.length) {
+    return [];
+  }
+
+  return rows.map((row) => {
     const role = inferRole(row.role);
     const name = row.display_name?.trim() || "Member";
     const niche = row.niche?.trim() || "—";
@@ -65,7 +83,7 @@ export async function getLiveProfileCards(
       id: row.id,
       displayName: name,
       role,
-      city: "—",
+      city: row.city?.trim() || "—",
       niche,
       bio: goal || niche,
       highlight: niche,

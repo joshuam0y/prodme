@@ -42,6 +42,7 @@ export type DbProfile = {
   role: string | null;
   niche: string | null;
   goal: string | null;
+  city?: string | null;
   onboarding_completed_at: string | null;
   updated_at?: string | null;
   star_beat_title?: string | null;

@@ -23,10 +23,11 @@ function isRole(s: string | undefined): s is Role {
 export default async function ExplorePage({
   searchParams,
 }: {
-  searchParams: Promise<{ role?: string }>;
+  searchParams: Promise<{ role?: string; notice?: string }>;
 }) {
   const params = await searchParams;
   const roleFilter = isRole(params.role) ? params.role : undefined;
+  const notice = params.notice ? decodeURIComponent(params.notice) : null;
 
   let viewerId: string | null = null;
   if (isSupabaseConfigured()) {
@@ -37,7 +38,7 @@ export default async function ExplorePage({
     viewerId = user?.id ?? null;
   }
 
-  const live = await getLiveProfileCards(viewerId);
+  const live = await getLiveProfileCards(viewerId, viewerId);
   const pool = [...live, ...mockProfiles];
   const profiles = roleFilter
     ? pool.filter((p) => p.role === roleFilter)
@@ -54,6 +55,11 @@ export default async function ExplorePage({
           <span className="text-zinc-400"> View full profile </span>
           on real members to see their public page.
         </p>
+        {notice ? (
+          <p className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-100">
+            {notice}
+          </p>
+        ) : null}
         <div className="mt-8">
           <p
             id="discover-filters"
@@ -88,7 +94,7 @@ export default async function ExplorePage({
         </div>
       </div>
 
-      <SwipeStack profiles={profiles} />
+      <SwipeStack key={roleFilter ?? "all"} profiles={profiles} />
     </main>
   );
 }
