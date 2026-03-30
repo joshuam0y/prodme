@@ -11,13 +11,46 @@ function safeNext(path: string | null): string {
   return path;
 }
 
+/** Supabase often drops custom query params on the redirect; recovery uses `type=recovery` in query or hash. */
+function resolvePostAuthPath(
+  searchParams: URLSearchParams,
+  hashWithoutLeading: string,
+): string {
+  const explicit = searchParams.get("next");
+  if (explicit) {
+    return safeNext(explicit);
+  }
+  const typeInQuery = searchParams.get("type");
+  if (typeInQuery === "recovery") {
+    return "/update-password";
+  }
+  if (hashWithoutLeading) {
+    const fromHash = new URLSearchParams(hashWithoutLeading);
+    if (fromHash.get("type") === "recovery") {
+      return "/update-password";
+    }
+  }
+  return "/explore";
+}
+
+function redirectAfterAuth() {
+  const path = resolvePostAuthPath(
+    new URLSearchParams(
+      typeof window !== "undefined" ? window.location.search : "",
+    ),
+    typeof window !== "undefined" ? window.location.hash.replace(/^#/, "") : "",
+  );
+  window.location.replace(
+    `${window.location.origin}${path.startsWith("/") ? path : `/${path}`}`,
+  );
+}
+
 export function AuthCallbackClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("Signing you in…");
 
   useEffect(() => {
-    const next = safeNext(searchParams.get("next"));
     const supabase = createBrowserSupabaseClient();
 
     let cancelled = false;
@@ -28,9 +61,7 @@ export function AuthCallbackClient() {
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (!cancelled && !error) {
-          window.location.replace(
-            `${window.location.origin}${next.startsWith("/") ? next : `/${next}`}`,
-          );
+          redirectAfterAuth();
           return;
         }
         if (error && !cancelled) {
@@ -53,9 +84,7 @@ export function AuthCallbackClient() {
           });
           if (!cancelled && !error) {
             window.history.replaceState(null, "", window.location.pathname + window.location.search);
-            window.location.replace(
-              `${window.location.origin}${next.startsWith("/") ? next : `/${next}`}`,
-            );
+            redirectAfterAuth();
             return;
           }
         }
@@ -65,9 +94,7 @@ export function AuthCallbackClient() {
         data: { session },
       } = await supabase.auth.getSession();
       if (!cancelled && session) {
-        window.location.replace(
-          `${window.location.origin}${next.startsWith("/") ? next : `/${next}`}`,
-        );
+        redirectAfterAuth();
         return;
       }
 

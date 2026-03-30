@@ -3,7 +3,8 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { beatsFromProfileRow } from "@/lib/profile-beats";
 import type { ProfileCard, Role } from "@/lib/types";
 
-function inferRole(raw: string | null): Role {
+/** Map onboarding / DB `profiles.role` text to a discover `Role`. */
+export function inferProfileRole(raw: string | null): Role {
   const s = (raw ?? "").toLowerCase();
   if (s.includes("producer")) return "producer";
   if (s.includes("dj")) return "dj";
@@ -68,7 +69,7 @@ export async function getLiveProfileCards(
   }
 
   return rows.map((row) => {
-    const role = inferRole(row.role);
+    const role = inferProfileRole(row.role);
     const name = row.display_name?.trim() || "Member";
     const niche = row.niche?.trim() || "—";
     const goal = row.goal?.trim() || "";

@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { SwipeStack } from "@/components/swipe-stack";
 import { mockProfiles } from "@/data/mock";
-import { getLiveProfileCards } from "@/lib/discover-profiles";
+import { getLiveProfileCards, inferProfileRole } from "@/lib/discover-profiles";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { Role } from "@/lib/types";
@@ -30,6 +31,7 @@ export default async function ExplorePage({
   const notice = params.notice ? decodeURIComponent(params.notice) : null;
 
   let viewerId: string | null = null;
+  let viewerRole: Role | null = null;
   let teaserCount = mockProfiles.length;
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -37,6 +39,16 @@ export default async function ExplorePage({
       data: { user },
     } = await supabase.auth.getUser();
     viewerId = user?.id ?? null;
+    if (viewerId) {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", viewerId)
+        .maybeSingle();
+      if (prof?.role?.trim()) {
+        viewerRole = inferProfileRole(prof.role);
+      }
+    }
     const { count } = await supabase
       .from("profiles")
       .select("id", { count: "exact", head: true })
@@ -96,11 +108,22 @@ export default async function ExplorePage({
     );
   }
 
+  if (viewerRole && roleFilter && roleFilter === viewerRole) {
+    redirect("/explore");
+  }
+
   const live = await getLiveProfileCards(viewerId, viewerId);
   const pool = [...live, ...mockProfiles];
-  const profiles = roleFilter
-    ? pool.filter((p) => p.role === roleFilter)
+  const withoutSameRole = viewerRole
+    ? pool.filter((p) => p.role !== viewerRole)
     : pool;
+  const profiles = roleFilter
+    ? withoutSameRole.filter((p) => p.role === roleFilter)
+    : withoutSameRole;
+
+  const filterLinks = FILTERS.filter(
+    (f) => !f.role || !viewerRole || f.role !== viewerRole,
+  );
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-10 sm:px-6">
@@ -109,7 +132,9 @@ export default async function ExplorePage({
           Discover
         </h1>
         <p className="mt-3 text-sm text-zinc-500">
-          Real completed profiles appear first; sample cards fill the rest. Open
+          Real completed profiles appear first; sample cards fill the rest. You
+          won&apos;t see people with the same role as you (so venues don&apos;t
+          see venues, producers don&apos;t see producers, etc.). Open
           <span className="text-zinc-400"> View full profile </span>
           on real members to see their public page.
         </p>
@@ -130,7 +155,7 @@ export default async function ExplorePage({
             role="group"
             aria-labelledby="discover-filters"
           >
-            {FILTERS.map(({ param, label, role }) => {
+            {filterLinks.map(({ param, label, role }) => {
               const href = param ? `/explore?role=${param}` : "/explore";
               const linkActive =
                 param === "" ? roleFilter === undefined : roleFilter === role;
@@ -152,7 +177,10 @@ export default async function ExplorePage({
         </div>
       </div>
 
-      <SwipeStack key={roleFilter ?? "all"} profiles={profiles} />
+      <SwipeStack
+        key={`${roleFilter ?? "all"}-${viewerRole ?? "?"}`}
+        profiles={profiles}
+      />
     </main>
   );
 }
