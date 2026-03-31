@@ -11,6 +11,9 @@ type ReportRow = {
   message_id: number | null;
   reason: string;
   details: string | null;
+  ai_summary?: string | null;
+  ai_priority?: "low" | "medium" | "high" | null;
+  ai_labels?: unknown;
   status: "open" | "resolved";
   created_at: string;
 };
@@ -41,7 +44,7 @@ export default async function ModerationAdminPage({
 
   const { data: reports } = await supabase
     .from("match_message_reports")
-    .select("id, reporter_id, reported_user_id, message_id, reason, details, status, created_at")
+    .select("id, reporter_id, reported_user_id, message_id, reason, details, ai_summary, ai_priority, ai_labels, status, created_at")
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -266,6 +269,42 @@ export default async function ModerationAdminPage({
                     <p className="text-zinc-500">Reported: {r.reported_user_id}</p>
                     {r.message_id ? <p className="text-zinc-500">Message ID: {r.message_id}</p> : null}
                     {r.details ? <p className="text-zinc-400">Details: {r.details}</p> : null}
+                    {r.ai_summary?.trim() ? (
+                      <div className="mt-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-300/90">
+                          AI triage
+                        </p>
+                        <p className="mt-1 text-zinc-300">{r.ai_summary.trim()}</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {r.ai_priority ? (
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                                r.ai_priority === "high"
+                                  ? "bg-red-500/15 text-red-200 ring-1 ring-red-500/35"
+                                  : r.ai_priority === "medium"
+                                    ? "bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/35"
+                                    : "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/35"
+                              }`}
+                            >
+                              {r.ai_priority} priority
+                            </span>
+                          ) : null}
+                          {Array.isArray(r.ai_labels)
+                            ? r.ai_labels
+                                .filter((label): label is string => typeof label === "string" && label.trim().length > 0)
+                                .slice(0, 5)
+                                .map((label) => (
+                                  <span
+                                    key={`${r.id}-${label}`}
+                                    className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium text-zinc-300"
+                                  >
+                                    {label}
+                                  </span>
+                                ))
+                            : null}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                   <div className="flex gap-2">
                       <form

@@ -54,7 +54,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   const { data: row, error } = await supabase
     .from("profiles")
     .select(
-      "id, display_name, avatar_url, role, niche, goal, city, neighborhood, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .eq("id", id)
     .maybeSingle();
@@ -78,6 +78,9 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   const isVenueProfile =
     profile.role?.toLowerCase().includes("venue") ||
     profile.role?.toLowerCase().includes("promoter");
+  const aiTags = Array.isArray(profile.ai_tags)
+    ? profile.ai_tags.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0)
+    : [];
   const anyExtraAudio = Boolean(extraBeats?.some((b) => Boolean(b.audioUrl)));
   const galleryOpen = sp.gallery === "1";
   const galleryItems = [
@@ -174,6 +177,38 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
           {profile.verified ? " · Verified" : null}
         </p>
       </div>
+
+      {profile.ai_summary?.trim() || aiTags.length > 0 || typeof profile.ai_profile_score === "number" ? (
+        <section className="mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-emerald-300/90">
+              AI summary
+            </h2>
+            {typeof profile.ai_profile_score === "number" ? (
+              <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200 ring-1 ring-emerald-500/30">
+                Score {profile.ai_profile_score}/100
+              </span>
+            ) : null}
+          </div>
+          {profile.ai_summary?.trim() ? (
+            <p className="mt-3 text-sm leading-relaxed text-zinc-200">
+              {profile.ai_summary.trim()}
+            </p>
+          ) : null}
+          {aiTags.length > 0 ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {aiTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-zinc-300"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {profile.looking_for?.trim() ? (
         <section className="mt-6 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">

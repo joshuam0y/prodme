@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateProfileBasics } from "./actions";
+import { generateProfileBasicsSuggestions, updateProfileBasics } from "./actions";
 
 type Props = {
   initial: {
     displayName: string;
+    role: string;
     niche: string;
     goal: string;
     city: string;
@@ -22,6 +23,7 @@ const fieldClass =
 
 export function ProfileBasicsForm({ initial }: Props) {
   const [pending, startTransition] = useTransition();
+  const [aiPending, startAiTransition] = useTransition();
   const [displayName, setDisplayName] = useState(initial.displayName);
   const [niche, setNiche] = useState(initial.niche);
   const [goal, setGoal] = useState(initial.goal);
@@ -32,6 +34,7 @@ export function ProfileBasicsForm({ initial }: Props) {
   const [prompt2Q, setPrompt2Q] = useState(initial.prompt2Q);
   const [prompt2A, setPrompt2A] = useState(initial.prompt2A);
   const [message, setMessage] = useState<string | null>(null);
+  const [aiMeta, setAiMeta] = useState<{ summary: string; tags: string[]; score: number } | null>(null);
 
   return (
     <section className="mt-10 rounded-2xl border border-white/10 bg-zinc-900/40 p-6">
@@ -117,6 +120,78 @@ export function ProfileBasicsForm({ initial }: Props) {
             />
           </label>
         </div>
+      </div>
+      <div className="mt-6 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-zinc-100">AI profile coach</p>
+            <p className="mt-1 text-sm text-zinc-500">
+              Rewrite your style, goal, collaborator ask, and prompts so the profile feels clearer.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={aiPending}
+            onClick={() =>
+              startAiTransition(async () => {
+                const result = await generateProfileBasicsSuggestions({
+                  displayName,
+                  role: initial.role,
+                  niche,
+                  goal,
+                  city,
+                  lookingFor,
+                  prompt1Question: prompt1Q,
+                  prompt1Answer: prompt1A,
+                  prompt2Question: prompt2Q,
+                  prompt2Answer: prompt2A,
+                });
+                if (!result.ok) {
+                  setMessage(result.error);
+                  return;
+                }
+                const { suggestion } = result;
+                setNiche(suggestion.niche);
+                setGoal(suggestion.goal);
+                setLookingFor(suggestion.lookingFor);
+                setPrompt1Q(suggestion.prompt1Question);
+                setPrompt1A(suggestion.prompt1Answer);
+                setPrompt2Q(suggestion.prompt2Question);
+                setPrompt2A(suggestion.prompt2Answer);
+                setAiMeta({
+                  summary: suggestion.summary,
+                  tags: suggestion.tags,
+                  score: suggestion.score,
+                });
+                setMessage("AI suggestions applied locally. Review, then save changes.");
+              })
+            }
+            className="rounded-full border border-amber-500/35 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-40"
+          >
+            {aiPending ? "Thinking..." : "Improve with AI"}
+          </button>
+        </div>
+        {aiMeta ? (
+          <div className="mt-4 rounded-lg border border-white/10 bg-zinc-950/40 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              AI read
+            </p>
+            <p className="mt-2 text-sm text-zinc-300">{aiMeta.summary}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
+                Score {aiMeta.score}/100
+              </span>
+              {aiMeta.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full bg-white/5 px-2.5 py-1 text-[11px] font-medium text-zinc-300"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
       <button
         type="button"

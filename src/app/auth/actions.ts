@@ -1,7 +1,8 @@
 "use server";
 
+import { enrichProfileWithAi, generateProfileEmbedding } from "@/lib/ai/client";
 import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/env";
+import { isAiProfileCoachConfigured, isSupabaseConfigured } from "@/lib/env";
 import { getSiteOrigin } from "@/lib/site-url";
 import { trackServerEvent } from "@/lib/analytics";
 import { redirect } from "next/navigation";
@@ -210,6 +211,39 @@ export type OnboardingPayload = {
   city?: string;
 };
 
+async function refreshAiAfterOnboarding(userId: string, payload: OnboardingPayload) {
+  if (!isAiProfileCoachConfigured()) return;
+
+  try {
+    const profileInput = {
+      displayName: payload.display_name,
+      role: payload.role,
+      niche: payload.niche,
+      goal: payload.goal,
+      city: payload.city ?? "",
+    };
+    const ai = await enrichProfileWithAi(profileInput);
+    const embedding = await generateProfileEmbedding(profileInput);
+    const supabase = await createClient();
+    await supabase
+      .from("profiles")
+      .update({
+        ai_summary: ai.summary || null,
+        ai_tags: ai.tags,
+        ai_profile_score: ai.score,
+        ai_updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
+    await supabase.rpc("set_profile_embedding", {
+      p_user_id: userId,
+      p_source_text: embedding.sourceText,
+      p_embedding_text: embedding.embeddingText,
+    });
+  } catch {
+    // Best-effort only.
+  }
+}
+
 export async function completeOnboarding(payload: OnboardingPayload) {
   if (!isSupabaseConfigured()) {
     redirect("/onboarding?error=not_configured");
@@ -279,6 +313,11 @@ export async function completeOnboarding(payload: OnboardingPayload) {
     event: "onboarding_completed",
     path: "/onboarding",
     metadata: { role: payload.role },
+  });
+  await refreshAiAfterOnboarding(user.id, {
+    ...payload,
+    display_name: displayName,
+    city,
   });
   redirect("/explore");
 }

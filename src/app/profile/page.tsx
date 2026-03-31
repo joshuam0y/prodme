@@ -31,7 +31,7 @@ export default async function ProfilePage() {
   const { data: row, error } = await supabase
     .from("profiles")
     .select(
-      "id, display_name, avatar_url, role, niche, goal, city, neighborhood, latitude, longitude, location_radius_km, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, latitude, longitude, location_radius_km, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -45,7 +45,7 @@ export default async function ProfilePage() {
     const { data: minimalRow, error: minimalErr } = await supabase
       .from("profiles")
       .select(
-        "id, display_name, avatar_url, role, niche, goal, city, neighborhood, latitude, longitude, location_radius_km, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, updated_at",
+        "id, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, latitude, longitude, location_radius_km, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, updated_at",
       )
       .eq("id", user.id)
       .maybeSingle();
@@ -62,6 +62,9 @@ export default async function ProfilePage() {
   const incomplete = !isProfileQuestionnaireComplete(profile);
   const roleLower = (profile?.role ?? "").toLowerCase();
   const isVenueProfile = roleLower.includes("venue") || roleLower.includes("promoter");
+  const aiTags = Array.isArray(profile?.ai_tags)
+    ? profile.ai_tags.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0)
+    : [];
 
   let ratingAvg: number | null = null;
   let ratingCount = 0;
@@ -173,6 +176,41 @@ export default async function ProfilePage() {
         </div>
       </dl>
 
+      {profile?.ai_summary?.trim() || aiTags.length > 0 || typeof profile?.ai_profile_score === "number" ? (
+        <section className="mt-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-100">AI profile read</h2>
+              <p className="mt-1 text-sm text-zinc-500">
+                Auto-updated after onboarding and profile edits.
+              </p>
+            </div>
+            {typeof profile?.ai_profile_score === "number" ? (
+              <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-200 ring-1 ring-emerald-500/30">
+                Score {profile.ai_profile_score}/100
+              </span>
+            ) : null}
+          </div>
+          {profile?.ai_summary?.trim() ? (
+            <p className="mt-4 text-sm leading-relaxed text-zinc-200">
+              {profile.ai_summary.trim()}
+            </p>
+          ) : null}
+          {aiTags.length > 0 ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {aiTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-zinc-300"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         {incomplete ? (
           <Link
@@ -215,6 +253,7 @@ export default async function ProfilePage() {
       <ProfileBasicsForm
         initial={{
           displayName: profile?.display_name?.trim() ?? "",
+          role: profile?.role?.trim() ?? "",
           niche: profile?.niche?.trim() ?? "",
           goal: profile?.goal?.trim() ?? "",
           city: profile?.city?.trim() ?? "",

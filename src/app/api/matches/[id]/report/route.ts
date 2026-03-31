@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { buildAiReportTriage } from "@/lib/ai/report-triage";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { trackServerEvent } from "@/lib/analytics";
@@ -30,12 +31,35 @@ export async function POST(req: Request, { params }: Ctx) {
   if (!user) return NextResponse.json({ ok: false, error: "not_signed_in" }, { status: 401 });
   if (user.id === id) return NextResponse.json({ ok: false, error: "self" }, { status: 400 });
 
+  let messageBody = "";
+  if (messageId) {
+    const { data: messageRow } = await supabase
+      .from("match_messages")
+      .select("body, sender_id, recipient_id")
+      .eq("id", messageId)
+      .maybeSingle();
+    if (
+      messageRow &&
+      ((messageRow.sender_id === id && messageRow.recipient_id === user.id) ||
+        (messageRow.sender_id === user.id && messageRow.recipient_id === id))
+    ) {
+      messageBody = String(messageRow.body ?? "").trim().slice(0, 400);
+    }
+  }
+
+  const aiTriage = await buildAiReportTriage({
+    reason,
+    details,
+    messageBody,
+  });
+
   const { error } = await supabase.from("match_message_reports").insert({
     reporter_id: user.id,
     reported_user_id: id,
     reason,
     ...(details ? { details } : {}),
     ...(messageId ? { message_id: messageId } : {}),
+    ...aiTriage,
   });
   if (error) {
     return NextResponse.json({ ok: false, error: "insert_failed" }, { status: 500 });

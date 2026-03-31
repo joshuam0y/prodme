@@ -2,6 +2,7 @@
 
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { generateMatchOpenersAction } from "@/app/matches/actions";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 
 type Message = {
@@ -39,6 +40,7 @@ export function MatchThreadClient({
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [body, setBody] = useState(initialDraft ?? "");
   const [sending, setSending] = useState(false);
+  const [loadingOpeners, setLoadingOpeners] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [matchTyping, setMatchTyping] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -51,11 +53,12 @@ export function MatchThreadClient({
   const [confirmAction, setConfirmAction] = useState<null | "report" | "block" | "unblock">(null);
   const [reportReason, setReportReason] = useState("abusive_or_spam");
   const blocked = Boolean(moderationNotice?.toLowerCase().includes("blocked"));
-  const quickOpeners = [
+  const defaultOpeners = [
     `Hey ${matchName}, what are you building right now?`,
     `Yo ${matchName}, down to trade ideas this week?`,
     "Loved your vibe - want to connect on a quick collab call?",
   ];
+  const [quickOpeners, setQuickOpeners] = useState(defaultOpeners);
   const listRef = useRef<HTMLUListElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -256,6 +259,24 @@ export function MatchThreadClient({
     window.setTimeout(() => textareaRef.current?.focus(), 50);
   }, [initialDraft]);
 
+  useEffect(() => {
+    if (messages.length > 0) return;
+    let cancelled = false;
+    setLoadingOpeners(true);
+    void generateMatchOpenersAction(matchId)
+      .then((result) => {
+        if (cancelled || !result.ok || result.openers.length !== 3) return;
+        setQuickOpeners(result.openers);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoadingOpeners(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [matchId, messages.length]);
+
   const sendTyping = useCallback(
     (isTyping: boolean) => {
       if (typingStateRef.current === isTyping) return;
@@ -331,6 +352,10 @@ export function MatchThreadClient({
             ? "Messaging is unavailable because this profile is blocked."
             : json.error === "not_matched"
               ? "You can only message mutual matches."
+              : json.error === "moderated_blocked"
+                ? "That message was blocked for safety."
+                : json.error === "moderated_warn"
+                  ? "That message looks risky or spammy. Try a clearer, friendlier opener."
               : json.error === "rate_limited"
                 ? "You are sending messages too quickly. Please wait a few minutes."
                 : "Could not send message.",
@@ -431,7 +456,29 @@ export function MatchThreadClient({
       ) : null}
       {!blocked && messages.length === 0 ? (
         <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Suggested openers</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              Suggested openers
+            </p>
+            <button
+              type="button"
+              disabled={loadingOpeners}
+              onClick={async () => {
+                setLoadingOpeners(true);
+                const result = await generateMatchOpenersAction(matchId);
+                if (result.ok && result.openers.length === 3) {
+                  setQuickOpeners(result.openers);
+                  setError(null);
+                } else if (!result.ok && result.error !== "AI suggestions are not configured yet.") {
+                  setError("Could not refresh opener suggestions.");
+                }
+                setLoadingOpeners(false);
+              }}
+              className="text-[11px] font-medium text-amber-300 transition hover:text-amber-200 disabled:opacity-40"
+            >
+              {loadingOpeners ? "Thinking..." : "Refresh"}
+            </button>
+          </div>
           <div className="mt-2 flex flex-wrap gap-2">
             {quickOpeners.map((opener, idx) => (
               <button

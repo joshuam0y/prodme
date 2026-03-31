@@ -23,6 +23,10 @@ function accentForRole(r: Role): string {
   return m[r];
 }
 
+function capitalize(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
 /** Real users from Supabase (IDs are UUIDs → /p/:id works). */
 export async function getLiveProfileCards(
   excludeUserId?: string | null,
@@ -30,6 +34,10 @@ export async function getLiveProfileCards(
   opts?: {
     viewerLat?: number | null;
     viewerLng?: number | null;
+    viewerRole?: Role | null;
+    viewerNiche?: string | null;
+    viewerGoal?: string | null;
+    viewerLookingFor?: string | null;
     maxDistanceKm?: number;
     sort?: "new" | "trending" | "nearby";
     verifiedOnly?: boolean;
@@ -56,7 +64,7 @@ export async function getLiveProfileCards(
   let q = supabase
     .from("profiles")
     .select(
-      "id, display_name, avatar_url, role, niche, goal, city, neighborhood, latitude, longitude, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, latitude, longitude, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .not("onboarding_completed_at", "is", null)
     .order("updated_at", { ascending: false })
@@ -76,7 +84,45 @@ export async function getLiveProfileCards(
     return [];
   }
 
-  // Lightweight ranking pass: prefer higher-rated profiles while keeping recency.
+  const tokenize = (...values: Array<string | null | undefined>) =>
+    [...new Set(
+      values
+        .join(" ")
+        .toLowerCase()
+        .split(/[^a-z0-9]+/g)
+        .map((token) => token.trim())
+        .filter((token) => token.length >= 3),
+    )];
+
+  const parseAiTags = (value: unknown): string[] => {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((item) => (typeof item === "string" ? item.trim().toLowerCase() : ""))
+      .filter(Boolean)
+      .slice(0, 6);
+  };
+
+  const viewerTokens = new Set(
+    tokenize(opts?.viewerRole ?? null, opts?.viewerNiche ?? null, opts?.viewerGoal ?? null, opts?.viewerLookingFor ?? null),
+  );
+  const embeddingSimilarity = new Map<string, number>();
+  if (viewerId) {
+    try {
+      const { data: similarityRows } = await supabase.rpc("match_profile_embeddings", {
+        p_viewer_id: viewerId,
+        p_limit: 96,
+      });
+      for (const row of (similarityRows as Array<{ user_id: string; similarity: number }> | null) ?? []) {
+        if (typeof row.user_id === "string" && Number.isFinite(Number(row.similarity))) {
+          embeddingSimilarity.set(row.user_id, Number(row.similarity));
+        }
+      }
+    } catch {
+      // Embeddings are optional until the migration runs.
+    }
+  }
+
+  // Lightweight ranking pass: prefer higher-rated and better-described profiles while keeping recency.
   const ratingStats = new Map<string, { avg: number; count: number }>();
   try {
     const ids = rows.map((r) => r.id);
@@ -103,10 +149,30 @@ export async function getLiveProfileCards(
   const rankScore = (row: (typeof rows)[number]) => {
     const stats = ratingStats.get(row.id);
     let score = 0;
+    const aiScore = Math.max(0, Math.min(100, Number(row.ai_profile_score ?? 0))) / 100;
+    const semanticSimilarity = Math.max(
+      0,
+      Math.min(1, Number(embeddingSimilarity.get(row.id) ?? 0)),
+    );
+    const aiTags = parseAiTags(row.ai_tags);
+    const candidateTokens = new Set(
+      tokenize(row.role, row.niche, row.goal, row.looking_for, row.ai_summary ?? null, ...aiTags),
+    );
+    let overlap = 0;
+    for (const token of candidateTokens) {
+      if (viewerTokens.has(token)) overlap += 1;
+    }
+    const overlapRatio =
+      viewerTokens.size > 0 ? Math.min(1, overlap / Math.max(3, viewerTokens.size)) : 0;
     if (row.verified) score += 0.18;
     if ((row.looking_for ?? "").trim()) score += 0.08;
     if ((row.prompt_1_answer ?? "").trim()) score += 0.06;
     if ((row.prompt_2_answer ?? "").trim()) score += 0.06;
+    if ((row.ai_summary ?? "").trim()) score += 0.08;
+    if (aiTags.length > 0) score += 0.06;
+    score += aiScore * 0.3;
+    score += semanticSimilarity * 0.45;
+    score += overlapRatio * 0.35;
     if (!stats) return score;
     const confidence = Math.min(1, stats.count / 8);
     const quality = stats.avg / 5;
@@ -141,12 +207,78 @@ export async function getLiveProfileCards(
 
   const reasonFor = (row: (typeof rows)[number]) => {
     const stats = ratingStats.get(row.id);
+    const aiTags = parseAiTags(row.ai_tags);
+    const semanticSimilarity = Math.max(
+      0,
+      Math.min(1, Number(embeddingSimilarity.get(row.id) ?? 0)),
+    );
+    const candidateTokens = new Set(
+      tokenize(row.role, row.niche, row.goal, row.looking_for, row.ai_summary ?? null, ...aiTags),
+    );
+    let overlap = 0;
+    for (const token of candidateTokens) {
+      if (viewerTokens.has(token)) overlap += 1;
+    }
+    const aiScore = Math.max(0, Math.min(100, Number(row.ai_profile_score ?? 0)));
+    if (semanticSimilarity >= 0.82) return "Semantic match";
+    if (overlap >= 3) return "Strong fit";
+    if (aiScore >= 80 && aiTags.length >= 3) return "AI-optimized";
     if (row.verified && (row.looking_for ?? "").trim()) return "Verified and clear";
     if (row.verified) return "Verified";
     if ((row.looking_for ?? "").trim()) return "Knows what they want";
     if (stats && stats.count >= 6 && stats.avg >= 4.3) return "Highly rated";
     if (stats && stats.count >= 3 && stats.avg >= 4.0) return "Trending";
     return "Newly active";
+  };
+
+  const whyFor = (row: (typeof rows)[number]) => {
+    const aiTags = parseAiTags(row.ai_tags);
+    const semanticSimilarity = Math.max(
+      0,
+      Math.min(1, Number(embeddingSimilarity.get(row.id) ?? 0)),
+    );
+    const reasons: string[] = [];
+    const viewerNiche = opts?.viewerNiche?.trim();
+    const viewerGoal = opts?.viewerGoal?.trim();
+    const viewerLookingFor = opts?.viewerLookingFor?.trim();
+    const rowNiche = row.niche?.trim();
+    const rowGoal = row.goal?.trim();
+    const rowLookingFor = row.looking_for?.trim();
+
+    if (viewerNiche && rowNiche) {
+      const viewerNicheTokens = new Set(tokenize(viewerNiche));
+      const rowNicheTokens = tokenize(rowNiche);
+      if (rowNicheTokens.some((token) => viewerNicheTokens.has(token))) {
+        reasons.push(`Shared style around ${rowNiche}`);
+      }
+    }
+    if (viewerGoal && rowGoal) {
+      const viewerGoalTokens = new Set(tokenize(viewerGoal));
+      const rowGoalTokens = tokenize(rowGoal);
+      if (rowGoalTokens.some((token) => viewerGoalTokens.has(token))) {
+        reasons.push(`Similar focus: ${rowGoal}`);
+      }
+    }
+    if (viewerLookingFor && rowLookingFor) {
+      const viewerLookingTokens = new Set(tokenize(viewerLookingFor));
+      const rowLookingTokens = tokenize(rowLookingFor);
+      if (rowLookingTokens.some((token) => viewerLookingTokens.has(token))) {
+        reasons.push(`Aligned collaborator ask: ${rowLookingFor}`);
+      }
+    }
+    if (reasons.length === 0 && aiTags.length > 0) {
+      reasons.push(`Signals: ${aiTags.slice(0, 3).map(capitalize).join(" · ")}`);
+    }
+    if (semanticSimilarity >= 0.75) {
+      reasons.unshift("Semantically close to your overall profile");
+    }
+    if (reasons.length === 0 && row.verified) {
+      reasons.push("Verified profile with clear intent");
+    }
+    if (reasons.length === 0 && (row.looking_for ?? "").trim()) {
+      reasons.push(`Looking for ${row.looking_for?.trim()}`);
+    }
+    return reasons.slice(0, 3);
   };
 
   const desiredSort = opts?.sort ?? "trending";
@@ -197,6 +329,7 @@ export async function getLiveProfileCards(
     })
     .map(({ row, distanceKm }) => {
     const role = inferProfileRole(row.role);
+    const aiTags = parseAiTags(row.ai_tags);
     const name = row.display_name?.trim() || "Member";
     const niche = row.niche?.trim() || "—";
     const goal = row.goal?.trim() || "";
@@ -214,6 +347,9 @@ export async function getLiveProfileCards(
       id: row.id,
       displayName: name,
       avatarUrl: row.avatar_url?.trim() ?? null,
+      aiSummary: row.ai_summary?.trim() ?? null,
+      aiTags: aiTags,
+      aiScore: Number.isFinite(Number(row.ai_profile_score)) ? Number(row.ai_profile_score) : null,
       role,
       city: row.neighborhood?.trim() || row.city?.trim() || "—",
       niche: focus,
@@ -230,6 +366,10 @@ export async function getLiveProfileCards(
       starBeat,
       extraBeats,
       rankReason: reasonFor(row),
+      matchWhy: whyFor(row),
+      semanticScore: Number.isFinite(Number(embeddingSimilarity.get(row.id)))
+        ? Number(embeddingSimilarity.get(row.id))
+        : undefined,
       distanceKm,
     };
     });

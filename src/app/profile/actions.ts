@@ -1,9 +1,94 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  enrichProfileWithAi,
+  generateProfileCoachSuggestion,
+  generateProfileEmbedding,
+  moderateTextWithAi,
+} from "@/lib/ai/client";
+import type { ProfileCoachInput } from "@/lib/ai/types";
 import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/env";
+import { isAiProfileCoachConfigured, isSupabaseConfigured } from "@/lib/env";
 import type { DbExtraBeat } from "@/lib/profile-beats";
+
+async function refreshAiProfileData(
+  userId: string,
+  profileInput: ProfileCoachInput,
+): Promise<void> {
+  if (!isAiProfileCoachConfigured()) return;
+
+  try {
+    const ai = await enrichProfileWithAi(profileInput);
+    const supabase = await createClient();
+    await supabase
+      .from("profiles")
+      .update({
+        ai_summary: ai.summary || null,
+        ai_tags: ai.tags,
+        ai_profile_score: ai.score,
+        ai_updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
+  } catch {
+    // Best-effort only. The user-facing save should still succeed.
+  }
+}
+
+async function refreshProfileEmbedding(
+  userId: string,
+  profileInput: ProfileCoachInput,
+): Promise<void> {
+  if (!isAiProfileCoachConfigured()) return;
+
+  try {
+    const { sourceText, embeddingText } = await generateProfileEmbedding(profileInput);
+    const supabase = await createClient();
+    await supabase.rpc("set_profile_embedding", {
+      p_user_id: userId,
+      p_source_text: sourceText,
+      p_embedding_text: embeddingText,
+    });
+  } catch {
+    // Best-effort only.
+  }
+}
+
+async function moderateProfileText(profileInput: ProfileCoachInput): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isAiProfileCoachConfigured()) return { ok: true };
+  const text = [
+    profileInput.displayName,
+    profileInput.niche,
+    profileInput.goal,
+    profileInput.lookingFor,
+    profileInput.prompt1Question,
+    profileInput.prompt1Answer,
+    profileInput.prompt2Question,
+    profileInput.prompt2Answer,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  if (!text.trim()) return { ok: true };
+
+  try {
+    const moderation = await moderateTextWithAi({ text, context: "profile" });
+    if (moderation.status === "block") {
+      return {
+        ok: false,
+        error: `Profile update blocked: ${moderation.reason}`,
+      };
+    }
+    if (moderation.status === "warn") {
+      return {
+        ok: false,
+        error: `Profile update looks risky: ${moderation.reason}`,
+      };
+    }
+  } catch {
+    // Best-effort only.
+  }
+  return { ok: true };
+}
 
 export type UpdateProfileBeatsPayload = {
   star_beat_title: string | null;
@@ -224,14 +309,151 @@ export async function updateProfileBasics(
   if (typeof payload.prompt_2_answer === "string") patch.prompt_2_answer = payload.prompt_2_answer.trim();
   if (Object.keys(patch).length === 0) return { ok: true };
 
+  const aiRelevantFields = [
+    "display_name",
+    "niche",
+    "goal",
+    "looking_for",
+    "prompt_1_question",
+    "prompt_1_answer",
+    "prompt_2_question",
+    "prompt_2_answer",
+  ];
+  if (aiRelevantFields.some((field) => field in patch)) {
+    const { data: currentProfile } = await supabase
+      .from("profiles")
+      .select(
+        "display_name, role, niche, goal, city, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer",
+      )
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const moderationResult = await moderateProfileText({
+      displayName:
+        typeof patch.display_name === "string"
+          ? patch.display_name
+          : currentProfile?.display_name?.trim() || "",
+      role: currentProfile?.role?.trim() || "",
+      niche:
+        typeof patch.niche === "string" ? patch.niche : currentProfile?.niche?.trim() || "",
+      goal:
+        typeof patch.goal === "string" ? patch.goal : currentProfile?.goal?.trim() || "",
+      city:
+        typeof patch.city === "string" ? patch.city : currentProfile?.city?.trim() || "",
+      lookingFor:
+        typeof patch.looking_for === "string"
+          ? patch.looking_for
+          : currentProfile?.looking_for?.trim() || "",
+      prompt1Question:
+        typeof patch.prompt_1_question === "string"
+          ? patch.prompt_1_question
+          : currentProfile?.prompt_1_question?.trim() || "",
+      prompt1Answer:
+        typeof patch.prompt_1_answer === "string"
+          ? patch.prompt_1_answer
+          : currentProfile?.prompt_1_answer?.trim() || "",
+      prompt2Question:
+        typeof patch.prompt_2_question === "string"
+          ? patch.prompt_2_question
+          : currentProfile?.prompt_2_question?.trim() || "",
+      prompt2Answer:
+        typeof patch.prompt_2_answer === "string"
+          ? patch.prompt_2_answer
+          : currentProfile?.prompt_2_answer?.trim() || "",
+    });
+    if (!moderationResult.ok) return moderationResult;
+  }
+
   const { error } = await supabase
     .from("profiles")
     .update({ ...patch, updated_at: new Date().toISOString() })
     .eq("id", user.id);
   if (error) return { ok: false, error: error.message };
+  if (aiRelevantFields.some((field) => field in patch)) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select(
+        "display_name, role, niche, goal, city, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer",
+      )
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile) {
+      const profileInput = {
+        displayName: profile.display_name?.trim() || "",
+        role: profile.role?.trim() || "",
+        niche: profile.niche?.trim() || "",
+        goal: profile.goal?.trim() || "",
+        city: profile.city?.trim() || "",
+        lookingFor: profile.looking_for?.trim() || "",
+        prompt1Question: profile.prompt_1_question?.trim() || "",
+        prompt1Answer: profile.prompt_1_answer?.trim() || "",
+        prompt2Question: profile.prompt_2_question?.trim() || "",
+        prompt2Answer: profile.prompt_2_answer?.trim() || "",
+      };
+      await refreshAiProfileData(user.id, profileInput);
+      await refreshProfileEmbedding(user.id, profileInput);
+    }
+  }
 
   revalidatePath("/profile");
   revalidatePath("/explore");
   revalidatePath(`/p/${user.id}`);
   return { ok: true };
+}
+
+export async function generateProfileBasicsSuggestions(
+  payload: ProfileCoachInput,
+): Promise<
+  | {
+      ok: true;
+      suggestion: {
+        niche: string;
+        goal: string;
+        lookingFor: string;
+        prompt1Question: string;
+        prompt1Answer: string;
+        prompt2Question: string;
+        prompt2Answer: string;
+        summary: string;
+        tags: string[];
+        score: number;
+      };
+    }
+  | { ok: false; error: string }
+> {
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: "Supabase is not configured." };
+  }
+  if (!isAiProfileCoachConfigured()) {
+    return { ok: false, error: "AI profile coach is not configured yet." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sign in to use AI profile suggestions." };
+
+  try {
+    const suggestion = await generateProfileCoachSuggestion(payload);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        ai_summary: suggestion.summary || null,
+        ai_tags: suggestion.tags,
+        ai_profile_score: suggestion.score,
+        ai_updated_at: new Date().toISOString(),
+      })
+      .eq("id", user.id);
+    if (error) return { ok: false, error: error.message };
+
+    revalidatePath("/profile");
+    return { ok: true, suggestion };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "AI profile suggestions failed.",
+    };
+  }
 }

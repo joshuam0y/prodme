@@ -9,6 +9,10 @@ export function isVercelRuntime(): boolean {
   return process.env.VERCEL === "1";
 }
 
+export function isAiProfileCoachConfigured(): boolean {
+  return Boolean(process.env.OPENAI_API_KEY?.trim());
+}
+
 export function getAdminEmails(): string[] {
   const raw = process.env.ADMIN_EMAILS ?? "";
   return raw

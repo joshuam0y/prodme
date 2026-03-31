@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { moderateTextWithAi } from "@/lib/ai/client";
 import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/env";
+import { isAiProfileCoachConfigured, isSupabaseConfigured } from "@/lib/env";
 import { trackServerEvent } from "@/lib/analytics";
 import { createNotification } from "@/lib/notifications";
 import { isUuid } from "@/lib/uuid";
@@ -66,6 +67,23 @@ export async function POST(req: Request, { params }: Ctx) {
   const payload = (await req.json().catch(() => null)) as { body?: unknown } | null;
   const text = String(payload?.body ?? "").trim();
   if (!text) return NextResponse.json({ ok: false, error: "empty" }, { status: 400 });
+
+  if (isAiProfileCoachConfigured()) {
+    try {
+      const moderation = await moderateTextWithAi({ text, context: "message" });
+      if (moderation.status === "block") {
+        return NextResponse.json({ ok: false, error: "moderated_blocked" }, { status: 400 });
+      }
+      if (moderation.status === "warn") {
+        return NextResponse.json(
+          { ok: false, error: "moderated_warn", reason: moderation.reason },
+          { status: 400 },
+        );
+      }
+    } catch {
+      // Best-effort only.
+    }
+  }
 
   const supabase = await createClient();
   const {

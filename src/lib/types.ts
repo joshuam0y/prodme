@@ -13,6 +13,9 @@ export type ProfileCard = {
   id: string;
   displayName: string;
   avatarUrl?: string | null;
+  aiSummary?: string | null;
+  aiTags?: string[];
+  aiScore?: number | null;
   role: Role;
   city: string;
   niche: string;
@@ -35,6 +38,10 @@ export type ProfileCard = {
   extraBeats?: BeatPreview[];
   /** Optional discover explanation badge, e.g. "Highly rated". */
   rankReason?: string;
+  /** Short human-readable explanation for why this profile is a fit. */
+  matchWhy?: string[];
+  /** Semantic similarity score from pgvector when available. */
+  semanticScore?: number;
   /** Distance from viewer in km when viewer location is set. */
   distanceKm?: number;
 };
@@ -55,6 +62,10 @@ export type DbProfile = {
   id: string;
   display_name: string | null;
   avatar_url?: string | null;
+  ai_summary?: string | null;
+  ai_tags?: unknown;
+  ai_profile_score?: number | null;
+  ai_updated_at?: string | null;
   role: string | null;
   niche: string | null;
   goal: string | null;
