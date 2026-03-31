@@ -7,7 +7,9 @@ import { isProfileQuestionnaireComplete } from "@/lib/profile-completion";
 import { parseExtraBeats } from "@/lib/profile-beats";
 import type { DbProfile } from "@/lib/types";
 import { trackServerEvent } from "@/lib/analytics";
+import { ProfileBasicsForm } from "./profile-basics-form";
 import { ProfileBeatsForm } from "./profile-beats-form";
+import { ProfileLocationForm } from "./profile-location-form";
 import { ProfileVenuePhotosForm } from "./profile-venue-photos-form";
 import { StarRatingDisplay } from "@/components/star-rating-display";
 
@@ -28,7 +30,7 @@ export default async function ProfilePage() {
   const { data: row, error } = await supabase
     .from("profiles")
     .select(
-      "id, display_name, role, niche, goal, onboarding_completed_at, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, display_name, role, niche, goal, city, neighborhood, latitude, longitude, location_radius_km, onboarding_completed_at, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -42,7 +44,7 @@ export default async function ProfilePage() {
     const { data: minimalRow, error: minimalErr } = await supabase
       .from("profiles")
       .select(
-        "id, display_name, role, niche, goal, onboarding_completed_at, updated_at",
+        "id, display_name, role, niche, goal, city, neighborhood, latitude, longitude, location_radius_km, onboarding_completed_at, updated_at",
       )
       .eq("id", user.id)
       .maybeSingle();
@@ -192,6 +194,24 @@ export default async function ProfilePage() {
           </Link>
         ) : null}
       </div>
+
+      <ProfileBasicsForm
+        initial={{
+          displayName: profile?.display_name?.trim() ?? "",
+          niche: profile?.niche?.trim() ?? "",
+          goal: profile?.goal?.trim() ?? "",
+          city: profile?.city?.trim() ?? "",
+        }}
+      />
+      <ProfileLocationForm
+        initial={{
+          city: profile?.city?.trim() ?? "",
+          neighborhood: profile?.neighborhood?.trim() ?? "",
+          latitude: profile?.latitude ?? null,
+          longitude: profile?.longitude ?? null,
+          radiusKm: profile?.location_radius_km ?? 25,
+        }}
+      />
 
       {!incomplete ? (
         isVenueProfile ? (

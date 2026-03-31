@@ -558,6 +558,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
               </h2>
               <p className="text-sm text-zinc-400">
                 {roleLabel[current.role]} · {current.city}
+                {typeof current.distanceKm === "number" ? ` · ${Math.round(current.distanceKm)} km away` : ""}
               </p>
               {current.rankReason ? (
                 <p className="mt-1 inline-flex rounded-full border border-amber-500/35 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-200">

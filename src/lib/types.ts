@@ -25,6 +25,8 @@ export type ProfileCard = {
   extraBeats?: BeatPreview[];
   /** Optional discover explanation badge, e.g. "Highly rated". */
   rankReason?: string;
+  /** Distance from viewer in km when viewer location is set. */
+  distanceKm?: number;
 };
 
 export type BeatBundle = {
@@ -46,6 +48,10 @@ export type DbProfile = {
   niche: string | null;
   goal: string | null;
   city?: string | null;
+  neighborhood?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  location_radius_km?: number | null;
   onboarding_completed_at: string | null;
   updated_at?: string | null;
   star_beat_title?: string | null;

@@ -138,3 +138,88 @@ export async function updateProfileBeats(
   revalidatePath(`/p/${user.id}`);
   return { ok: true };
 }
+
+export type UpdateProfileLocationPayload = {
+  city?: string;
+  neighborhood?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  location_radius_km?: number;
+};
+
+export async function updateProfileLocation(
+  payload: UpdateProfileLocationPayload,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: "Supabase is not configured." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sign in to update your location." };
+
+  const city = (payload.city ?? "").trim();
+  const neighborhood = (payload.neighborhood ?? "").trim();
+  const radius = Math.max(1, Math.min(200, Math.round(payload.location_radius_km ?? 25)));
+  const lat = payload.latitude;
+  const lng = payload.longitude;
+  const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      city: city || null,
+      neighborhood: neighborhood || null,
+      latitude: hasCoords ? lat : null,
+      longitude: hasCoords ? lng : null,
+      location_radius_km: radius,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/profile");
+  revalidatePath("/explore");
+  revalidatePath(`/p/${user.id}`);
+  return { ok: true };
+}
+
+export type UpdateProfileBasicsPayload = {
+  display_name?: string;
+  niche?: string;
+  goal?: string;
+  city?: string;
+};
+
+export async function updateProfileBasics(
+  payload: UpdateProfileBasicsPayload,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: "Supabase is not configured." };
+  }
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sign in to update profile." };
+
+  const patch: Record<string, string> = {};
+  if (typeof payload.display_name === "string") patch.display_name = payload.display_name.trim();
+  if (typeof payload.niche === "string") patch.niche = payload.niche.trim();
+  if (typeof payload.goal === "string") patch.goal = payload.goal.trim();
+  if (typeof payload.city === "string") patch.city = payload.city.trim();
+  if (Object.keys(patch).length === 0) return { ok: true };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq("id", user.id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/profile");
+  revalidatePath("/explore");
+  revalidatePath(`/p/${user.id}`);
+  return { ok: true };
+}

@@ -52,7 +52,7 @@ export default async function PublicProfilePage({ params }: Props) {
   const { data: row, error } = await supabase
     .from("profiles")
     .select(
-      "id, display_name, role, niche, goal, onboarding_completed_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, display_name, role, niche, goal, city, neighborhood, onboarding_completed_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .eq("id", id)
     .maybeSingle();
@@ -138,6 +138,11 @@ export default async function PublicProfilePage({ params }: Props) {
         </h1>
         <p className="text-sm text-zinc-400">
           {profile.role ?? "Creator"}
+          {profile.neighborhood?.trim()
+            ? ` · ${profile.neighborhood.trim()}`
+            : profile.city?.trim()
+              ? ` · ${profile.city.trim()}`
+              : null}
           {profile.niche ? ` · ${profile.niche}` : null}
         </p>
       </div>

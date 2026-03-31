@@ -23,14 +23,17 @@ function isGroup(s: string | undefined): s is DiscoverGroup | "" {
 export default async function ExplorePage({
   searchParams,
 }: {
-  searchParams: Promise<{ group?: string; notice?: string }>;
+  searchParams: Promise<{ group?: string; notice?: string; maxKm?: string }>;
 }) {
   const params = await searchParams;
   const groupFilter = isGroup(params.group) ? params.group : "";
   const notice = params.notice ? decodeURIComponent(params.notice) : null;
+  const maxKm = Math.max(1, Math.min(200, Number(params.maxKm ?? 50) || 50));
 
   let viewerId: string | null = null;
   let viewerRole: Role | null = null;
+  let viewerLat: number | null = null;
+  let viewerLng: number | null = null;
   let needsOnboarding = false;
   let communityCount = mockProfiles.length;
   if (isSupabaseConfigured()) {
@@ -47,13 +50,15 @@ export default async function ExplorePage({
     }
     const { data: prof } = await supabase
       .from("profiles")
-      .select("role, onboarding_completed_at")
+      .select("role, onboarding_completed_at, latitude, longitude")
       .eq("id", viewerId)
       .maybeSingle();
     if (prof?.role?.trim()) {
       viewerRole = inferProfileRole(prof.role);
     }
     needsOnboarding = !prof?.onboarding_completed_at;
+    viewerLat = prof?.latitude ?? null;
+    viewerLng = prof?.longitude ?? null;
     const { count } = await supabase
       .from("profiles")
       .select("id", { count: "exact", head: true })
@@ -66,7 +71,11 @@ export default async function ExplorePage({
     redirect("/explore?group=creatives");
   }
 
-  const live = await getLiveProfileCards(viewerId, viewerId);
+  const live = await getLiveProfileCards(viewerId, viewerId, {
+    viewerLat,
+    viewerLng,
+    maxDistanceKm: maxKm,
+  });
   const pool = [...live, ...mockProfiles];
   const peerFiltered =
     viewerRole === "venue"
@@ -169,6 +178,28 @@ export default async function ExplorePage({
             })}
           </div>
         </div>
+        <form className="mx-auto mt-5 max-w-md rounded-xl border border-white/10 bg-zinc-900/40 p-3">
+          <input type="hidden" name="group" value={groupFilter} />
+          <div className="flex items-center justify-between text-xs text-zinc-400">
+            <span>Distance radius</span>
+            <span>{maxKm} km</span>
+          </div>
+          <input
+            type="range"
+            name="maxKm"
+            min={1}
+            max={200}
+            step={1}
+            defaultValue={maxKm}
+            className="mt-2 w-full"
+          />
+          <button
+            type="submit"
+            className="mt-2 rounded-full border border-white/15 px-3 py-1.5 text-xs text-zinc-300 transition hover:bg-white/5"
+          >
+            Apply distance
+          </button>
+        </form>
       </div>
 
       <SwipeStack

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
+import Image from "next/image";
 import type { DbExtraBeat } from "@/lib/profile-beats";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { updateProfileBeats } from "./actions";
@@ -146,6 +147,13 @@ export function ProfileVenuePhotosForm({
           return;
         }
 
+        setStarCoverUrl(payload.star_beat_cover_url ?? "");
+        setSlots(
+          payload.extra_beats.map((e) => ({
+            coverUrl: e.cover_url,
+            coverFile: null,
+          })),
+        );
         setStarCoverFile(null);
         setMessage({ kind: "ok", text: "Saved — venue photos will appear on Discover." });
 
@@ -209,18 +217,24 @@ export function ProfileVenuePhotosForm({
             className={fieldClass}
           />
         </label>
-        {starCoverUrl && !starCoverFile ? (
-          <p className="text-xs text-zinc-600">
-            Current cover:{" "}
-            <a
-              href={starCoverUrl}
-              className="text-amber-500/90 hover:underline"
-              target="_blank"
-              rel="noreferrer"
-            >
-              open
-            </a>
-          </p>
+        {starCoverUrl || starCoverFile ? (
+          <div className="space-y-2">
+            <p className="text-xs text-zinc-600">Featured preview</p>
+            {starCoverFile ? (
+              <p className="text-xs text-zinc-500">Selected file: {starCoverFile.name}</p>
+            ) : null}
+            {starCoverUrl ? (
+              <div className="relative h-36 w-full overflow-hidden rounded-xl border border-white/10 bg-zinc-950/40">
+                <Image
+                  src={starCoverUrl}
+                  alt="Featured venue photo preview"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </div>
 
@@ -270,18 +284,12 @@ export function ProfileVenuePhotosForm({
                   />
                 </label>
 
-                {s.coverUrl && !s.coverFile ? (
-                  <p className="mt-1 text-xs text-zinc-600">
-                    Current:{" "}
-                    <a
-                      href={s.coverUrl}
-                      className="text-amber-500/90 hover:underline"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      open
-                    </a>
-                  </p>
+                {s.coverUrl || s.coverFile ? (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-xs text-zinc-600">
+                      {s.coverFile ? `Selected: ${s.coverFile.name}` : "Current photo is set"}
+                    </p>
+                  </div>
                 ) : null}
               </li>
             ))}

@@ -82,8 +82,34 @@ export function MatchThreadClient({
       if (res.ok && json.ok && Array.isArray(json.messages)) {
         mergeMessages(json.messages);
         setLastSyncedAt(new Date().toISOString());
+        setModerationNotice(null);
       } else if (json.error === "blocked") {
-        setModerationNotice("Messaging is unavailable because one of you has blocked the other.");
+        try {
+          const blockRes = await fetch(`/api/matches/${matchId}/block`, {
+            method: "GET",
+          });
+          const blockJson = (await blockRes.json()) as {
+            ok: boolean;
+            blockedByMe?: boolean;
+            blockedByThem?: boolean;
+          };
+          if (blockRes.ok && blockJson.ok) {
+            const byMe = Boolean(blockJson.blockedByMe);
+            const byThem = Boolean(blockJson.blockedByThem);
+            setBlockedByMe(byMe);
+            setModerationNotice(
+              byMe
+                ? "Messaging is unavailable because you blocked this profile."
+                : byThem
+                  ? "Messaging is unavailable because this profile blocked you."
+                  : "Messaging is unavailable because one of you has blocked the other.",
+            );
+          } else {
+            setModerationNotice("Messaging is unavailable because one of you has blocked the other.");
+          }
+        } catch {
+          setModerationNotice("Messaging is unavailable because one of you has blocked the other.");
+        }
       } else {
         setModerationNotice(null);
       }
@@ -183,7 +209,11 @@ export function MatchThreadClient({
           const byThem = Boolean(json.blockedByThem);
           setBlockedByMe(byMe);
           if (byMe || byThem) {
-            setModerationNotice("Messaging is unavailable because one of you has blocked the other.");
+            setModerationNotice(
+              byMe
+                ? "Messaging is unavailable because you blocked this profile."
+                : "Messaging is unavailable because this profile blocked you.",
+            );
           } else {
             setModerationNotice(null);
           }
