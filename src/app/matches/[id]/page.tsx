@@ -8,7 +8,7 @@ import { profileInitials } from "@/lib/match-ui";
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ notice?: string }>;
+  searchParams: Promise<{ notice?: string; draft?: string }>;
 };
 
 export default async function MatchConversationPage({ params, searchParams }: Props) {
@@ -66,6 +66,7 @@ export default async function MatchConversationPage({ params, searchParams }: Pr
   const name = profile.display_name?.trim() || "Match";
   const initials = profileInitials(profile.display_name);
   const notice = sp.notice ? decodeURIComponent(sp.notice) : null;
+  const draft = sp.draft ? decodeURIComponent(sp.draft) : null;
   let blockedNotice: string | null = null;
   try {
     const { data: blocks } = await supabase
@@ -135,6 +136,7 @@ export default async function MatchConversationPage({ params, searchParams }: Pr
           currentUserId={user.id}
           matchName={name}
           initialMessages={list}
+          initialDraft={draft}
         />
       </main>
     </div>

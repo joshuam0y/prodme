@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SwipeStack } from "@/components/swipe-stack";
+import { DistanceFilter } from "@/components/distance-filter";
 import { mockProfiles } from "@/data/mock";
 import { getLiveProfileCards, inferProfileRole } from "@/lib/discover-profiles";
 import { trackServerEvent } from "@/lib/analytics";
@@ -178,28 +179,7 @@ export default async function ExplorePage({
             })}
           </div>
         </div>
-        <form className="mx-auto mt-5 max-w-md rounded-xl border border-white/10 bg-zinc-900/40 p-3">
-          <input type="hidden" name="group" value={groupFilter} />
-          <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span>Distance radius</span>
-            <span>{maxKm} km</span>
-          </div>
-          <input
-            type="range"
-            name="maxKm"
-            min={1}
-            max={200}
-            step={1}
-            defaultValue={maxKm}
-            className="mt-2 w-full"
-          />
-          <button
-            type="submit"
-            className="mt-2 rounded-full border border-white/15 px-3 py-1.5 text-xs text-zinc-300 transition hover:bg-white/5"
-          >
-            Apply distance
-          </button>
-        </form>
+        <DistanceFilter key={`${groupFilter || "all"}-${maxKm}`} initialKm={maxKm} />
       </div>
 
       <SwipeStack

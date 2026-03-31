@@ -11,7 +11,7 @@ export type DiscoverAction = "pass" | "save";
 export async function recordDiscoverAction(
   targetId: string,
   action: DiscoverAction,
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: boolean; matched?: boolean }> {
   if (!isSupabaseConfigured() || !isUuid(targetId)) {
     return { ok: true };
   }
@@ -48,7 +48,29 @@ export async function recordDiscoverAction(
     metadata: { targetId },
   });
 
-  return { ok: true };
+  if (action !== "save") return { ok: true };
+
+  // Mutual match check: did they also "save" you?
+  try {
+    const { data: reciprocal } = await supabase
+      .from("discover_swipes")
+      .select("viewer_id")
+      .eq("viewer_id", targetId)
+      .eq("target_id", user.id)
+      .in("action", ["save", "interested"])
+      .maybeSingle();
+    const matched = Boolean(reciprocal);
+    if (matched) {
+      await trackServerEvent({
+        event: "match_created",
+        path: "/explore",
+        metadata: { targetId },
+      });
+    }
+    return { ok: true, matched };
+  } catch {
+    return { ok: true };
+  }
 }
 
 export async function setDiscoverAction(

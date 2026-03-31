@@ -11,6 +11,7 @@ import {
 } from "@/app/explore/actions";
 import type { BeatPreview, ProfileCard } from "@/lib/types";
 import { isUuid } from "@/lib/uuid";
+import { profileInitials } from "@/lib/match-ui";
 
 type Props = {
   profiles: ProfileCard[];
@@ -69,6 +70,11 @@ export function SwipeStack({ profiles, viewerId }: Props) {
   const startRef = useRef({ x: 0, y: 0 });
   const [playingMeta, setPlayingMeta] = useState<PlayingMeta | null>(null);
   const [audioReady, setAudioReady] = useState(false);
+  const [matchModal, setMatchModal] = useState<{
+    id: string;
+    name: string;
+    initials: string;
+  } | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const gestureStarted = useRef(false);
 
@@ -213,10 +219,30 @@ export function SwipeStack({ profiles, viewerId }: Props) {
     (dir: SwipeDir) => {
       const top = visibleProfiles[0];
       if (!top) return;
+      if (matchModal) return;
       const action = dir === "left" ? "pass" : "save";
+      if (typeof window !== "undefined" && dir === "right") {
+        // Subtle haptic on "like" commit.
+        window.navigator?.vibrate?.(8);
+      }
       if (isUuid(top.id)) {
-        // Fire-and-forget, but swallow errors to avoid unhandled promise rejections.
-        void recordDiscoverAction(top.id, action).catch(() => {});
+        if (action === "save") {
+          void recordDiscoverAction(top.id, action)
+            .then((res) => {
+              if (res.ok && res.matched) {
+                setMatchModal({
+                  id: top.id,
+                  name: top.displayName,
+                  initials: profileInitials(top.displayName),
+                });
+                if (typeof window !== "undefined") window.navigator?.vibrate?.([12, 25, 12]);
+              }
+            })
+            .catch(() => {});
+        } else {
+          // Fire-and-forget, but swallow errors to avoid unhandled promise rejections.
+          void recordDiscoverAction(top.id, action).catch(() => {});
+        }
       }
       const a = audioRef.current;
       if (a) {
@@ -253,7 +279,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
         }
       }, 220);
     },
-    [visibleProfiles, signedIn, dismissedKey, router],
+    [visibleProfiles, signedIn, dismissedKey, router, matchModal],
   );
 
   const undoLastSwipe = useCallback(() => {
@@ -305,6 +331,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (isInteractivePointerTarget(e.target)) return;
+    if (matchModal) return;
 
     gestureStarted.current = true;
     const a = audioRef.current;
@@ -326,6 +353,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (matchModal) return;
     if (!pointerDown.current || exitDir) return;
     setDrag({
       x: e.clientX - startRef.current.x,
@@ -334,6 +362,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
   };
 
   const onPointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (matchModal) return;
     if (!pointerDown.current) return;
     pointerDown.current = false;
     setDragging(false);
@@ -443,9 +472,56 @@ export function SwipeStack({ profiles, viewerId }: Props) {
   const horizontalIntent = absX > absY * 0.85;
   const hintAction =
     showHint && horizontalIntent && absX > 18 ? (drag.x < 0 ? "Pass" : "Save") : null;
+  const stamp =
+    showHint && horizontalIntent && absX > 26
+      ? drag.x < 0
+        ? { text: "NOPE", side: "left" as const, tone: "zinc" as const }
+        : { text: "LIKE", side: "right" as const, tone: "emerald" as const }
+      : null;
+  const stampOpacity = Math.min(1, Math.max(0, (absX - 26) / 90));
 
   return (
     <div className="relative mx-auto w-full max-w-md">
+      {matchModal ? (
+        <div
+          className="fixed inset-0 z-[95] flex items-center justify-center bg-black/80 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="It's a match"
+        >
+          <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-zinc-950/95 p-6 shadow-2xl">
+            <p className="text-center text-xs font-semibold uppercase tracking-[0.25em] text-amber-400/90">
+              It&apos;s a match
+            </p>
+            <div className="mt-5 flex items-center justify-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/20 text-sm font-bold text-amber-200 ring-1 ring-amber-500/30">
+                You
+              </div>
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-sm font-bold text-emerald-200 ring-1 ring-emerald-500/25">
+                {matchModal.initials}
+              </div>
+            </div>
+            <p className="mt-4 text-center text-sm text-zinc-300">
+              You and <span className="font-semibold text-zinc-100">{matchModal.name}</span> liked each other.
+            </p>
+            <div className="mt-6 grid gap-2">
+              <Link
+                href={`/matches/${matchModal.id}?draft=${encodeURIComponent("Hey! We matched — what are you working on right now?")}`}
+                className="inline-flex h-11 items-center justify-center rounded-full bg-amber-500 px-5 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
+              >
+                Message now
+              </Link>
+              <button
+                type="button"
+                onClick={() => setMatchModal(null)}
+                className="inline-flex h-11 items-center justify-center rounded-full border border-white/15 bg-white/5 px-5 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
+              >
+                Keep swiping
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <audio
         ref={audioRef}
         className="hidden"
@@ -530,7 +606,9 @@ export function SwipeStack({ profiles, viewerId }: Props) {
         className={`relative z-10 min-h-[420px] sm:min-h-[480px] touch-none overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/50 shadow-2xl select-none ${
           dragging && !exitDir ? "cursor-grabbing" : "cursor-grab"
         } ${
-          dragging && !exitDir ? "transition-none" : "transition-transform duration-200 ease-out"
+          dragging && !exitDir
+            ? "transition-none"
+            : "transition-transform duration-200 ease-out motion-reduce:transition-none"
         } ${
           exitDir === "left"
             ? "-translate-x-[120%] -rotate-6 opacity-0"
@@ -543,6 +621,25 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center">
             <span className="rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-100">
               {hintAction}
+            </span>
+          </div>
+        ) : null}
+        {stamp ? (
+          <div
+            className={`pointer-events-none absolute top-4 z-30 ${
+              stamp.side === "left" ? "left-4" : "right-4"
+            }`}
+            style={{ opacity: stampOpacity, transform: `rotate(${stamp.side === "left" ? -12 : 12}deg)` }}
+            aria-hidden
+          >
+            <span
+              className={`inline-flex rounded-lg border-2 px-3 py-1 text-lg font-extrabold tracking-widest ${
+                stamp.tone === "emerald"
+                  ? "border-emerald-400 text-emerald-300"
+                  : "border-zinc-400 text-zinc-200"
+              } motion-reduce:transition-none`}
+            >
+              {stamp.text}
             </span>
           </div>
         ) : null}
@@ -796,7 +893,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           <button
             type="button"
             onClick={() => advance("left")}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-zinc-800/80 text-zinc-300 transition hover:bg-zinc-700 sm:h-14 sm:w-14"
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-zinc-800/80 text-zinc-300 transition hover:bg-zinc-700 sm:h-14 sm:w-14 motion-reduce:transition-none"
             aria-label="Pass"
           >
             ✕
@@ -804,7 +901,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           <button
             type="button"
             onClick={() => advance("right")}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-zinc-800/80 text-zinc-300 transition hover:bg-zinc-700 sm:h-14 sm:w-14"
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-zinc-800/80 text-zinc-300 transition hover:bg-zinc-700 sm:h-14 sm:w-14 motion-reduce:transition-none"
             aria-label="Save for later"
           >
             ★
@@ -814,14 +911,14 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           type="button"
           onClick={undoLastSwipe}
           disabled={!lastSwipe}
-          className="w-full rounded-xl border border-white/15 bg-white/5 py-2 text-xs font-medium text-zinc-300 transition hover:bg-white/10 disabled:opacity-40"
+          className="w-full rounded-xl border border-white/15 bg-white/5 py-2 text-xs font-medium text-zinc-300 transition hover:bg-white/10 disabled:opacity-40 motion-reduce:transition-none"
         >
           Undo last swipe (Z)
         </button>
         {isUuid(current.id) ? (
           <Link
             href={`/p/${current.id}`}
-            className="block text-center text-sm font-medium text-amber-500/90 transition hover:text-amber-400"
+            className="block text-center text-sm font-medium text-amber-500/90 transition hover:text-amber-400 motion-reduce:transition-none"
           >
             View full profile
           </Link>

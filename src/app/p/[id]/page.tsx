@@ -8,8 +8,9 @@ import { beatsFromProfileRow } from "@/lib/profile-beats";
 import { isUuid } from "@/lib/uuid";
 import type { DbProfile } from "@/lib/types";
 import { StarRatingDisplay } from "@/components/star-rating-display";
+import { ProfileGallery, ProfileGalleryModal } from "./gallery";
 
-type Props = { params: Promise<{ id: string }> };
+type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ gallery?: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
@@ -37,8 +38,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function PublicProfilePage({ params }: Props) {
+export default async function PublicProfilePage({ params, searchParams }: Props) {
   const { id } = await params;
+  const sp = await searchParams;
 
   if (!isUuid(id) || !isSupabaseConfigured()) {
     notFound();
@@ -77,6 +79,11 @@ export default async function PublicProfilePage({ params }: Props) {
     profile.role?.toLowerCase().includes("venue") ||
     profile.role?.toLowerCase().includes("promoter");
   const anyExtraAudio = Boolean(extraBeats?.some((b) => Boolean(b.audioUrl)));
+  const galleryOpen = sp.gallery === "1";
+  const galleryItems = [
+    ...(starBeat?.coverUrl ? [{ url: starBeat.coverUrl, label: starBeat.title }] : []),
+    ...((extraBeats ?? []).filter((b) => Boolean(b.coverUrl)).map((b) => ({ url: b.coverUrl, label: b.title }))),
+  ];
   let ratingAvg: number | null = null;
   let ratingCount = 0;
   let viewerRating: number | null = null;
@@ -112,6 +119,7 @@ export default async function PublicProfilePage({ params }: Props) {
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
+      {galleryOpen ? <ProfileGalleryModal profileId={id} items={galleryItems} /> : null}
       <div
         className={`mb-8 h-32 rounded-2xl bg-gradient-to-br ${
           profile.role?.toLowerCase().includes("producer")
@@ -292,6 +300,8 @@ export default async function PublicProfilePage({ params }: Props) {
           </ul>
         </section>
       ) : null}
+
+      <ProfileGallery profileId={id} items={galleryItems} />
 
       <div className="mt-10 flex flex-col gap-3 sm:flex-row">
         <Link

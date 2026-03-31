@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import type { DbExtraBeat } from "@/lib/profile-beats";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
@@ -16,6 +16,38 @@ type ExtraSlot = {
   coverUrl: string;
   coverFile: File | null;
 };
+
+function PreviewBox({
+  file,
+  url,
+  alt,
+  wrapperClassName,
+}: {
+  file: File | null;
+  url: string;
+  alt: string;
+  wrapperClassName: string;
+}) {
+  const objectUrl = useMemo(() => {
+    if (!file) return null;
+    return URL.createObjectURL(file);
+  }, [file]);
+
+  useEffect(() => {
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [objectUrl]);
+
+  const src = objectUrl ?? (url?.trim() ? url.trim() : "");
+  if (!src) return null;
+
+  return (
+    <div className={wrapperClassName}>
+      <Image src={src} alt={alt} fill className="object-cover" unoptimized />
+    </div>
+  );
+}
 
 const fieldClass =
   "mt-1.5 w-full rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-2.5 text-sm text-zinc-200 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-500/20 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-amber-200 placeholder:text-zinc-600 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30";
@@ -220,20 +252,12 @@ export function ProfileVenuePhotosForm({
         {starCoverUrl || starCoverFile ? (
           <div className="space-y-2">
             <p className="text-xs text-zinc-600">Featured preview</p>
-            {starCoverFile ? (
-              <p className="text-xs text-zinc-500">Selected file: {starCoverFile.name}</p>
-            ) : null}
-            {starCoverUrl ? (
-              <div className="relative h-36 w-full overflow-hidden rounded-xl border border-white/10 bg-zinc-950/40">
-                <Image
-                  src={starCoverUrl}
-                  alt="Featured venue photo preview"
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
-              </div>
-            ) : null}
+            <PreviewBox
+              file={starCoverFile}
+              url={starCoverUrl}
+              alt="Featured venue photo preview"
+              wrapperClassName="relative h-36 w-full overflow-hidden rounded-xl border border-white/10 bg-zinc-950/40"
+            />
           </div>
         ) : null}
       </div>
@@ -285,10 +309,13 @@ export function ProfileVenuePhotosForm({
                 </label>
 
                 {s.coverUrl || s.coverFile ? (
-                  <div className="mt-2 space-y-1">
-                    <p className="text-xs text-zinc-600">
-                      {s.coverFile ? `Selected: ${s.coverFile.name}` : "Current photo is set"}
-                    </p>
+                  <div className="mt-2">
+                    <PreviewBox
+                      file={s.coverFile}
+                      url={s.coverUrl}
+                      alt={`Venue photo ${i + 1} preview`}
+                      wrapperClassName="relative h-28 w-full overflow-hidden rounded-lg border border-white/10 bg-zinc-950/40"
+                    />
                   </div>
                 ) : null}
               </li>

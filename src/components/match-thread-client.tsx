@@ -19,6 +19,7 @@ type Props = {
   currentUserId: string;
   matchName: string;
   initialMessages: Message[];
+  initialDraft?: string | null;
 };
 
 function isConversationMessage(m: Message, me: string, them: string): boolean {
@@ -33,9 +34,10 @@ export function MatchThreadClient({
   currentUserId,
   matchName,
   initialMessages,
+  initialDraft = null,
 }: Props) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const [body, setBody] = useState("");
+  const [body, setBody] = useState(initialDraft ?? "");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [matchTyping, setMatchTyping] = useState(false);
@@ -45,8 +47,12 @@ export function MatchThreadClient({
   const [reporting, setReporting] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const [blockedByMe, setBlockedByMe] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<null | "report" | "block" | "unblock">(null);
   const blocked = Boolean(moderationNotice?.toLowerCase().includes("blocked"));
   const listRef = useRef<HTMLUListElement | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const typingStateRef = useRef(false);
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
@@ -239,6 +245,11 @@ export function MatchThreadClient({
     };
   }, [matchId, refreshMessages]);
 
+  useEffect(() => {
+    if (!initialDraft) return;
+    window.setTimeout(() => textareaRef.current?.focus(), 50);
+  }, [initialDraft]);
+
   const sendTyping = useCallback(
     (isTyping: boolean) => {
       if (typingStateRef.current === isTyping) return;
@@ -273,6 +284,10 @@ export function MatchThreadClient({
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    void sendMessage();
+  };
+
+  const sendMessage = useCallback(async () => {
     const text = body.trim();
     if (!text || sending || blocked) return;
 
@@ -324,16 +339,34 @@ export function MatchThreadClient({
     } finally {
       setSending(false);
     }
-  };
+  }, [body, blocked, currentUserId, matchId, refreshMessages, sendTyping, sending]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        setConfirmAction(null);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [menuOpen]);
 
   return (
     <>
-      <div className="mb-2 flex items-center justify-between px-1 text-[11px] text-zinc-500">
-        <span>{isSyncing ? "Syncing messages..." : "Realtime + backup sync active"}</span>
-        <span>
-          {lastSyncedAt ? `Updated ${new Date(lastSyncedAt).toLocaleTimeString()}` : "Waiting for first sync"}
-        </span>
-      </div>
+      {isSyncing ? (
+        <div className="mb-2 flex items-center gap-2 px-1 text-[11px] text-zinc-500">
+          <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5">
+            Syncing…
+          </span>
+          {lastSyncedAt ? (
+            <span className="text-zinc-400">
+              Updated {new Date(lastSyncedAt).toLocaleTimeString()}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-zinc-950/50">
         <ul
           ref={listRef}
@@ -388,79 +421,163 @@ export function MatchThreadClient({
           {moderationNotice}
         </p>
       ) : null}
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={reporting || messages.length === 0}
-          onClick={async () => {
-            if (reporting || messages.length === 0) return;
-            const lastIncoming = [...messages]
-              .reverse()
-              .find((m) => m.sender_id === matchId && !m.pending);
-            setReporting(true);
-            try {
-              const res = await fetch(`/api/matches/${matchId}/report`, {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({
-                  reason: "abusive_or_spam",
-                  messageId:
-                    lastIncoming && typeof lastIncoming.id === "number"
-                      ? lastIncoming.id
-                      : undefined,
-                }),
-              });
-              if (res.ok) {
-                setModerationNotice("Report submitted. We will review this conversation.");
-              }
-            } finally {
-              setReporting(false);
-            }
-          }}
-          className="rounded-full border border-white/15 px-3 py-1.5 text-xs text-zinc-400 transition hover:bg-white/5 disabled:opacity-40"
-        >
-          {reporting ? "Reporting..." : "Report conversation"}
-        </button>
-        <button
-          type="button"
-          disabled={blocking}
-          onClick={async () => {
-            if (blocking) return;
-            setBlocking(true);
-            try {
-              const res = await fetch(`/api/matches/${matchId}/block`, blockedByMe
-                ? { method: "DELETE" }
-                : {
-                    method: "POST",
-                    headers: { "content-type": "application/json" },
-                    body: JSON.stringify({ reason: "user_requested_block" }),
-                  });
-              if (res.ok) {
-                if (blockedByMe) {
-                  setBlockedByMe(false);
-                  setModerationNotice(null);
-                  setError(null);
-                  void refreshMessages();
-                } else {
-                  setBlockedByMe(true);
-                  setModerationNotice("Messaging is unavailable because one of you has blocked the other.");
-                  setError("You blocked this profile.");
-                }
-              }
-            } finally {
-              setBlocking(false);
-            }
-          }}
-          className={`rounded-full px-3 py-1.5 text-xs transition disabled:opacity-40 ${
-            blockedByMe
-              ? "border border-emerald-500/35 text-emerald-300 hover:bg-emerald-500/10"
-              : "border border-red-500/35 text-red-300 hover:bg-red-500/10"
-          }`}
-        >
-          {blocking ? (blockedByMe ? "Unblocking..." : "Blocking...") : blockedByMe ? "Unblock profile" : "Block profile"}
-        </button>
+      <div className="mt-3 flex items-center justify-end">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              setMenuOpen((v) => !v);
+              setConfirmAction(null);
+            }}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm font-semibold text-zinc-200 transition hover:bg-white/10"
+            aria-label="Conversation options"
+            aria-expanded={menuOpen}
+          >
+            ⋯
+          </button>
+          {menuOpen ? (
+            <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 p-2 shadow-2xl backdrop-blur">
+              {confirmAction ? (
+                <div className="space-y-2 p-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                    {confirmAction === "report"
+                      ? "Report conversation?"
+                      : confirmAction === "block"
+                        ? "Block profile?"
+                        : "Unblock profile?"}
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    {confirmAction === "report"
+                      ? "We’ll review this chat. Use this for spam or abuse."
+                      : confirmAction === "block"
+                        ? "You won’t see or message each other."
+                        : "Messaging will be re-enabled if they haven’t blocked you."}
+                  </p>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmAction(null)}
+                      className="flex-1 rounded-full border border-white/15 px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-white/5"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={
+                        confirmAction === "report"
+                          ? reporting || messages.length === 0
+                          : blocking
+                      }
+                      onClick={async () => {
+                        if (confirmAction === "report") {
+                          if (reporting || messages.length === 0) return;
+                          const lastIncoming = [...messages]
+                            .reverse()
+                            .find((m) => m.sender_id === matchId && !m.pending);
+                          setReporting(true);
+                          try {
+                            const res = await fetch(`/api/matches/${matchId}/report`, {
+                              method: "POST",
+                              headers: { "content-type": "application/json" },
+                              body: JSON.stringify({
+                                reason: "abusive_or_spam",
+                                messageId:
+                                  lastIncoming && typeof lastIncoming.id === "number"
+                                    ? lastIncoming.id
+                                    : undefined,
+                              }),
+                            });
+                            if (res.ok) {
+                              setModerationNotice("Report submitted. We will review this conversation.");
+                              setMenuOpen(false);
+                              setConfirmAction(null);
+                            }
+                          } finally {
+                            setReporting(false);
+                          }
+                          return;
+                        }
+
+                        setBlocking(true);
+                        try {
+                          const res = await fetch(`/api/matches/${matchId}/block`, confirmAction === "unblock"
+                            ? { method: "DELETE" }
+                            : {
+                                method: "POST",
+                                headers: { "content-type": "application/json" },
+                                body: JSON.stringify({ reason: "user_requested_block" }),
+                              });
+                          if (res.ok) {
+                            if (confirmAction === "unblock") {
+                              setBlockedByMe(false);
+                              setModerationNotice(null);
+                              setError(null);
+                              void refreshMessages();
+                            } else {
+                              setBlockedByMe(true);
+                              setModerationNotice("Messaging is unavailable because one of you has blocked the other.");
+                              setError("You blocked this profile.");
+                            }
+                            setMenuOpen(false);
+                            setConfirmAction(null);
+                          }
+                        } finally {
+                          setBlocking(false);
+                        }
+                      }}
+                      className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold disabled:opacity-50 ${
+                        confirmAction === "report"
+                          ? "bg-amber-500 text-zinc-950 hover:bg-amber-400"
+                          : confirmAction === "unblock"
+                            ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-500/35 hover:bg-emerald-500/30"
+                            : "bg-red-500/15 text-red-200 ring-1 ring-red-500/35 hover:bg-red-500/20"
+                      }`}
+                    >
+                      {confirmAction === "report"
+                        ? reporting
+                          ? "Reporting…"
+                          : "Report"
+                        : confirmAction === "unblock"
+                          ? blocking
+                            ? "Unblocking…"
+                            : "Unblock"
+                          : blocking
+                            ? "Blocking…"
+                            : "Block"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    disabled={messages.length === 0}
+                    onClick={() => setConfirmAction("report")}
+                    className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm text-zinc-200 hover:bg-white/5 disabled:opacity-40"
+                  >
+                    <span>Report</span>
+                    <span className="text-xs text-zinc-500">Spam/abuse</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmAction(blockedByMe ? "unblock" : "block")}
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm hover:bg-white/5 ${
+                      blockedByMe ? "text-emerald-200" : "text-red-200"
+                    }`}
+                  >
+                    <span>{blockedByMe ? "Unblock" : "Block"}</span>
+                    <span className="text-xs text-zinc-500">
+                      {blockedByMe ? "Re-enable chat" : "Stop seeing them"}
+                    </span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
       </div>
       <form
+        ref={formRef}
         className="mt-3 rounded-2xl border border-white/10 bg-zinc-900/60 p-2 shadow-inner shadow-black/20"
         onSubmit={onSubmit}
       >
@@ -473,6 +590,13 @@ export function MatchThreadClient({
           rows={2}
           value={body}
           onChange={(e) => onChangeBody(e.target.value)}
+          ref={textareaRef}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            if (e.shiftKey) return;
+            e.preventDefault();
+            void sendMessage();
+          }}
           onBlur={() => sendTyping(false)}
           className="w-full resize-none rounded-xl border-0 bg-transparent px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-0"
           placeholder={`Message ${matchName}...`}

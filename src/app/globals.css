@@ -20,3 +20,9 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
+
+/* Accessibility: consistent focus ring across the app */
+:where(a, button, input, textarea, select, summary, [role="button"], [tabindex]):focus-visible {
+  outline: 2px solid rgba(245, 158, 11, 0.7);
+  outline-offset: 2px;
+}
