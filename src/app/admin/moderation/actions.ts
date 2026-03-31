@@ -30,12 +30,22 @@ export async function resolveReport(reportId: number, status: "open" | "resolved
           resolved_at: null,
           resolved_by: null,
         };
-  await supabase.from("match_message_reports").update(patch).eq("id", reportId);
+  const { error } = await supabase.from("match_message_reports").update(patch).eq("id", reportId);
+  if (error) {
+    redirect(`/admin/moderation?notice=${encodeURIComponent(`Could not update report #${reportId}.`)}`);
+  }
   revalidatePath("/admin/moderation");
 }
 
-export async function unblockProfile(blockedId: string) {
+export async function unblockProfile(blockerId: string, blockedId: string) {
   const { supabase } = await requireAdmin();
-  await supabase.from("profile_blocks").delete().eq("blocked_id", blockedId);
+  const { error } = await supabase
+    .from("profile_blocks")
+    .delete()
+    .eq("blocker_id", blockerId)
+    .eq("blocked_id", blockedId);
+  if (error) {
+    redirect("/admin/moderation?notice=Could%20not%20unblock%20that%20pair.");
+  }
   revalidatePath("/admin/moderation");
 }

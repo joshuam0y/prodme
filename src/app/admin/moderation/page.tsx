@@ -21,7 +21,11 @@ type BlockRow = {
   created_at: string;
 };
 
-export default async function ModerationAdminPage() {
+export default async function ModerationAdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ notice?: string }>;
+}) {
   if (!isSupabaseConfigured()) redirect("/?error=supabase");
   const supabase = await createClient();
   const {
@@ -29,6 +33,9 @@ export default async function ModerationAdminPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/admin/moderation");
   if (!isAdminEmail(user.email)) redirect("/explore?notice=Admin%20access%20required");
+
+  const params = await searchParams;
+  const notice = params.notice ? decodeURIComponent(params.notice) : null;
 
   const { data: reports } = await supabase
     .from("match_message_reports")
@@ -41,7 +48,6 @@ export default async function ModerationAdminPage() {
     .select("blocker_id, blocked_id, reason, created_at")
     .order("created_at", { ascending: false })
     .limit(200);
-
   const openCount = ((reports as ReportRow[] | null) ?? []).filter((r) => r.status === "open").length;
 
   return (
@@ -50,6 +56,11 @@ export default async function ModerationAdminPage() {
       <p className="mt-1 text-sm text-zinc-500">
         Review reports, resolve cases, and manage blocks. Open reports: {openCount}
       </p>
+      {notice ? (
+        <p className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">
+          {notice}
+        </p>
+      ) : null}
 
       <section className="mt-8">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">Reports</h2>
@@ -132,7 +143,7 @@ export default async function ModerationAdminPage() {
                   <form
                     action={async () => {
                       "use server";
-                      await unblockProfile(b.blocked_id);
+                      await unblockProfile(b.blocker_id, b.blocked_id);
                     }}
                   >
                     <button
