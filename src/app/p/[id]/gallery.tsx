@@ -52,7 +52,7 @@ export function ProfileGalleryModal({
       aria-modal="true"
       aria-label="Photo gallery"
     >
-      <div className="absolute left-0 right-0 top-0 flex items-center justify-between p-4">
+      <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between p-4">
         <Link
           href={`/p/${profileId}`}
           className="rounded-full border border-white/20 bg-zinc-900/70 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900"
