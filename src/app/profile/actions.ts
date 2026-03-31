@@ -7,6 +7,7 @@ import {
   generateProfileEmbedding,
   moderateTextWithAi,
 } from "@/lib/ai/client";
+import { buildFallbackProfileCoachSuggestion, fallbackModerateText } from "@/lib/ai/fallback";
 import type { ProfileCoachInput } from "@/lib/ai/types";
 import { createClient } from "@/lib/supabase/server";
 import { isAiProfileCoachConfigured, isSupabaseConfigured } from "@/lib/env";
@@ -55,7 +56,6 @@ async function refreshProfileEmbedding(
 }
 
 async function moderateProfileText(profileInput: ProfileCoachInput): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!isAiProfileCoachConfigured()) return { ok: true };
   const text = [
     profileInput.displayName,
     profileInput.niche,
@@ -69,6 +69,23 @@ async function moderateProfileText(profileInput: ProfileCoachInput): Promise<{ o
     .filter(Boolean)
     .join("\n");
   if (!text.trim()) return { ok: true };
+
+  if (!isAiProfileCoachConfigured()) {
+    const moderation = fallbackModerateText({ text, context: "profile" });
+    if (moderation.status === "block") {
+      return {
+        ok: false,
+        error: `Profile update blocked: ${moderation.reason}`,
+      };
+    }
+    if (moderation.status === "warn") {
+      return {
+        ok: false,
+        error: `Profile update looks risky: ${moderation.reason}`,
+      };
+    }
+    return { ok: true };
+  }
 
   try {
     const moderation = await moderateTextWithAi({ text, context: "profile" });
@@ -425,18 +442,17 @@ export async function generateProfileBasicsSuggestions(
   if (!isSupabaseConfigured()) {
     return { ok: false, error: "Supabase is not configured." };
   }
-  if (!isAiProfileCoachConfigured()) {
-    return { ok: false, error: "AI profile coach is not configured yet." };
-  }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Sign in to use AI profile suggestions." };
+  if (!user) return { ok: false, error: "Sign in to use profile suggestions." };
 
   try {
-    const suggestion = await generateProfileCoachSuggestion(payload);
+    const suggestion = isAiProfileCoachConfigured()
+      ? await generateProfileCoachSuggestion(payload)
+      : buildFallbackProfileCoachSuggestion(payload);
     const { error } = await supabase
       .from("profiles")
       .update({

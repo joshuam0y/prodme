@@ -1,4 +1,5 @@
 import { triageReportWithAi } from "@/lib/ai/client";
+import { fallbackReportTriage } from "@/lib/ai/fallback";
 import { isAiProfileCoachConfigured } from "@/lib/env";
 
 export async function buildAiReportTriage(input: {
@@ -11,7 +12,15 @@ export async function buildAiReportTriage(input: {
   ai_labels?: string[];
   ai_triaged_at?: string;
 }> {
-  if (!isAiProfileCoachConfigured()) return {};
+  if (!isAiProfileCoachConfigured()) {
+    const triage = fallbackReportTriage(input);
+    return {
+      ai_summary: triage.summary,
+      ai_priority: triage.priority,
+      ai_labels: triage.labels,
+      ai_triaged_at: new Date().toISOString(),
+    };
+  }
 
   try {
     const triage = await triageReportWithAi(input);

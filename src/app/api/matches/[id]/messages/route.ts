@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { moderateTextWithAi } from "@/lib/ai/client";
+import { fallbackModerateText } from "@/lib/ai/fallback";
 import { createClient } from "@/lib/supabase/server";
 import { isAiProfileCoachConfigured, isSupabaseConfigured } from "@/lib/env";
 import { trackServerEvent } from "@/lib/analytics";
@@ -82,6 +83,17 @@ export async function POST(req: Request, { params }: Ctx) {
       }
     } catch {
       // Best-effort only.
+    }
+  } else {
+    const moderation = fallbackModerateText({ text, context: "message" });
+    if (moderation.status === "block") {
+      return NextResponse.json({ ok: false, error: "moderated_blocked" }, { status: 400 });
+    }
+    if (moderation.status === "warn") {
+      return NextResponse.json(
+        { ok: false, error: "moderated_warn", reason: moderation.reason },
+        { status: 400 },
+      );
     }
   }
 

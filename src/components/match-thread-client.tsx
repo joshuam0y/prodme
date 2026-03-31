@@ -452,7 +452,7 @@ export function MatchThreadClient({
                 if (result.ok && result.openers.length === 3) {
                   setQuickOpeners(result.openers);
                   setError(null);
-                } else if (!result.ok && result.error !== "AI suggestions are not configured yet.") {
+                } else if (!result.ok) {
                   setError("Could not refresh opener suggestions.");
                 }
                 setLoadingOpeners(false);

@@ -124,9 +124,9 @@ export function ProfileBasicsForm({ initial }: Props) {
       <div className="mt-6 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-zinc-100">AI profile coach</p>
+            <p className="text-sm font-semibold text-zinc-100">Profile coach</p>
             <p className="mt-1 text-sm text-zinc-500">
-              Rewrite your style, goal, collaborator ask, and prompts so the profile feels clearer.
+              Get clearer suggestions for your style, goal, collaborator ask, and prompts.
             </p>
           </div>
           <button
@@ -163,18 +163,18 @@ export function ProfileBasicsForm({ initial }: Props) {
                   tags: suggestion.tags,
                   score: suggestion.score,
                 });
-                setMessage("AI suggestions applied locally. Review, then save changes.");
+                setMessage("Suggestions applied locally. Review, then save changes.");
               })
             }
             className="rounded-full border border-amber-500/35 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-40"
           >
-            {aiPending ? "Thinking..." : "Improve with AI"}
+            {aiPending ? "Thinking..." : "Improve profile"}
           </button>
         </div>
         {aiMeta ? (
           <div className="mt-4 rounded-lg border border-white/10 bg-zinc-950/40 p-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-              AI read
+              Profile read
             </p>
             <p className="mt-2 text-sm text-zinc-300">{aiMeta.summary}</p>
             <div className="mt-3 flex flex-wrap gap-2">

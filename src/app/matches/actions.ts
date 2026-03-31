@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { generateMatchOpeners } from "@/lib/ai/client";
+import { buildFallbackMatchOpeners } from "@/lib/ai/fallback";
 import { createClient } from "@/lib/supabase/server";
 import { isAiProfileCoachConfigured, isSupabaseConfigured } from "@/lib/env";
 import { isUuid } from "@/lib/uuid";
@@ -64,9 +65,6 @@ export async function generateMatchOpenersAction(
   if (!isSupabaseConfigured() || !isUuid(targetId)) {
     return { ok: false, error: "invalid_target" };
   }
-  if (!isAiProfileCoachConfigured()) {
-    return { ok: false, error: "AI suggestions are not configured yet." };
-  }
 
   const supabase = await createClient();
   const {
@@ -104,19 +102,23 @@ export async function generateMatchOpenersAction(
   const them = profiles?.find((profile) => profile.id === targetId);
   if (!them) return { ok: false, error: "not_found" };
 
+  const input = {
+    meName: me?.display_name?.trim() || user.email?.split("@")[0] || "Member",
+    meRole: me?.role?.trim() || "",
+    meNiche: me?.niche?.trim() || "",
+    meGoal: me?.goal?.trim() || "",
+    meLookingFor: me?.looking_for?.trim() || "",
+    themName: them.display_name?.trim() || "there",
+    themRole: them.role?.trim() || "",
+    themNiche: them.niche?.trim() || "",
+    themGoal: them.goal?.trim() || "",
+    themLookingFor: them.looking_for?.trim() || "",
+  };
+
   try {
-    const openers = await generateMatchOpeners({
-      meName: me?.display_name?.trim() || user.email?.split("@")[0] || "Member",
-      meRole: me?.role?.trim() || "",
-      meNiche: me?.niche?.trim() || "",
-      meGoal: me?.goal?.trim() || "",
-      meLookingFor: me?.looking_for?.trim() || "",
-      themName: them.display_name?.trim() || "there",
-      themRole: them.role?.trim() || "",
-      themNiche: them.niche?.trim() || "",
-      themGoal: them.goal?.trim() || "",
-      themLookingFor: them.looking_for?.trim() || "",
-    });
+    const openers = isAiProfileCoachConfigured()
+      ? await generateMatchOpeners(input)
+      : buildFallbackMatchOpeners(input);
     return { ok: true, openers };
   } catch (error) {
     return {
