@@ -28,7 +28,7 @@ type BlockRow = {
 export default async function ModerationAdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ notice?: string; q?: string }>;
+  searchParams: Promise<{ notice?: string; q?: string; priority?: string }>;
 }) {
   if (!isSupabaseConfigured()) redirect("/?error=supabase");
   const supabase = await createClient();
@@ -41,6 +41,10 @@ export default async function ModerationAdminPage({
   const params = await searchParams;
   const notice = params.notice ? decodeURIComponent(params.notice) : null;
   const query = (params.q ? decodeURIComponent(params.q) : "").trim();
+  const priorityFilter =
+    params.priority === "high" || params.priority === "medium" || params.priority === "low"
+      ? params.priority
+      : "";
 
   const { data: reports } = await supabase
     .from("match_message_reports")
@@ -84,7 +88,21 @@ export default async function ModerationAdminPage({
         .order("updated_at", { ascending: false })
         .limit(20)
     : { data: [] };
-  const openCount = ((reports as ReportRow[] | null) ?? []).filter((r) => r.status === "open").length;
+  const sortedReports = [...
+    (((reports as ReportRow[] | null) ?? []).filter((r) =>
+      priorityFilter ? r.ai_priority === priorityFilter : true,
+    ))
+  ].sort((a, b) => {
+    const statusScore = (value: ReportRow["status"]) => (value === "open" ? 1 : 0);
+    const priorityScore = (value: ReportRow["ai_priority"]) =>
+      value === "high" ? 3 : value === "medium" ? 2 : value === "low" ? 1 : 0;
+    const byStatus = statusScore(b.status) - statusScore(a.status);
+    if (byStatus !== 0) return byStatus;
+    const byPriority = priorityScore(b.ai_priority) - priorityScore(a.ai_priority);
+    if (byPriority !== 0) return byPriority;
+    return b.created_at.localeCompare(a.created_at);
+  });
+  const openCount = (((reports as ReportRow[] | null) ?? []).filter((r) => r.status === "open")).length;
   const blockRows = (blocks as BlockRow[] | null) ?? [];
   const blockKey = (a: string, b: string) => `${a}:${b}`;
   const activeBlocks = new Set(blockRows.map((b) => blockKey(b.blocker_id, b.blocked_id)));
@@ -247,14 +265,40 @@ export default async function ModerationAdminPage({
       </section>
 
       <section className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">Reports</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">Reports</h2>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: "All", value: "" },
+              { label: "High", value: "high" },
+              { label: "Medium", value: "medium" },
+              { label: "Low", value: "low" },
+            ].map((option) => (
+              <Link
+                key={option.label}
+                href={
+                  option.value
+                    ? `/admin/moderation?priority=${option.value}${query ? `&q=${encodeURIComponent(query)}` : ""}`
+                    : `/admin/moderation${query ? `?q=${encodeURIComponent(query)}` : ""}`
+                }
+                className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                  priorityFilter === option.value
+                    ? "bg-amber-500/20 text-amber-200 ring-1 ring-amber-500/35"
+                    : "bg-white/5 text-zinc-400 ring-1 ring-white/10 hover:bg-white/10 hover:text-zinc-200"
+                }`}
+              >
+                {option.label}
+              </Link>
+            ))}
+          </div>
+        </div>
         <ul className="mt-3 space-y-2">
-          {((reports as ReportRow[] | null) ?? []).length === 0 ? (
+          {sortedReports.length === 0 ? (
             <li className="rounded-xl border border-white/10 bg-zinc-900/40 px-4 py-3 text-sm text-zinc-500">
-              No reports yet.
+              {priorityFilter ? `No ${priorityFilter} priority reports right now.` : "No reports yet."}
             </li>
           ) : (
-            ((reports as ReportRow[] | null) ?? []).map((r) => (
+            sortedReports.map((r) => (
               <li key={r.id} className="rounded-xl border border-white/10 bg-zinc-900/40 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1 text-sm text-zinc-300">

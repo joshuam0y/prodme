@@ -43,8 +43,6 @@ export function MatchThreadClient({
   const [loadingOpeners, setLoadingOpeners] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [matchTyping, setMatchTyping] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [moderationNotice, setModerationNotice] = useState<string | null>(null);
   const [reporting, setReporting] = useState(false);
   const [blocking, setBlocking] = useState(false);
@@ -86,7 +84,6 @@ export function MatchThreadClient({
   const refreshMessages = useCallback(async () => {
     if (isRefreshingRef.current) return;
     isRefreshingRef.current = true;
-    setIsSyncing(true);
     try {
       const res = await fetch(`/api/matches/${matchId}/messages`, { method: "GET" });
       const json = (await res.json()) as {
@@ -96,7 +93,6 @@ export function MatchThreadClient({
       };
       if (res.ok && json.ok && Array.isArray(json.messages)) {
         mergeMessages(json.messages);
-        setLastSyncedAt(new Date().toISOString());
         setModerationNotice(null);
       } else if (json.error === "blocked") {
         try {
@@ -132,7 +128,6 @@ export function MatchThreadClient({
       // Non-blocking fallback.
     } finally {
       isRefreshingRef.current = false;
-      setIsSyncing(false);
     }
   }, [matchId, mergeMessages]);
 
@@ -388,18 +383,6 @@ export function MatchThreadClient({
 
   return (
     <>
-      {isSyncing ? (
-        <div className="mb-2 flex items-center gap-2 px-1 text-[11px] text-zinc-500">
-          <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5">
-            Syncing…
-          </span>
-          {lastSyncedAt ? (
-            <span className="text-zinc-400">
-              Updated {new Date(lastSyncedAt).toLocaleTimeString()}
-            </span>
-          ) : null}
-        </div>
-      ) : null}
       <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-zinc-950/50">
         <ul
           ref={listRef}

@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { getLiveProfileCards, inferProfileRole } from "@/lib/discover-profiles";
 import { isSupabaseConfigured } from "@/lib/env";
 import { formatNotificationDisplay, markAllNotificationsRead } from "@/lib/notifications";
 import { NotificationsList } from "@/components/notifications-list";
@@ -90,6 +92,24 @@ export default async function NotificationsPage() {
     };
   });
   const unreadCount = notifications.filter((n) => n.read_at === null).length;
+  const { data: viewerProfile } = await supabase
+    .from("profiles")
+    .select("role, niche, goal, looking_for, latitude, longitude")
+    .eq("id", userId)
+    .maybeSingle();
+  const recommendedProfiles = await getLiveProfileCards(userId, userId, {
+    viewerLat: viewerProfile?.latitude ?? null,
+    viewerLng: viewerProfile?.longitude ?? null,
+    viewerRole: viewerProfile?.role?.trim() ? inferProfileRole(viewerProfile.role) : null,
+    viewerNiche: viewerProfile?.niche?.trim() ?? null,
+    viewerGoal: viewerProfile?.goal?.trim() ?? null,
+    viewerLookingFor: viewerProfile?.looking_for?.trim() ?? null,
+    sort: "trending",
+    maxDistanceKm: 50,
+  });
+  const smartRecommendations = recommendedProfiles
+    .filter((profile) => typeof profile.semanticScore === "number" && (profile.semanticScore ?? 0) >= 0.72)
+    .slice(0, 3);
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:px-6">
@@ -111,6 +131,44 @@ export default async function NotificationsPage() {
           </form>
         ) : null}
       </div>
+
+      {smartRecommendations.length > 0 ? (
+        <section className="mb-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-100">Recommended for you</h2>
+              <p className="mt-1 text-sm text-zinc-500">
+                Strong profile matches picked from your AI and semantic signals.
+              </p>
+            </div>
+            <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200 ring-1 ring-emerald-500/30">
+              AI
+            </span>
+          </div>
+          <div className="mt-4 space-y-2">
+            {smartRecommendations.map((profile) => (
+              <Link
+                key={`alert-recommendation-${profile.id}`}
+                href={`/p/${profile.id}`}
+                className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-zinc-950/40 px-4 py-3 transition hover:bg-white/[0.03]"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium text-zinc-100">{profile.displayName}</p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {profile.role} · {profile.city}
+                  </p>
+                  {profile.matchWhy?.[0] ? (
+                    <p className="mt-2 text-sm text-zinc-300">{profile.matchWhy[0]}</p>
+                  ) : null}
+                </div>
+                <span className="shrink-0 rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
+                  {Math.round((profile.semanticScore ?? 0) * 100)}%
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {notifications.length === 0 ? (
         <div className="rounded-2xl border border-white/10 bg-zinc-900/40 p-6 text-sm text-zinc-400">
