@@ -7,6 +7,39 @@ import type {
   ReportTriageInput,
   ReportTriageResult,
 } from "@/lib/ai/types";
+import { PROFILE_PROMPT_OPTIONS } from "@/lib/profile-prompts";
+
+const STOP_WORDS = new Set([
+  "the",
+  "and",
+  "for",
+  "with",
+  "that",
+  "this",
+  "from",
+  "your",
+  "some",
+  "will",
+  "want",
+  "into",
+  "more",
+  "about",
+  "looking",
+  "book",
+  "performers",
+]);
+
+const BLOCK_TERMS = [
+  "kill yourself",
+  "send nudes",
+  "wire money",
+  "crypto scam",
+  "racial slur",
+  "midget",
+  "midgets",
+];
+
+const WARN_TERMS = ["follow me", "tap in", "dm me asap", "promo", "buy now", "telegram"];
 
 function clean(value: string | undefined | null): string {
   return value?.trim() || "";
@@ -18,6 +51,119 @@ function words(value: string): string[] {
     .split(/[^a-z0-9]+/g)
     .map((part) => part.trim())
     .filter((part) => part.length >= 3);
+}
+
+function hasBlockedContent(value: string): boolean {
+  const normalized = clean(value).toLowerCase();
+  return BLOCK_TERMS.some((term) => normalized.includes(term));
+}
+
+function hasWarnContent(value: string): boolean {
+  const normalized = clean(value).toLowerCase();
+  return WARN_TERMS.some((term) => normalized.includes(term));
+}
+
+function buildProfileSummary(input: ProfileCoachInput): string {
+  const niche = clean(input.niche);
+  const goal = clean(input.goal);
+  const lookingFor = clean(input.lookingFor);
+  const prompt1Answer = clean(input.prompt1Answer);
+  const prompt2Answer = clean(input.prompt2Answer);
+  const role = clean(input.role) || "profile";
+
+  if ([niche, goal, lookingFor, prompt1Answer, prompt2Answer].some(hasBlockedContent)) {
+    return "Some profile copy needs a full rewrite before this feels safe or polished. Remove disrespectful language and describe the kind of collaborators, bookings, or opportunities you want in a clear professional way.";
+  }
+
+  const gaps: string[] = [];
+  if (!niche) gaps.push("a clearer style");
+  if (!goal) gaps.push("a more specific goal");
+  if (!lookingFor) gaps.push("a sharper collaborator ask");
+  if (prompt1Answer.length < 16 || prompt2Answer.length < 16) gaps.push("stronger prompt answers");
+
+  if (gaps.length === 0) {
+    return `This ${role.toLowerCase()} profile has a solid foundation. Tighten the wording and make the prompts more specific so it feels more memorable and easier to reply to.`;
+  }
+
+  return `This profile still needs ${gaps.join(", ")}. Focus on concrete details and a respectful tone so people can quickly understand the fit.`;
+}
+
+function deriveProfileTags(input: ProfileCoachInput): string[] {
+  const tags = new Set<string>();
+  const role = clean(input.role).toLowerCase();
+  const haystack = `${clean(input.niche)} ${clean(input.goal)} ${clean(input.lookingFor)}`.toLowerCase();
+
+  if (role.includes("venue")) tags.add("venue");
+  if (role.includes("promoter")) tags.add("promoter");
+  if (role.includes("producer")) tags.add("producer");
+  if (role.includes("dj")) tags.add("dj");
+  if (role.includes("artist")) tags.add("artist");
+
+  const concepts: Array<[string, string]> = [
+    ["book", "booking"],
+    ["event", "events"],
+    ["perform", "live events"],
+    ["session", "sessions"],
+    ["collab", "collaboration"],
+    ["studio", "studio"],
+    ["vocal", "vocals"],
+    ["beat", "production"],
+    ["mix", "mixing"],
+  ];
+
+  for (const [needle, label] of concepts) {
+    if (haystack.includes(needle) && !hasBlockedContent(needle)) tags.add(label);
+  }
+
+  for (const token of words(clean(input.niche))) {
+    if (!STOP_WORDS.has(token) && !hasBlockedContent(token) && !hasWarnContent(token)) {
+      tags.add(token);
+    }
+    if (tags.size >= 6) break;
+  }
+
+  return Array.from(tags).slice(0, 6);
+}
+
+function calculateProfileScore(input: ProfileCoachInput): number {
+  const niche = clean(input.niche);
+  const goal = clean(input.goal);
+  const lookingFor = clean(input.lookingFor);
+  const prompt1Answer = clean(input.prompt1Answer);
+  const prompt2Answer = clean(input.prompt2Answer);
+  const city = clean(input.city);
+
+  let score = 32;
+  if (niche.length >= 8) score += 10;
+  if (goal.length >= 8) score += 10;
+  if (lookingFor.length >= 12) score += 12;
+  if (prompt1Answer.length >= 20) score += 8;
+  if (prompt2Answer.length >= 20) score += 8;
+  if (city) score += 5;
+  if (niche.length >= 18) score += 4;
+  if (goal.length >= 18) score += 4;
+
+  if ([niche, goal, lookingFor, prompt1Answer, prompt2Answer].some(hasWarnContent)) score -= 8;
+  if ([niche, goal, lookingFor, prompt1Answer, prompt2Answer].some(hasBlockedContent)) score -= 45;
+  if (lookingFor.length > 140) score -= 8;
+
+  return Math.max(15, Math.min(88, score));
+}
+
+function pickPromptPair(role: string, niche: string, goal: string, lookingFor: string) {
+  const audiencePrompt =
+    PROFILE_PROMPT_OPTIONS.find((option) => option.question === "The people I'm trying to meet on here are...") ??
+    PROFILE_PROMPT_OPTIONS[0];
+  const tastePrompt =
+    niche || role.includes("dj") || role.includes("producer")
+      ? PROFILE_PROMPT_OPTIONS.find((option) => option.question === "A track that explains my taste is...")
+      : PROFILE_PROMPT_OPTIONS.find((option) => option.question === "If we made something together, I'd bring...");
+  const momentumPrompt =
+    goal
+      ? PROFILE_PROMPT_OPTIONS.find((option) => option.question === "Right now I'm building toward...")
+      : PROFILE_PROMPT_OPTIONS.find((option) => option.question === "Ask me about...");
+
+  return [tastePrompt ?? PROFILE_PROMPT_OPTIONS[1], momentumPrompt ?? audiencePrompt];
 }
 
 export function buildFallbackProfileCoachSuggestion(
@@ -38,32 +184,26 @@ export function buildFallbackProfileCoachSuggestion(
   const nextLookingFor =
     lookingFor ||
     `Say exactly who you want to meet, what kind of sessions you want, and what a good fit looks like.`;
-  const nextPrompt1Question = clean(input.prompt1Question) || "Best collab idea right now";
-  const nextPrompt2Question = clean(input.prompt2Question) || "My sound is closest to...";
+  const [fallbackPrompt1, fallbackPrompt2] = pickPromptPair(role.toLowerCase(), niche, goal, lookingFor);
+  const nextPrompt1Question = clean(input.prompt1Question) || fallbackPrompt1.question;
+  const nextPrompt2Question = clean(input.prompt2Question) || fallbackPrompt2.question;
   const nextPrompt1Answer =
     clean(input.prompt1Answer) ||
-    `Right now I want to connect with ${role}s who fit my style and actually want to build something real together.`;
+    (nextPrompt1Question === "A track that explains my taste is..."
+      ? `A record that sits close to my world is one that blends ${niche || "taste"} with strong mood and replay value.`
+      : nextPrompt1Question === "If we made something together, I'd bring..."
+        ? `I'd bring clear ideas, strong taste, and the kind of follow-through that keeps a project moving.`
+        : `Right now I want to connect with ${role}s who fit my style and actually want to build something real together.`);
   const nextPrompt2Answer =
     clean(input.prompt2Answer) ||
-    `${niche || "My sound"} with a clear point of view, strong taste, and room to collaborate.`;
+    (nextPrompt2Question === "Right now I'm building toward..."
+      ? `I'm focused on ${goal || "turning good momentum into real opportunities"} and meeting people who want to level up with intention.`
+      : nextPrompt2Question === "Ask me about..."
+        ? `${niche || "the sound I'm building"}, what I'm aiming for next, or the kind of people I'm trying to create with.`
+        : `${niche || "My sound"} with a clear point of view, strong taste, and room to collaborate.`);
 
-  const tags = [
-    ...new Set(
-      [role, ...words(niche).slice(0, 2), ...words(goal).slice(0, 2), ...words(lookingFor).slice(0, 2)]
-        .map((tag) => tag.toLowerCase())
-        .filter(Boolean),
-    ),
-  ].slice(0, 6);
-
-  const scoreSignals = [
-    niche.length > 0,
-    goal.length > 0,
-    lookingFor.length > 0,
-    clean(input.prompt1Answer).length > 0,
-    clean(input.prompt2Answer).length > 0,
-    city.length > 0,
-  ];
-  const score = Math.max(45, Math.round((scoreSignals.filter(Boolean).length / scoreSignals.length) * 100));
+  const tags = deriveProfileTags(input);
+  const score = calculateProfileScore(input);
 
   return {
     niche: nextNiche,
@@ -73,14 +213,7 @@ export function buildFallbackProfileCoachSuggestion(
     prompt1Answer: nextPrompt1Answer,
     prompt2Question: nextPrompt2Question,
     prompt2Answer: nextPrompt2Answer,
-    summary: [
-      clean(input.displayName) || "This profile",
-      city ? `is based in ${city}` : "",
-      niche ? `focuses on ${niche}` : `needs a clearer niche`,
-      goal ? `and is currently focused on ${goal}.` : `and should clarify the current goal.`,
-    ]
-      .filter(Boolean)
-      .join(" "),
+    summary: buildProfileSummary(input),
     tags,
     score,
   };
@@ -105,13 +238,10 @@ export function buildFallbackMatchOpeners(input: MatchOpenersInput): string[] {
 
 export function fallbackModerateText(input: ModerationInput): ModerationResult {
   const text = clean(input.text).toLowerCase();
-  const blockTerms = ["kill yourself", "send nudes", "wire money", "crypto scam", "racial slur"];
-  const warnTerms = ["follow me", "tap in", "dm me asap", "promo", "buy now", "telegram"];
-
-  if (blockTerms.some((term) => text.includes(term))) {
+  if (BLOCK_TERMS.some((term) => text.includes(term))) {
     return { status: "block", reason: "Contains abusive or scam-like language." };
   }
-  if (warnTerms.some((term) => text.includes(term))) {
+  if (WARN_TERMS.some((term) => text.includes(term))) {
     return { status: "warn", reason: "Looks promotional or suspicious." };
   }
   return { status: "allow", reason: "No issue detected." };

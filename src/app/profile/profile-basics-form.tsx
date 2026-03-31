@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { PROFILE_PROMPT_OPTIONS } from "@/lib/profile-prompts";
 import { generateProfileBasicsSuggestions, updateProfileBasics } from "./actions";
 
 type Props = {
@@ -35,6 +36,48 @@ export function ProfileBasicsForm({ initial }: Props) {
   const [prompt2A, setPrompt2A] = useState(initial.prompt2A);
   const [message, setMessage] = useState<string | null>(null);
   const [aiMeta, setAiMeta] = useState<{ summary: string; tags: string[]; score: number } | null>(null);
+  const suggestedPromptOptions = useMemo(() => {
+    const roleLower = initial.role.toLowerCase();
+    const preferred = PROFILE_PROMPT_OPTIONS.filter((option) => {
+      if (roleLower.includes("venue") || roleLower.includes("promoter")) {
+        return (
+          option.question.includes("city") ||
+          option.question.includes("ideal studio vibe") ||
+          option.question.includes("bring") ||
+          option.question.includes("trying to meet")
+        );
+      }
+      return (
+        option.question.includes("track") ||
+        option.question.includes("sound") ||
+        option.question.includes("collab") ||
+        option.question.includes("building toward") ||
+        option.question.includes("trying to meet")
+      );
+    });
+
+    const current = [prompt1Q, prompt2Q].filter(Boolean);
+    const unique = [...preferred, ...PROFILE_PROMPT_OPTIONS].filter(
+      (option, index, all) => all.findIndex((entry) => entry.question === option.question) === index,
+    );
+    return unique.filter((option) => !current.includes(option.question)).slice(0, 8);
+  }, [initial.role, prompt1Q, prompt2Q]);
+
+  function applyPrompt(slot: 1 | 2, question: string) {
+    if (slot === 1) {
+      setPrompt1Q(question);
+      if (!prompt1A.trim()) {
+        const cue = PROFILE_PROMPT_OPTIONS.find((option) => option.question === question)?.cue ?? "";
+        setPrompt1A(cue);
+      }
+      return;
+    }
+    setPrompt2Q(question);
+    if (!prompt2A.trim()) {
+      const cue = PROFILE_PROMPT_OPTIONS.find((option) => option.question === question)?.cue ?? "";
+      setPrompt2A(cue);
+    }
+  }
 
   return (
     <section className="mt-10 rounded-2xl border border-white/10 bg-zinc-900/40 p-6">
@@ -77,19 +120,53 @@ export function ProfileBasicsForm({ initial }: Props) {
         </label>
       </div>
       <div className="mt-6 rounded-xl border border-white/10 bg-zinc-950/30 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          Prompts (Hinge-style)
-        </p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              Prompts (Hinge-style)
+            </p>
+            <p className="mt-1 text-sm text-zinc-500">
+              Pick conversation starters instead of writing prompt titles from scratch.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <p className="text-xs font-medium text-zinc-400">Try one of these prompt ideas</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {suggestedPromptOptions.map((option, index) => (
+              <button
+                key={option.question}
+                type="button"
+                onClick={() => applyPrompt(index % 2 === 0 ? 1 : 2, option.question)}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-zinc-300 transition hover:bg-white/[0.08]"
+              >
+                {option.question}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="mt-3 grid gap-3">
           <label className="block text-xs font-medium text-zinc-500">
             Prompt 1 question
-            <input
+            <select
               className={fieldClass}
               value={prompt1Q}
               onChange={(e) => setPrompt1Q(e.target.value)}
-              placeholder="e.g. Best collab idea right now"
-            />
+            >
+              <option value="">Choose a prompt...</option>
+              {PROFILE_PROMPT_OPTIONS.map((option) => (
+                <option key={option.question} value={option.question}>
+                  {option.question}
+                </option>
+              ))}
+            </select>
           </label>
+          {prompt1Q ? (
+            <p className="text-xs text-zinc-500">
+              {PROFILE_PROMPT_OPTIONS.find((option) => option.question === prompt1Q)?.cue ||
+                "Answer this in a way that gives someone an easy opener."}
+            </p>
+          ) : null}
           <label className="block text-xs font-medium text-zinc-500">
             Prompt 1 answer
             <textarea
@@ -102,13 +179,25 @@ export function ProfileBasicsForm({ initial }: Props) {
           </label>
           <label className="block text-xs font-medium text-zinc-500">
             Prompt 2 question
-            <input
+            <select
               className={fieldClass}
               value={prompt2Q}
               onChange={(e) => setPrompt2Q(e.target.value)}
-              placeholder="e.g. My sound is closest to…"
-            />
+            >
+              <option value="">Choose a prompt...</option>
+              {PROFILE_PROMPT_OPTIONS.map((option) => (
+                <option key={option.question} value={option.question}>
+                  {option.question}
+                </option>
+              ))}
+            </select>
           </label>
+          {prompt2Q ? (
+            <p className="text-xs text-zinc-500">
+              {PROFILE_PROMPT_OPTIONS.find((option) => option.question === prompt2Q)?.cue ||
+                "Keep it specific enough that someone could reply to it."}
+            </p>
+          ) : null}
           <label className="block text-xs font-medium text-zinc-500">
             Prompt 2 answer
             <textarea
@@ -126,7 +215,7 @@ export function ProfileBasicsForm({ initial }: Props) {
           <div>
             <p className="text-sm font-semibold text-zinc-100">Profile coach</p>
             <p className="mt-1 text-sm text-zinc-500">
-              Get clearer suggestions for your style, goal, collaborator ask, and prompts.
+              Get sharper feedback on clarity, tone, and whether your profile feels worth replying to.
             </p>
           </div>
           <button
@@ -174,12 +263,12 @@ export function ProfileBasicsForm({ initial }: Props) {
         {aiMeta ? (
           <div className="mt-4 rounded-lg border border-white/10 bg-zinc-950/40 p-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-              Profile read
+              Coach feedback
             </p>
             <p className="mt-2 text-sm text-zinc-300">{aiMeta.summary}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
-                Score {aiMeta.score}/100
+                Clarity {aiMeta.score}/100
               </span>
               {aiMeta.tags.map((tag) => (
                 <span

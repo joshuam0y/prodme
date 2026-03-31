@@ -180,14 +180,14 @@ export default async function ProfilePage() {
         <section className="mt-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold text-zinc-100">AI profile read</h2>
+              <h2 className="text-sm font-semibold text-zinc-100">Profile feedback</h2>
               <p className="mt-1 text-sm text-zinc-500">
                 Auto-updated after onboarding and profile edits.
               </p>
             </div>
             {typeof profile?.ai_profile_score === "number" ? (
               <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-200 ring-1 ring-emerald-500/30">
-                Score {profile.ai_profile_score}/100
+                Clarity {profile.ai_profile_score}/100
               </span>
             ) : null}
           </div>
