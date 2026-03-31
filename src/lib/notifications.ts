@@ -11,6 +11,46 @@ type CreateNotificationInput = {
   metadata?: Record<string, unknown>;
 };
 
+export type NotificationDisplayInput = {
+  kind: string;
+  title: string;
+  body: string | null;
+  actorName?: string | null;
+};
+
+export function formatNotificationDisplay(input: NotificationDisplayInput): {
+  title: string;
+  body: string | null;
+} {
+  const actorName = input.actorName?.trim() || "Someone";
+
+  if (input.kind === "profile_saved") {
+    return {
+      title: `${actorName} liked you`,
+      body: "Open Likes to see who is interested.",
+    };
+  }
+
+  if (input.kind === "message_received") {
+    return {
+      title: `${actorName} sent you a message`,
+      body: input.body,
+    };
+  }
+
+  if (input.kind === "match_created") {
+    return {
+      title: `You matched with ${actorName}`,
+      body: "Say hi and start the conversation.",
+    };
+  }
+
+  return {
+    title: input.title,
+    body: input.body,
+  };
+}
+
 export async function createNotification(input: CreateNotificationInput): Promise<void> {
   if (!isSupabaseConfigured()) return;
   try {

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
-import { markAllNotificationsRead } from "@/lib/notifications";
+import { formatNotificationDisplay, markAllNotificationsRead } from "@/lib/notifications";
 import { NotificationsList } from "@/components/notifications-list";
 
 export const metadata: Metadata = {
@@ -15,6 +15,7 @@ type NotificationRow = {
   title: string;
   body: string | null;
   href: string | null;
+  actor_id: string | null;
   created_at: string;
   read_at: string | null;
 };
@@ -38,7 +39,7 @@ export default async function NotificationsPage() {
   try {
     const { data } = await supabase
       .from("notifications")
-      .select("id, kind, title, body, href, created_at, read_at")
+      .select("id, kind, title, body, href, actor_id, created_at, read_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(100);
@@ -46,6 +47,39 @@ export default async function NotificationsPage() {
   } catch {
     notifications = [];
   }
+
+  const actorIds = [...new Set(notifications.map((n) => n.actor_id).filter((id): id is string => Boolean(id)))];
+  let actorNames = new Map<string, string>();
+  if (actorIds.length > 0) {
+    try {
+      const { data: actors } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", actorIds);
+      actorNames = new Map(
+        ((actors as Array<{ id: string; display_name: string | null }> | null) ?? []).map((actor) => [
+          actor.id,
+          actor.display_name?.trim() || "Someone",
+        ]),
+      );
+    } catch {
+      actorNames = new Map();
+    }
+  }
+
+  const displayNotifications = notifications.map((notification) => {
+    const display = formatNotificationDisplay({
+      kind: notification.kind,
+      title: notification.title,
+      body: notification.body,
+      actorName: notification.actor_id ? actorNames.get(notification.actor_id) : null,
+    });
+    return {
+      ...notification,
+      title: display.title,
+      body: display.body,
+    };
+  });
   const unreadCount = notifications.filter((n) => n.read_at === null).length;
 
   return (
@@ -75,7 +109,7 @@ export default async function NotificationsPage() {
           it will show up here.
         </div>
       ) : (
-        <NotificationsList notifications={notifications} />
+        <NotificationsList notifications={displayNotifications} />
       )}
     </main>
   );
