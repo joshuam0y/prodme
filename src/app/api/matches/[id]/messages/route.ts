@@ -5,6 +5,34 @@ import { isUuid } from "@/lib/uuid";
 
 type Ctx = { params: Promise<{ id: string }> };
 
+export async function GET(_req: Request, { params }: Ctx) {
+  const { id } = await params;
+  if (!isSupabaseConfigured() || !isUuid(id)) {
+    return NextResponse.json({ ok: false, error: "invalid_target" }, { status: 400 });
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ ok: false, error: "not_signed_in" }, { status: 401 });
+  if (user.id === id) return NextResponse.json({ ok: false, error: "self" }, { status: 400 });
+
+  const { data, error } = await supabase
+    .from("match_messages")
+    .select("id, sender_id, recipient_id, body, created_at, read_at")
+    .or(
+      `and(sender_id.eq.${user.id},recipient_id.eq.${id}),and(sender_id.eq.${id},recipient_id.eq.${user.id})`,
+    )
+    .order("created_at", { ascending: true })
+    .limit(250);
+
+  if (error) {
+    return NextResponse.json({ ok: false, error: "list_failed" }, { status: 500 });
+  }
+  return NextResponse.json({ ok: true, messages: data ?? [] });
+}
+
 export async function POST(req: Request, { params }: Ctx) {
   const { id } = await params;
   if (!isSupabaseConfigured() || !isUuid(id)) {

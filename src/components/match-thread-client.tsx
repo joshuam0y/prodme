@@ -44,6 +44,41 @@ export function MatchThreadClient({
   const typingStateRef = useRef(false);
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const isRefreshingRef = useRef(false);
+
+  const mergeMessages = useCallback((incoming: Message[]) => {
+    setMessages((prev) => {
+      const byId = new Map<string, Message>();
+      for (const m of prev) byId.set(String(m.id), m);
+      for (const m of incoming) {
+        const key = String(m.id);
+        const existing = byId.get(key);
+        byId.set(key, existing ? { ...existing, ...m, pending: false } : m);
+      }
+      return Array.from(byId.values()).sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      );
+    });
+  }, []);
+
+  const refreshMessages = useCallback(async () => {
+    if (isRefreshingRef.current) return;
+    isRefreshingRef.current = true;
+    try {
+      const res = await fetch(`/api/matches/${matchId}/messages`, { method: "GET" });
+      const json = (await res.json()) as {
+        ok: boolean;
+        messages?: Message[];
+      };
+      if (res.ok && json.ok && Array.isArray(json.messages)) {
+        mergeMessages(json.messages);
+      }
+    } catch {
+      // Non-blocking fallback.
+    } finally {
+      isRefreshingRef.current = false;
+    }
+  }, [matchId, mergeMessages]);
 
   const scrollToBottom = useCallback(() => {
     const el = listRef.current;
@@ -118,6 +153,23 @@ export function MatchThreadClient({
       void ch.unsubscribe();
     };
   }, [currentUserId, markRead, matchId, supabase]);
+
+  useEffect(() => {
+    void refreshMessages();
+    const interval = window.setInterval(() => {
+      void refreshMessages();
+    }, 3000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refreshMessages();
+    };
+    window.addEventListener("focus", onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onVisible);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [refreshMessages]);
 
   const sendTyping = useCallback(
     (isTyping: boolean) => {
@@ -195,6 +247,7 @@ export function MatchThreadClient({
       setMessages((prev) =>
         prev.map((m) => (String(m.id) === tempId ? json.message! : m)),
       );
+      void refreshMessages();
     } catch {
       setMessages((prev) => prev.filter((m) => String(m.id) !== tempId));
       setError("Could not send message.");

@@ -42,10 +42,10 @@ export function SiteHeader({
           aria-label="prodLink home"
         >
           <Image
-            src="/prodlink-logo.png"
+            src="/prodlink-logo.svg"
             alt="prodLink"
-            width={160}
-            height={40}
+            width={210}
+            height={55}
             className="h-8 w-auto sm:h-9"
             priority
           />
