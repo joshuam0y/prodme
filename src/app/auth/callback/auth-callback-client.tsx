@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const LINK_USED_HINT =
-  "This email link was already used or expired. If you already confirmed your account, sign in. Otherwise sign up again — confirmation links only work once for security.";
+  "That email link was already used or expired. If you already confirmed your account, sign in. Otherwise request a fresh confirmation email.";
 
 function fullRedirect(path: string) {
   window.location.replace(
@@ -14,8 +14,32 @@ function fullRedirect(path: string) {
   );
 }
 
-function loginWithError(router: ReturnType<typeof useRouter>, message: string) {
-  router.replace(`/login?error=${encodeURIComponent(message)}`);
+function authErrorPath(searchParams: URLSearchParams, hashWithoutLeading: string): "/signup" | "/login" {
+  const type = searchParams.get("type");
+  const next = searchParams.get("next");
+  if (type === "signup" || next === "/onboarding") return "/signup";
+  if (hashWithoutLeading) {
+    const hashParams = new URLSearchParams(hashWithoutLeading);
+    const hashType = hashParams.get("type");
+    if (
+      hashType === "signup" ||
+      hashType === "email" ||
+      hashType === "invite" ||
+      hashType === "email_change"
+    ) {
+      return "/signup";
+    }
+  }
+  return "/login";
+}
+
+function redirectWithError(
+  router: ReturnType<typeof useRouter>,
+  searchParams: URLSearchParams,
+  hashWithoutLeading: string,
+  message: string,
+) {
+  router.replace(`${authErrorPath(searchParams, hashWithoutLeading)}?error=${encodeURIComponent(message)}`);
 }
 
 /**
@@ -41,7 +65,7 @@ export function AuthCallbackClient() {
         hashParams?.get("error_description")?.trim() ||
         hashParams?.get("error")?.trim();
       if (fragErr) {
-        loginWithError(router, fragErr);
+        redirectWithError(router, searchParams, hash, fragErr);
         return;
       }
 
@@ -49,7 +73,7 @@ export function AuthCallbackClient() {
         searchParams.get("error_description")?.trim() ||
         searchParams.get("error")?.trim();
       if (qErr) {
-        loginWithError(router, qErr);
+        redirectWithError(router, searchParams, hash, qErr);
         return;
       }
 
@@ -77,7 +101,7 @@ export function AuthCallbackClient() {
               /expired|invalid|already|consumed|used/i.test(error.message)
                 ? LINK_USED_HINT
                 : error.message;
-            loginWithError(router, msg);
+            redirectWithError(router, searchParams, hash, msg);
             return;
           }
         }
@@ -93,11 +117,13 @@ export function AuthCallbackClient() {
         if (!cancelled && error) {
           const msg =
             /verifier|pkce|storage/i.test(error.message)
-              ? `${error.message} Try opening the link in the same browser where you started sign-up, or sign up again for a new email.`
+              ? authErrorPath(searchParams, hash) === "/signup"
+                ? "We couldn't finish sign-up from that email link in this browser. Open the newest confirmation email in the same browser where you signed up, or request a fresh confirmation link."
+                : `${error.message} Try opening the link in the same browser where you started sign-in, or request a fresh email.`
               : /expired|invalid|already/i.test(error.message)
                 ? LINK_USED_HINT
                 : error.message;
-          loginWithError(router, msg);
+          redirectWithError(router, searchParams, hash, msg);
           return;
         }
       }
@@ -112,8 +138,10 @@ export function AuthCallbackClient() {
 
       if (!cancelled) {
         setMessage("Redirecting…");
-        loginWithError(
+        redirectWithError(
           router,
+          searchParams,
+          hash,
           "We couldn't finish signing you in from this link. If you already confirmed your email, try signing in.",
         );
       }

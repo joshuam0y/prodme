@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { resendSignupConfirmation, signUp } from "@/app/auth/actions";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -31,6 +32,16 @@ export default async function SignupPage({
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16 sm:px-6">
       <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-8 shadow-xl">
+        <Link href="/" className="inline-flex" aria-label="prodLink home">
+          <Image
+            src="/prodlink-logo-v2.svg"
+            alt="prodLink"
+            width={210}
+            height={55}
+            className="h-8 w-auto"
+            priority
+          />
+        </Link>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
           Create account
         </h1>
@@ -97,7 +108,7 @@ export default async function SignupPage({
               className="mt-1.5 w-full rounded-xl border border-white/10 bg-zinc-950/80 px-4 py-2.5 text-sm text-zinc-100 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
             />
             <p className="mt-1 text-xs text-zinc-600">
-              At least 8 characters. Confirm email if your project requires it.
+              At least 8 characters.
             </p>
           </div>
           <button
@@ -113,7 +124,7 @@ export default async function SignupPage({
             Didn&apos;t get a link or it expired?
           </p>
           <p className="mt-1 text-xs text-zinc-600">
-            Confirmation links are one-time. Enter your email to receive a new one.
+            Enter your email and we&apos;ll send a fresh confirmation link if the account is waiting for confirmation.
           </p>
           <form action={resendSignupConfirmation} className="mt-4 flex flex-col gap-2 sm:flex-row">
             <input type="hidden" name="next" value={next} />

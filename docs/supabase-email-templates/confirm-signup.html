@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Confirm your prodLink account</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#09090b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#e4e4e7;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#09090b;margin:0;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#18181b;border:1px solid rgba(255,255,255,0.08);border-radius:24px;overflow:hidden;">
+            <tr>
+              <td style="padding:32px 32px 16px 32px;text-align:center;">
+                <img
+                  src="https://prodlinkapp.vercel.app/prodlink-logo-v2.svg"
+                  alt="prodLink"
+                  width="210"
+                  style="display:inline-block;border:0;outline:none;text-decoration:none;height:auto;max-width:210px;"
+                />
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:8px 32px 0 32px;text-align:center;">
+                <h1 style="margin:0;font-size:28px;line-height:1.2;font-weight:700;color:#fafafa;">
+                  Confirm your account
+                </h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 0 32px;text-align:center;">
+                <p style="margin:0;font-size:15px;line-height:1.7;color:#a1a1aa;">
+                  Welcome to prodLink. Confirm your email to finish creating your account and continue to onboarding.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:28px 32px 8px 32px;text-align:center;">
+                <a
+                  href="{{ .ConfirmationURL }}"
+                  style="display:inline-block;background:#f59e0b;color:#09090b;text-decoration:none;font-size:15px;font-weight:700;line-height:1;padding:14px 24px;border-radius:999px;"
+                >
+                  Confirm email
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:12px 32px 0 32px;text-align:center;">
+                <p style="margin:0;font-size:13px;line-height:1.7;color:#71717a;">
+                  This link may only work once. If it expires, return to prodLink and request a fresh confirmation email.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 32px 0 32px;">
+                <div style="height:1px;background:rgba(255,255,255,0.08);"></div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 32px 0 32px;">
+                <p style="margin:0;font-size:13px;line-height:1.7;color:#a1a1aa;">
+                  If the button does not work, copy and paste this link into your browser:
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:8px 32px 0 32px;">
+                <p style="margin:0;word-break:break-all;font-size:12px;line-height:1.7;color:#fbbf24;">
+                  <a href="{{ .ConfirmationURL }}" style="color:#fbbf24;text-decoration:none;">{{ .ConfirmationURL }}</a>
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:28px 32px 32px 32px;text-align:center;">
+                <p style="margin:0;font-size:12px;line-height:1.7;color:#71717a;">
+                  prodLink<br />
+                  Network and discover for music
+                </p>
+                <p style="margin:12px 0 0 0;font-size:12px;line-height:1.7;color:#71717a;">
+                  <a href="https://prodlinkapp.vercel.app" style="color:#a1a1aa;text-decoration:none;">https://prodlinkapp.vercel.app</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

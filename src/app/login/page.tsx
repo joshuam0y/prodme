@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { signIn } from "@/app/auth/actions";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -27,6 +28,16 @@ export default async function LoginPage({
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16 sm:px-6">
       <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-8 shadow-xl">
+        <Link href="/" className="inline-flex" aria-label="prodLink home">
+          <Image
+            src="/prodlink-logo-v2.svg"
+            alt="prodLink"
+            width={210}
+            height={55}
+            className="h-8 w-auto"
+            priority
+          />
+        </Link>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
           Sign in
         </h1>
@@ -45,7 +56,7 @@ export default async function LoginPage({
             {error === "not_configured"
               ? "Supabase is not configured on this deployment."
               : error === "auth_callback"
-                ? "That sign-in link could not be completed. If you already confirmed your email, sign in below. Otherwise use a fresh link from your latest email — each link only works once."
+                ? "That sign-in link could not be completed. If you already confirmed your email, sign in below. Otherwise request a fresh email link."
                 : decodeURIComponent(error)}
           </p>
         ) : null}

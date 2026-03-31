@@ -88,7 +88,7 @@ export async function signUp(formData: FormData) {
 
   await trackServerEvent({ event: "auth_signup_submitted", path: "/signup" });
   redirect(
-    `/signup?notice=${encodeURIComponent("Check your email to confirm your account. Each confirmation link works once — use the latest email if you request another.")}`,
+    `/signup?notice=${encodeURIComponent("Check your email to confirm your account. We sent a confirmation link that will sign you in and continue to onboarding.")}`,
   );
 }
 
@@ -119,7 +119,7 @@ export async function resendSignupConfirmation(formData: FormData) {
   }
 
   redirect(
-    `/signup?notice=${encodeURIComponent("If that address can receive mail, we sent a new confirmation link. Each link works once.")}`,
+    `/signup?notice=${encodeURIComponent("If that address can receive mail, we sent a fresh confirmation link.")}`,
   );
 }
 

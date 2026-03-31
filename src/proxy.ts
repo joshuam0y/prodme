@@ -2,6 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { resolvePostAuthRedirect } from "@/lib/auth-callback-path";
 
+function authErrorPath(url: URL): "/signup" | "/login" {
+  const type = url.searchParams.get("type");
+  const next = url.searchParams.get("next");
+  if (type === "signup" || next === "/onboarding") return "/signup";
+  return "/login";
+}
+
 export async function proxy(request: NextRequest) {
   const url = request.nextUrl;
 
@@ -34,16 +41,21 @@ export async function proxy(request: NextRequest) {
         return redirectResponse;
       }
 
-      const login = new URL("/login", request.url);
+      const fallback = new URL(authErrorPath(url), request.url);
       let errMsg = error.message || "Could not verify auth link";
       if (/verifier|pkce|storage/i.test(errMsg)) {
-        errMsg = `${errMsg} Use the same browser where you asked for the email, or request a new confirmation or reset link.`;
+        errMsg =
+          authErrorPath(url) === "/signup"
+            ? "We couldn't finish sign-up from that email link in this browser. Open the newest confirmation email in the same browser where you signed up, or request a fresh confirmation link."
+            : `${errMsg} Use the same browser where you asked for the email, or request a new confirmation or reset link.`;
       } else if (/expired|invalid|already|consumed|used/i.test(errMsg)) {
         errMsg =
-          "This link was already used or expired. Confirmation links only work once — try signing in, or sign up again for a new email.";
+          authErrorPath(url) === "/signup"
+            ? "That confirmation link was already used or expired. Request a fresh confirmation email below."
+            : "This link was already used or expired. Confirmation links only work once — try signing in, or request a new email.";
       }
-      login.searchParams.set("error", errMsg);
-      return NextResponse.redirect(login);
+      fallback.searchParams.set("error", errMsg);
+      return NextResponse.redirect(fallback);
     }
   }
 

@@ -30,16 +30,23 @@ export const metadata: Metadata = {
     template: "%s · prodLink",
   },
   description,
+  icons: {
+    icon: "/prodlink-logo-v2.svg",
+    shortcut: "/prodlink-logo-v2.svg",
+    apple: "/prodlink-logo-v2.svg",
+  },
   openGraph: {
     title: "prodLink — network & discover for music",
     description,
     type: "website",
     locale: "en_US",
+    images: ["/prodlink-logo-v2.svg"],
   },
   twitter: {
     card: "summary_large_image",
     title: "prodLink",
     description,
+    images: ["/prodlink-logo-v2.svg"],
   },
 };
 
