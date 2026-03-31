@@ -42,3 +42,21 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
     // Best-effort only.
   }
 }
+
+export async function markNotificationRead(
+  userId: string,
+  notificationId: number,
+): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  try {
+    const supabase = await createClient();
+    await supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("id", notificationId)
+      .is("read_at", null);
+  } catch {
+    // Best-effort only.
+  }
+}
