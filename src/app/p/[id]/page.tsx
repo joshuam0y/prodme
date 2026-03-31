@@ -54,7 +54,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   const { data: row, error } = await supabase
     .from("profiles")
     .select(
-      "id, display_name, role, niche, goal, city, neighborhood, onboarding_completed_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, display_name, role, niche, goal, city, neighborhood, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .eq("id", id)
     .maybeSingle();
@@ -152,8 +152,45 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
               ? ` · ${profile.city.trim()}`
               : null}
           {profile.niche ? ` · ${profile.niche}` : null}
+          {profile.verified ? " · Verified" : null}
         </p>
       </div>
+
+      {profile.looking_for?.trim() ? (
+        <section className="mt-6 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
+          <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+            Looking for
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-200">
+            {profile.looking_for.trim()}
+          </p>
+        </section>
+      ) : null}
+
+      {profile.prompt_1_question?.trim() && profile.prompt_1_answer?.trim() ? (
+        <section className="mt-6 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
+          <p className="text-xs font-semibold uppercase tracking-wider text-amber-500/90">
+            Prompt
+          </p>
+          <h2 className="mt-2 text-sm font-semibold text-zinc-100">
+            {profile.prompt_1_question.trim()}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-200">
+            {profile.prompt_1_answer.trim()}
+          </p>
+        </section>
+      ) : null}
+
+      {profile.prompt_2_question?.trim() && profile.prompt_2_answer?.trim() ? (
+        <section className="mt-4 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
+          <h2 className="text-sm font-semibold text-zinc-100">
+            {profile.prompt_2_question.trim()}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-200">
+            {profile.prompt_2_answer.trim()}
+          </p>
+        </section>
+      ) : null}
 
       {profile.goal ? (
         <section className="mt-8">

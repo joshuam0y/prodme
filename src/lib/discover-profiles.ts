@@ -31,6 +31,9 @@ export async function getLiveProfileCards(
     viewerLat?: number | null;
     viewerLng?: number | null;
     maxDistanceKm?: number;
+    sort?: "new" | "trending" | "nearby";
+    verifiedOnly?: boolean;
+    lookingForQuery?: string;
   },
 ): Promise<ProfileCard[]> {
   if (!isSupabaseConfigured()) {
@@ -53,7 +56,7 @@ export async function getLiveProfileCards(
   let q = supabase
     .from("profiles")
     .select(
-      "id, display_name, role, niche, goal, city, neighborhood, latitude, longitude, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, display_name, role, niche, goal, city, neighborhood, latitude, longitude, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .not("onboarding_completed_at", "is", null)
     .order("updated_at", { ascending: false })
@@ -137,7 +140,35 @@ export async function getLiveProfileCards(
     return "Newly active";
   };
 
-  return rankedRows
+  const desiredSort = opts?.sort ?? "trending";
+  const verifiedOnly = Boolean(opts?.verifiedOnly);
+  const lookingQ = (opts?.lookingForQuery ?? "").trim().toLowerCase();
+
+  const filtered = rankedRows.filter((row) => {
+    if (verifiedOnly && !row.verified) return false;
+    if (lookingQ) {
+      const hay = `${row.looking_for ?? ""} ${row.goal ?? ""} ${row.niche ?? ""}`.toLowerCase();
+      if (!hay.includes(lookingQ)) return false;
+    }
+    return true;
+  });
+
+  const sortedFor = (rowsToSort: typeof rankedRows) => {
+    if (desiredSort === "new") {
+      return [...rowsToSort].sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""));
+    }
+    if (desiredSort === "trending") {
+      return [...rowsToSort].sort((a, b) => {
+        const byScore = rankScore(b) - rankScore(a);
+        if (Math.abs(byScore) > 0.001) return byScore;
+        return (b.updated_at ?? "").localeCompare(a.updated_at ?? "");
+      });
+    }
+    // nearby: handled after distance calculation; fall back to trending if no coords.
+    return rowsToSort;
+  };
+
+  return sortedFor(filtered)
     .map((row) => {
       const hasTargetCoords =
         typeof row.latitude === "number" && typeof row.longitude === "number";
@@ -148,6 +179,13 @@ export async function getLiveProfileCards(
       return { row, distanceKm };
     })
     .filter(({ distanceKm }) => (distanceKm === undefined ? true : distanceKm <= maxDistanceKm))
+    .sort((a, b) => {
+      if (desiredSort !== "nearby") return 0;
+      if (a.distanceKm === undefined && b.distanceKm === undefined) return 0;
+      if (a.distanceKm === undefined) return 1;
+      if (b.distanceKm === undefined) return -1;
+      return a.distanceKm - b.distanceKm;
+    })
     .map(({ row, distanceKm }) => {
     const role = inferProfileRole(row.role);
     const name = row.display_name?.trim() || "Member";
@@ -172,6 +210,13 @@ export async function getLiveProfileCards(
       bio: niche,
       highlight: niche,
       accent: accentForRole(role),
+      verified: Boolean(row.verified),
+      lookingFor: row.looking_for?.trim() ?? null,
+      goal: row.goal?.trim() ?? null,
+      prompt1Question: row.prompt_1_question?.trim() ?? null,
+      prompt1Answer: row.prompt_1_answer?.trim() ?? null,
+      prompt2Question: row.prompt_2_question?.trim() ?? null,
+      prompt2Answer: row.prompt_2_answer?.trim() ?? null,
       starBeat,
       extraBeats,
       rankReason: reasonFor(row),

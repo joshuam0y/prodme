@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SwipeStack } from "@/components/swipe-stack";
 import { DistanceFilter } from "@/components/distance-filter";
+import { DiscoverFilterBar } from "@/components/discover-filter-bar";
 import { mockProfiles } from "@/data/mock";
 import { getLiveProfileCards, inferProfileRole } from "@/lib/discover-profiles";
 import { trackServerEvent } from "@/lib/analytics";
@@ -24,12 +25,19 @@ function isGroup(s: string | undefined): s is DiscoverGroup | "" {
 export default async function ExplorePage({
   searchParams,
 }: {
-  searchParams: Promise<{ group?: string; notice?: string; maxKm?: string }>;
+  searchParams: Promise<{ group?: string; notice?: string; maxKm?: string; sort?: string; verified?: string; q?: string }>;
 }) {
   const params = await searchParams;
   const groupFilter = isGroup(params.group) ? params.group : "";
   const notice = params.notice ? decodeURIComponent(params.notice) : null;
   const maxKm = Math.max(1, Math.min(200, Number(params.maxKm ?? 50) || 50));
+  const sortRaw = (params.sort ?? "").toLowerCase();
+  const sort =
+    sortRaw === "nearby" || sortRaw === "new" || sortRaw === "trending"
+      ? (sortRaw as "nearby" | "new" | "trending")
+      : "trending";
+  const verifiedOnly = params.verified === "1";
+  const lookingForQ = params.q ? decodeURIComponent(params.q) : "";
 
   let viewerId: string | null = null;
   let viewerRole: Role | null = null;
@@ -76,6 +84,9 @@ export default async function ExplorePage({
     viewerLat,
     viewerLng,
     maxDistanceKm: maxKm,
+    sort,
+    verifiedOnly,
+    lookingForQuery: lookingForQ,
   });
   const pool = [...live, ...mockProfiles];
   const peerFiltered =
@@ -179,6 +190,12 @@ export default async function ExplorePage({
             })}
           </div>
         </div>
+        <DiscoverFilterBar
+          key={`${groupFilter || "all"}-${sort}-${verifiedOnly ? "v" : "a"}-${lookingForQ}`}
+          initialSort={sort}
+          initialVerified={verifiedOnly}
+          initialLookingFor={lookingForQ}
+        />
         <DistanceFilter key={`${groupFilter || "all"}-${maxKm}`} initialKm={maxKm} />
       </div>
 

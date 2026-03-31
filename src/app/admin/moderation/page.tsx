@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail, isSupabaseConfigured } from "@/lib/env";
-import { resolveReport, unblockProfile } from "./actions";
+import { resolveReport, setProfileVerified, unblockProfile } from "./actions";
 
 type ReportRow = {
   id: number;
@@ -53,6 +53,26 @@ export default async function ModerationAdminPage({
   const blockKey = (a: string, b: string) => `${a}:${b}`;
   const activeBlocks = new Set(blockRows.map((b) => blockKey(b.blocker_id, b.blocked_id)));
 
+  const involvedProfileIds = new Set<string>();
+  for (const r of (reports as ReportRow[] | null) ?? []) {
+    involvedProfileIds.add(r.reported_user_id);
+    involvedProfileIds.add(r.reporter_id);
+  }
+  for (const b of blockRows) {
+    involvedProfileIds.add(b.blocked_id);
+    involvedProfileIds.add(b.blocker_id);
+  }
+
+  const { data: profilesForAdmin } = involvedProfileIds.size
+    ? await supabase.from("profiles").select("id, verified").in("id", [...involvedProfileIds])
+    : { data: [] };
+  const verifiedById = new Map(
+    ((profilesForAdmin as Array<{ id: string; verified: boolean }> | null) ?? []).map((p) => [
+      p.id,
+      p.verified,
+    ]),
+  );
+
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-semibold text-zinc-50">Moderation</h1>
@@ -91,6 +111,24 @@ export default async function ModerationAdminPage({
                     {r.details ? <p className="text-zinc-400">Details: {r.details}</p> : null}
                   </div>
                   <div className="flex gap-2">
+                      <form
+                        action={async () => {
+                          "use server";
+                          const next = !verifiedById.get(r.reported_user_id);
+                          await setProfileVerified(r.reported_user_id, next);
+                        }}
+                      >
+                        <button
+                          type="submit"
+                          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                            verifiedById.get(r.reported_user_id)
+                              ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/15"
+                              : "border-white/20 bg-white/5 text-zinc-200 hover:bg-white/10"
+                          }`}
+                        >
+                          {verifiedById.get(r.reported_user_id) ? "Verified" : "Not verified"}
+                        </button>
+                      </form>
                     {r.status === "open" ? (
                       <form
                         action={async () => {
@@ -172,6 +210,24 @@ export default async function ModerationAdminPage({
                       Unblock
                     </button>
                   </form>
+                          <form
+                            action={async () => {
+                              "use server";
+                              const next = !verifiedById.get(b.blocked_id);
+                              await setProfileVerified(b.blocked_id, next);
+                            }}
+                          >
+                            <button
+                              type="submit"
+                              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                                verifiedById.get(b.blocked_id)
+                                  ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/15"
+                                  : "border-white/20 bg-white/5 text-zinc-200 hover:bg-white/10"
+                              }`}
+                            >
+                              {verifiedById.get(b.blocked_id) ? "Verified" : "Not verified"}
+                            </button>
+                          </form>
                 </div>
               </li>
             ))

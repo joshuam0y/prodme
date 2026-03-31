@@ -9,6 +9,11 @@ type Props = {
     niche: string;
     goal: string;
     city: string;
+    lookingFor: string;
+    prompt1Q: string;
+    prompt1A: string;
+    prompt2Q: string;
+    prompt2A: string;
   };
 };
 
@@ -21,6 +26,11 @@ export function ProfileBasicsForm({ initial }: Props) {
   const [niche, setNiche] = useState(initial.niche);
   const [goal, setGoal] = useState(initial.goal);
   const [city, setCity] = useState(initial.city);
+  const [lookingFor, setLookingFor] = useState(initial.lookingFor);
+  const [prompt1Q, setPrompt1Q] = useState(initial.prompt1Q);
+  const [prompt1A, setPrompt1A] = useState(initial.prompt1A);
+  const [prompt2Q, setPrompt2Q] = useState(initial.prompt2Q);
+  const [prompt2A, setPrompt2A] = useState(initial.prompt2A);
   const [message, setMessage] = useState<string | null>(null);
 
   return (
@@ -52,6 +62,62 @@ export function ProfileBasicsForm({ initial }: Props) {
           <input className={fieldClass} value={goal} onChange={(e) => setGoal(e.target.value)} />
         </label>
       </div>
+      <div className="mt-4">
+        <label className="block text-xs font-medium text-zinc-500">
+          Looking for
+          <input
+            className={fieldClass}
+            value={lookingFor}
+            onChange={(e) => setLookingFor(e.target.value)}
+            placeholder="e.g. Vocalists · Studio sessions · Venue bookings"
+          />
+        </label>
+      </div>
+      <div className="mt-6 rounded-xl border border-white/10 bg-zinc-950/30 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          Prompts (Hinge-style)
+        </p>
+        <div className="mt-3 grid gap-3">
+          <label className="block text-xs font-medium text-zinc-500">
+            Prompt 1 question
+            <input
+              className={fieldClass}
+              value={prompt1Q}
+              onChange={(e) => setPrompt1Q(e.target.value)}
+              placeholder="e.g. Best collab idea right now"
+            />
+          </label>
+          <label className="block text-xs font-medium text-zinc-500">
+            Prompt 1 answer
+            <textarea
+              className={fieldClass}
+              rows={3}
+              value={prompt1A}
+              onChange={(e) => setPrompt1A(e.target.value)}
+              placeholder="Say it in a sentence or two…"
+            />
+          </label>
+          <label className="block text-xs font-medium text-zinc-500">
+            Prompt 2 question
+            <input
+              className={fieldClass}
+              value={prompt2Q}
+              onChange={(e) => setPrompt2Q(e.target.value)}
+              placeholder="e.g. My sound is closest to…"
+            />
+          </label>
+          <label className="block text-xs font-medium text-zinc-500">
+            Prompt 2 answer
+            <textarea
+              className={fieldClass}
+              rows={3}
+              value={prompt2A}
+              onChange={(e) => setPrompt2A(e.target.value)}
+              placeholder="Artists, genres, vibe…"
+            />
+          </label>
+        </div>
+      </div>
       <button
         type="button"
         disabled={pending}
@@ -62,6 +128,11 @@ export function ProfileBasicsForm({ initial }: Props) {
               niche,
               goal,
               city,
+              looking_for: lookingFor,
+              prompt_1_question: prompt1Q,
+              prompt_1_answer: prompt1A,
+              prompt_2_question: prompt2Q,
+              prompt_2_answer: prompt2A,
             });
             setMessage(result.ok ? "Profile updated." : result.error);
           })

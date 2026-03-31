@@ -49,7 +49,13 @@ export function MatchThreadClient({
   const [blockedByMe, setBlockedByMe] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<null | "report" | "block" | "unblock">(null);
+  const [reportReason, setReportReason] = useState("abusive_or_spam");
   const blocked = Boolean(moderationNotice?.toLowerCase().includes("blocked"));
+  const quickOpeners = [
+    `Hey ${matchName}, what are you building right now?`,
+    `Yo ${matchName}, down to trade ideas this week?`,
+    "Loved your vibe - want to connect on a quick collab call?",
+  ];
   const listRef = useRef<HTMLUListElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -421,6 +427,26 @@ export function MatchThreadClient({
           {moderationNotice}
         </p>
       ) : null}
+      {!blocked && messages.length === 0 ? (
+        <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Suggested openers</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {quickOpeners.map((opener, idx) => (
+              <button
+                key={`${idx}-${opener}`}
+                type="button"
+                onClick={() => {
+                  setBody(opener);
+                  window.setTimeout(() => textareaRef.current?.focus(), 0);
+                }}
+                className="rounded-full border border-white/15 px-3 py-1.5 text-xs text-zinc-300 transition hover:bg-white/5"
+              >
+                {opener.length > 44 ? `${opener.slice(0, 44)}...` : opener}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="mt-3 flex items-center justify-end">
         <div className="relative">
           <button
@@ -453,6 +479,22 @@ export function MatchThreadClient({
                         ? "You won’t see or message each other."
                         : "Messaging will be re-enabled if they haven’t blocked you."}
                   </p>
+                  {confirmAction === "report" ? (
+                    <label className="block text-xs font-medium text-zinc-400">
+                      Reason
+                      <select
+                        value={reportReason}
+                        onChange={(e) => setReportReason(e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-white/10 bg-zinc-950 px-2 py-1.5 text-xs text-zinc-200"
+                      >
+                        <option value="abusive_or_spam">Abusive or spam</option>
+                        <option value="harassment">Harassment</option>
+                        <option value="scam_or_fraud">Scam or fraud</option>
+                        <option value="explicit_content">Explicit content</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </label>
+                  ) : null}
                   <div className="flex gap-2 pt-1">
                     <button
                       type="button"
@@ -480,7 +522,7 @@ export function MatchThreadClient({
                               method: "POST",
                               headers: { "content-type": "application/json" },
                               body: JSON.stringify({
-                                reason: "abusive_or_spam",
+                                reason: reportReason,
                                 messageId:
                                   lastIncoming && typeof lastIncoming.id === "number"
                                     ? lastIncoming.id

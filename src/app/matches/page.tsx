@@ -227,6 +227,16 @@ export default async function MatchesPage({
                         ? formatPreview(chat.body, chat.mine)
                         : "You matched — tap to say hello."}
                     </p>
+                    {isNewMatch ? (
+                      <Link
+                        href={`/matches/${id}?draft=${encodeURIComponent(
+                          "Hey! We matched — what are you working on right now?",
+                        )}`}
+                        className="mt-1 inline-flex w-fit items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/15"
+                      >
+                        Say hi
+                      </Link>
+                    ) : null}
                     {yourTurn ? (
                       <p className="mt-1.5 text-xs font-medium text-amber-400/95">Your turn</p>
                     ) : null}

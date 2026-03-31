@@ -30,7 +30,7 @@ export default async function ProfilePage() {
   const { data: row, error } = await supabase
     .from("profiles")
     .select(
-      "id, display_name, role, niche, goal, city, neighborhood, latitude, longitude, location_radius_km, onboarding_completed_at, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, display_name, role, niche, goal, city, neighborhood, latitude, longitude, location_radius_km, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -44,7 +44,7 @@ export default async function ProfilePage() {
     const { data: minimalRow, error: minimalErr } = await supabase
       .from("profiles")
       .select(
-        "id, display_name, role, niche, goal, city, neighborhood, latitude, longitude, location_radius_km, onboarding_completed_at, updated_at",
+        "id, display_name, role, niche, goal, city, neighborhood, latitude, longitude, location_radius_km, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, updated_at",
       )
       .eq("id", user.id)
       .maybeSingle();
@@ -216,6 +216,11 @@ export default async function ProfilePage() {
           niche: profile?.niche?.trim() ?? "",
           goal: profile?.goal?.trim() ?? "",
           city: profile?.city?.trim() ?? "",
+          lookingFor: profile?.looking_for?.trim() ?? "",
+          prompt1Q: profile?.prompt_1_question?.trim() ?? "",
+          prompt1A: profile?.prompt_1_answer?.trim() ?? "",
+          prompt2Q: profile?.prompt_2_question?.trim() ?? "",
+          prompt2A: profile?.prompt_2_answer?.trim() ?? "",
         }}
       />
       <ProfileLocationForm

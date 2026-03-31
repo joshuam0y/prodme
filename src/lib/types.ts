@@ -19,6 +19,15 @@ export type ProfileCard = {
   highlight: string;
   /** CSS gradient or color for card header */
   accent: string;
+  /** Whether the profile is admin-verified. */
+  verified?: boolean;
+  /** Text used for the "Looking for" filter. */
+  lookingFor?: string | null;
+  goal?: string | null;
+  prompt1Question?: string | null;
+  prompt1Answer?: string | null;
+  prompt2Question?: string | null;
+  prompt2Answer?: string | null;
   /** Featured track — auto-plays when the card is shown (after user has interacted with the page). */
   starBeat?: BeatPreview;
   /** Additional previews (UI shows up to five). */
@@ -52,6 +61,12 @@ export type DbProfile = {
   latitude?: number | null;
   longitude?: number | null;
   location_radius_km?: number | null;
+  verified?: boolean | null;
+  looking_for?: string | null;
+  prompt_1_question?: string | null;
+  prompt_1_answer?: string | null;
+  prompt_2_question?: string | null;
+  prompt_2_answer?: string | null;
   onboarding_completed_at: string | null;
   updated_at?: string | null;
   star_beat_title?: string | null;

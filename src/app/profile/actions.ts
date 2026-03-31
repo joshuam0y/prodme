@@ -191,6 +191,11 @@ export type UpdateProfileBasicsPayload = {
   niche?: string;
   goal?: string;
   city?: string;
+  looking_for?: string;
+  prompt_1_question?: string;
+  prompt_1_answer?: string;
+  prompt_2_question?: string;
+  prompt_2_answer?: string;
 };
 
 export async function updateProfileBasics(
@@ -210,6 +215,11 @@ export async function updateProfileBasics(
   if (typeof payload.niche === "string") patch.niche = payload.niche.trim();
   if (typeof payload.goal === "string") patch.goal = payload.goal.trim();
   if (typeof payload.city === "string") patch.city = payload.city.trim();
+  if (typeof payload.looking_for === "string") patch.looking_for = payload.looking_for.trim();
+  if (typeof payload.prompt_1_question === "string") patch.prompt_1_question = payload.prompt_1_question.trim();
+  if (typeof payload.prompt_1_answer === "string") patch.prompt_1_answer = payload.prompt_1_answer.trim();
+  if (typeof payload.prompt_2_question === "string") patch.prompt_2_question = payload.prompt_2_question.trim();
+  if (typeof payload.prompt_2_answer === "string") patch.prompt_2_answer = payload.prompt_2_answer.trim();
   if (Object.keys(patch).length === 0) return { ok: true };
 
   const { error } = await supabase
