@@ -26,19 +26,19 @@ const description =
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
   title: {
-    default: "prod.me — network & discover for music",
-    template: "%s · prod.me",
+    default: "prodLink — network & discover for music",
+    template: "%s · prodLink",
   },
   description,
   openGraph: {
-    title: "prod.me — network & discover for music",
+    title: "prodLink — network & discover for music",
     description,
     type: "website",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "prod.me",
+    title: "prodLink",
     description,
   },
 };
@@ -50,6 +50,7 @@ export default async function RootLayout({
 }>) {
   let user: User | null = null;
   let showBuildProfileNav = true;
+  let unreadMessages = 0;
   const supabaseEnabled = isSupabaseConfigured();
 
   if (supabaseEnabled) {
@@ -66,9 +67,16 @@ export default async function RootLayout({
         if (isProfileQuestionnaireComplete(profileRow)) {
           showBuildProfileNav = false;
         }
+        const { count } = await supabase
+          .from("match_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("recipient_id", user.id)
+          .is("read_at", null);
+        unreadMessages = count ?? 0;
       }
     } catch {
       user = null;
+      unreadMessages = 0;
     }
   }
 
@@ -82,6 +90,7 @@ export default async function RootLayout({
         <SiteHeader
           user={user}
           supabaseEnabled={supabaseEnabled}
+          unreadMessages={unreadMessages}
           showBuildProfileNav={showBuildProfileNav}
         />
         <div className="flex flex-1 flex-col">{children}</div>

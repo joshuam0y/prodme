@@ -9,7 +9,7 @@ export function SiteFooter() {
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-4 py-10 sm:flex-row sm:justify-between sm:px-6">
         <p className="text-center text-xs text-zinc-600 sm:text-left">
           <span className="text-base font-semibold text-zinc-500 sm:text-lg">
-            prod.me
+            prodLink
           </span>
           <span className="mx-1.5 text-zinc-700">·</span>
           network &amp; discovery for music people

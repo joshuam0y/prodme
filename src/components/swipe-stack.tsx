@@ -57,7 +57,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
   const signedIn = Boolean(viewerId && viewerId.trim());
   const router = useRouter();
 
-  const dismissedKey = signedIn && viewerId ? `prodme.discover.dismissedIds:${viewerId}` : "prodme.discover.dismissedIds:anon";
+  const dismissedKey = signedIn && viewerId ? `prodlink.discover.dismissedIds:${viewerId}` : "prodlink.discover.dismissedIds:anon";
 
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const [exitDir, setExitDir] = useState<"left" | "right" | null>(null);
@@ -395,7 +395,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           You&apos;re caught up for now.
         </p>
         <p className="max-w-sm text-sm text-zinc-500">
-          More creators and venues will land here as prod.me grows. Refresh
+          More creators and venues will land here as prodLink grows. Refresh
           later or tweak your preferences (coming soon).
         </p>
         <button

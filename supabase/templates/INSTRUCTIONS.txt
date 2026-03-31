@@ -1,4 +1,4 @@
-prod.me — Supabase auth email templates
+prodLink — Supabase auth email templates
 =======================================
 
 Supabase does not read these files automatically on the hosted dashboard.
@@ -7,15 +7,15 @@ Copy the HTML from each file into the Dashboard:
   Dashboard → Authentication → Email Templates
 
 1) Confirm signup
-   - Subject: Confirm your prod.me account
+   - Subject: Confirm your prodLink account
    - Body: paste full contents of confirmation.html
 
 2) Reset password
-   - Subject: Reset your prod.me password
+   - Subject: Reset your prodLink password
    - Body: paste full contents of recovery.html
 
 3) Magic Link (if you enable passwordless email sign-in)
-   - Subject: Your prod.me sign-in link
+   - Subject: Your prodLink sign-in link
    - Body: paste full contents of magic_link.html
 
 Optional: add a logo image
@@ -23,7 +23,7 @@ Optional: add a logo image
 Upload a PNG (e.g. 240×64) to your site public/ folder, deploy, then in the
 templates replace the text wordmark block with:
 
-  <img src="https://YOUR_DOMAIN/logo.png" width="120" alt="prod.me"
+  <img src="https://YOUR_DOMAIN/logo.png" width="120" alt="prodLink"
        style="display:block;margin:0 auto 12px;border:0;" />
 
 Google Fonts in email are often stripped; templates use system fonts

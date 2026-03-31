@@ -27,8 +27,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const p = row as Pick<DbProfile, "display_name" | "niche"> | null;
   const name = p?.display_name?.trim() || "Member";
-  const title = p ? `${name} on prod.me` : "Profile";
-  const description = p?.niche?.trim() || "Music profile on prod.me";
+  const title = p ? `${name} on prodLink` : "Profile";
+  const description = p?.niche?.trim() || "Music profile on prodLink";
 
   return {
     title: p ? name : "Profile",

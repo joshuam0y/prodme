@@ -1,4 +1,5 @@
 import type { User } from "@supabase/supabase-js";
+import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
 
@@ -14,6 +15,7 @@ const allNavLinks = [
 type Props = {
   user: User | null;
   supabaseEnabled: boolean;
+  unreadMessages?: number;
   /** When false, hide the Profile → onboarding link (user finished questionnaire). */
   showBuildProfileNav?: boolean;
 };
@@ -21,6 +23,7 @@ type Props = {
 export function SiteHeader({
   user,
   supabaseEnabled,
+  unreadMessages = 0,
   showBuildProfileNav = true,
 }: Props) {
   const links = (showBuildProfileNav
@@ -35,20 +38,38 @@ export function SiteHeader({
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
         <Link
           href="/"
-          className="shrink-0 text-xl font-semibold tracking-tight text-[var(--foreground)] sm:text-2xl"
+          className="shrink-0"
+          aria-label="prodLink home"
         >
-          prod<span className="text-[var(--accent)]">.me</span>
+          <Image
+            src="/prodlink-logo.png"
+            alt="prodLink"
+            width={160}
+            height={40}
+            className="h-8 w-auto sm:h-9"
+            priority
+          />
         </Link>
         <nav className="flex flex-1 items-center justify-end gap-1 sm:gap-3">
-          {links.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className="rounded-lg px-2 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 sm:px-3"
-            >
-              {label}
-            </Link>
-          ))}
+          {links.map(({ href, label }) => {
+            const isMessages = href === "/matches";
+            return (
+              <Link
+                key={href}
+                href={href}
+                className="rounded-lg px-2 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 sm:px-3"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  {label}
+                  {isMessages && unreadMessages > 0 ? (
+                    <span className="inline-flex min-w-[1rem] items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[10px] font-semibold text-zinc-950">
+                      {unreadMessages > 9 ? "9+" : unreadMessages}
+                    </span>
+                  ) : null}
+                </span>
+              </Link>
+            );
+          })}
           {supabaseEnabled ? (
             user ? (
               <>

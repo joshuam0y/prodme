@@ -1,0 +1,286 @@
+"use client";
+
+import type { FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
+
+type Message = {
+  id: number | string;
+  sender_id: string;
+  recipient_id: string;
+  body: string;
+  created_at: string;
+  read_at: string | null;
+  pending?: boolean;
+};
+
+type Props = {
+  matchId: string;
+  currentUserId: string;
+  matchName: string;
+  initialMessages: Message[];
+};
+
+function isConversationMessage(m: Message, me: string, them: string): boolean {
+  return (
+    (m.sender_id === me && m.recipient_id === them) ||
+    (m.sender_id === them && m.recipient_id === me)
+  );
+}
+
+export function MatchThreadClient({
+  matchId,
+  currentUserId,
+  matchName,
+  initialMessages,
+}: Props) {
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [matchTyping, setMatchTyping] = useState(false);
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const typingTimeoutRef = useRef<number | null>(null);
+  const typingStateRef = useRef(false);
+  const supabase = useMemo(() => createBrowserSupabaseClient(), []);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  const scrollToBottom = useCallback(() => {
+    const el = listRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages.length, scrollToBottom]);
+
+  const markRead = useCallback(async () => {
+    try {
+      await fetch(`/api/matches/${matchId}/read`, { method: "POST" });
+    } catch {
+      // Non-blocking.
+    }
+  }, [matchId]);
+
+  useEffect(() => {
+    const convoKey =
+      currentUserId < matchId
+        ? `${currentUserId}:${matchId}`
+        : `${matchId}:${currentUserId}`;
+
+    const ch = supabase
+      .channel(`match:${convoKey}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "match_messages",
+          filter: `recipient_id=eq.${currentUserId}`,
+        },
+        (payload) => {
+          const next = payload.new as Message;
+          if (!isConversationMessage(next, currentUserId, matchId)) return;
+          setMessages((prev) => {
+            if (prev.some((m) => String(m.id) === String(next.id))) return prev;
+            return [...prev, next];
+          });
+          void markRead();
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "match_messages",
+          filter: `sender_id=eq.${currentUserId}`,
+        },
+        (payload) => {
+          const next = payload.new as Message;
+          if (!isConversationMessage(next, currentUserId, matchId)) return;
+          setMessages((prev) => {
+            if (prev.some((m) => String(m.id) === String(next.id))) return prev;
+            return [...prev, next];
+          });
+        },
+      )
+      .on("broadcast", { event: "typing" }, ({ payload }) => {
+        const p = payload as { userId?: string; isTyping?: boolean };
+        if (!p || p.userId !== matchId) return;
+        setMatchTyping(Boolean(p.isTyping));
+      });
+
+    channelRef.current = ch;
+    ch.subscribe();
+    return () => {
+      void ch.unsubscribe();
+    };
+  }, [currentUserId, markRead, matchId, supabase]);
+
+  const sendTyping = useCallback(
+    (isTyping: boolean) => {
+      if (typingStateRef.current === isTyping) return;
+      typingStateRef.current = isTyping;
+      const ch = channelRef.current;
+      if (!ch) return;
+      void ch.send({
+        type: "broadcast",
+        event: "typing",
+        payload: { userId: currentUserId, isTyping },
+      });
+    },
+    [currentUserId],
+  );
+
+  const onChangeBody = (next: string) => {
+    setBody(next);
+    setError(null);
+    sendTyping(next.trim().length > 0);
+    if (typingTimeoutRef.current) window.clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = window.setTimeout(() => {
+      sendTyping(false);
+    }, 1200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) window.clearTimeout(typingTimeoutRef.current);
+      sendTyping(false);
+    };
+  }, [sendTyping]);
+
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const text = body.trim();
+    if (!text || sending) return;
+
+    setSending(true);
+    setError(null);
+    const tempId = `tmp-${Date.now()}`;
+    const optimistic: Message = {
+      id: tempId,
+      sender_id: currentUserId,
+      recipient_id: matchId,
+      body: text,
+      created_at: new Date().toISOString(),
+      read_at: null,
+      pending: true,
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    setBody("");
+    sendTyping(false);
+
+    try {
+      const res = await fetch(`/api/matches/${matchId}/messages`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ body: text }),
+      });
+      const json = (await res.json()) as {
+        ok: boolean;
+        error?: string;
+        message?: Message;
+      };
+      if (!res.ok || !json.ok || !json.message) {
+        setMessages((prev) => prev.filter((m) => String(m.id) !== tempId));
+        setError(
+          json.error === "not_matched"
+            ? "You can only message mutual matches."
+            : "Could not send message.",
+        );
+        return;
+      }
+      setMessages((prev) =>
+        prev.map((m) => (String(m.id) === tempId ? json.message! : m)),
+      );
+    } catch {
+      setMessages((prev) => prev.filter((m) => String(m.id) !== tempId));
+      setError("Could not send message.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-zinc-950/50">
+        <ul
+          ref={listRef}
+          className="flex max-h-[min(52vh,420px)] flex-col gap-1 overflow-y-auto p-3 sm:max-h-[min(56vh,480px)]"
+        >
+          {messages.length === 0 ? (
+            <li className="flex flex-1 flex-col items-center justify-center px-4 py-12 text-center">
+              <p className="text-sm font-medium text-zinc-400">Say hello first</p>
+              <p className="mt-1 text-xs text-zinc-600">
+                Matches work best with a short, friendly opener.
+              </p>
+            </li>
+          ) : (
+            messages.map((m, i) => {
+              const mine = m.sender_id === currentUserId;
+              const next = messages[i + 1];
+              const showSeen =
+                mine && (!next || next.sender_id !== currentUserId) && m.read_at !== null;
+              return (
+                <li key={String(m.id)} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                      mine
+                        ? "rounded-br-md bg-gradient-to-br from-amber-500/25 to-amber-600/15 text-amber-50 ring-1 ring-amber-500/30"
+                        : "rounded-bl-md bg-white/[0.06] text-zinc-100 ring-1 ring-white/10"
+                    } ${m.pending ? "opacity-70" : ""}`}
+                  >
+                    <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                    {showSeen ? (
+                      <p className="mt-1 text-right text-[10px] font-medium text-emerald-400/80">
+                        Seen
+                      </p>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })
+          )}
+          {matchTyping ? (
+            <li className="pl-2 text-xs text-zinc-500">{matchName} is typing...</li>
+          ) : null}
+        </ul>
+      </div>
+
+      {error ? (
+        <p className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+          {error}
+        </p>
+      ) : null}
+      <form
+        className="mt-3 rounded-2xl border border-white/10 bg-zinc-900/60 p-2 shadow-inner shadow-black/20"
+        onSubmit={onSubmit}
+      >
+        <label htmlFor="chat-body" className="sr-only">
+          Message {matchName}
+        </label>
+        <textarea
+          id="chat-body"
+          name="body"
+          rows={2}
+          value={body}
+          onChange={(e) => onChangeBody(e.target.value)}
+          onBlur={() => sendTyping(false)}
+          className="w-full resize-none rounded-xl border-0 bg-transparent px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-0"
+          placeholder={`Message ${matchName}...`}
+        />
+        <div className="flex justify-end border-t border-white/5 px-2 pb-1 pt-2">
+          <button
+            type="submit"
+            disabled={sending}
+            className="rounded-full bg-amber-500 px-5 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-60"
+          >
+            {sending ? "Sending..." : "Send"}
+          </button>
+        </div>
+      </form>
+    </>
+  );
+}
