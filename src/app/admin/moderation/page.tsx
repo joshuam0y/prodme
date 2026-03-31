@@ -49,12 +49,16 @@ export default async function ModerationAdminPage({
     .order("created_at", { ascending: false })
     .limit(200);
   const openCount = ((reports as ReportRow[] | null) ?? []).filter((r) => r.status === "open").length;
+  const blockRows = (blocks as BlockRow[] | null) ?? [];
+  const blockKey = (a: string, b: string) => `${a}:${b}`;
+  const activeBlocks = new Set(blockRows.map((b) => blockKey(b.blocker_id, b.blocked_id)));
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-semibold text-zinc-50">Moderation</h1>
       <p className="mt-1 text-sm text-zinc-500">
-        Review reports, resolve cases, and manage blocks. Open reports: {openCount}
+        Review reports, resolve cases, and manage blocks. Open reports: {openCount} · Active blocks:{" "}
+        {blockRows.length}
       </p>
       {notice ? (
         <p className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">
@@ -116,6 +120,21 @@ export default async function ModerationAdminPage({
                         </button>
                       </form>
                     )}
+                    {activeBlocks.has(blockKey(r.reporter_id, r.reported_user_id)) ? (
+                      <form
+                        action={async () => {
+                          "use server";
+                          await unblockProfile(r.reporter_id, r.reported_user_id);
+                        }}
+                      >
+                        <button
+                          type="submit"
+                          className="rounded-full border border-red-500/35 px-3 py-1.5 text-xs font-medium text-red-300 hover:bg-red-500/10"
+                        >
+                          Unblock pair
+                        </button>
+                      </form>
+                    ) : null}
                   </div>
                 </div>
               </li>
@@ -127,12 +146,12 @@ export default async function ModerationAdminPage({
       <section className="mt-10">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">Blocks</h2>
         <ul className="mt-3 space-y-2">
-          {((blocks as BlockRow[] | null) ?? []).length === 0 ? (
+          {blockRows.length === 0 ? (
             <li className="rounded-xl border border-white/10 bg-zinc-900/40 px-4 py-3 text-sm text-zinc-500">
-              No active blocks.
+              No active blocks. The Unblock button appears after someone uses &quot;Block profile&quot; in chat.
             </li>
           ) : (
-            ((blocks as BlockRow[] | null) ?? []).map((b) => (
+            blockRows.map((b) => (
               <li key={`${b.blocker_id}:${b.blocked_id}`} className="rounded-xl border border-white/10 bg-zinc-900/40 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1 text-sm text-zinc-300">
