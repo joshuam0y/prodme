@@ -16,6 +16,7 @@ type NotificationRow = {
   body: string | null;
   href: string | null;
   actor_id: string | null;
+  actor_avatar_url?: string | null;
   created_at: string;
   read_at: string | null;
 };
@@ -49,33 +50,41 @@ export default async function NotificationsPage() {
   }
 
   const actorIds = [...new Set(notifications.map((n) => n.actor_id).filter((id): id is string => Boolean(id)))];
-  let actorNames = new Map<string, string>();
+  let actorsById = new Map<string, { name: string; avatarUrl: string | null }>();
   if (actorIds.length > 0) {
     try {
       const { data: actors } = await supabase
         .from("profiles")
-        .select("id, display_name")
+        .select("id, display_name, avatar_url")
         .in("id", actorIds);
-      actorNames = new Map(
-        ((actors as Array<{ id: string; display_name: string | null }> | null) ?? []).map((actor) => [
+      actorsById = new Map(
+        (
+          (actors as Array<{ id: string; display_name: string | null; avatar_url: string | null }> | null) ??
+          []
+        ).map((actor) => [
           actor.id,
-          actor.display_name?.trim() || "Someone",
+          {
+            name: actor.display_name?.trim() || "Someone",
+            avatarUrl: actor.avatar_url?.trim() || null,
+          },
         ]),
       );
     } catch {
-      actorNames = new Map();
+      actorsById = new Map();
     }
   }
 
   const displayNotifications = notifications.map((notification) => {
+    const actor = notification.actor_id ? actorsById.get(notification.actor_id) : null;
     const display = formatNotificationDisplay({
       kind: notification.kind,
       title: notification.title,
       body: notification.body,
-      actorName: notification.actor_id ? actorNames.get(notification.actor_id) : null,
+      actorName: actor?.name ?? null,
     });
     return {
       ...notification,
+      actor_avatar_url: actor?.avatarUrl ?? null,
       title: display.title,
       body: display.body,
     };

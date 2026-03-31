@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { setDiscoverAction } from "@/app/explore/actions";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
-import { profileInitials } from "@/lib/match-ui";
 import { roleLabel } from "@/lib/role-label";
 
 export default async function LikesPage({
@@ -50,6 +50,7 @@ export default async function LikesPage({
   type MiniProfile = {
     id: string;
     display_name: string | null;
+    avatar_url: string | null;
     role: string | null;
     city: string | null;
     niche: string | null;
@@ -59,7 +60,7 @@ export default async function LikesPage({
   if (allIds.length) {
     const { data: profiles, error: profErr } = await supabase
       .from("profiles")
-      .select("id, display_name, role, city, niche")
+      .select("id, display_name, avatar_url, role, city, niche")
       .in("id", allIds);
     if (profErr) profilesError = profErr.message;
     byId = new Map((profiles as MiniProfile[] | null | undefined ?? []).map((p) => [p.id, p]));
@@ -105,17 +106,17 @@ export default async function LikesPage({
             {likesYouIds.map((id) => {
               const p = byId.get(id);
               const name = p?.display_name?.trim() || "Member";
-              const initials = profileInitials(p?.display_name ?? null);
               return (
                 <li key={id}>
                   <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-white/[0.02]">
                     <div className="flex gap-3 p-4">
-                      <div
-                        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-500/40 to-rose-500/20 text-sm font-semibold text-amber-50 ring-2 ring-amber-500/25"
-                        aria-hidden
-                      >
-                        {initials}
-                      </div>
+                      <ProfileAvatar
+                        name={name}
+                        avatarUrl={p?.avatar_url}
+                        sizeClassName="h-14 w-14"
+                        textClassName="text-sm font-semibold text-amber-50"
+                        ringClassName="ring-2 ring-amber-500/25 bg-gradient-to-br from-amber-500/40 to-rose-500/20"
+                      />
                       <div className="min-w-0 flex-1">
                         <Link
                           href={`/p/${id}`}
@@ -182,19 +183,19 @@ export default async function LikesPage({
             {youLikedIds.map((id) => {
               const p = byId.get(id);
               const name = p?.display_name?.trim() || "Member";
-              const initials = profileInitials(p?.display_name ?? null);
               return (
                 <li key={id}>
                   <Link
                     href={`/p/${id}`}
                     className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] p-3 transition hover:border-white/15 hover:bg-white/[0.05]"
                   >
-                    <div
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-700/50 text-xs font-semibold text-zinc-200"
-                      aria-hidden
-                    >
-                      {initials}
-                    </div>
+                    <ProfileAvatar
+                      name={name}
+                      avatarUrl={p?.avatar_url}
+                      sizeClassName="h-11 w-11"
+                      textClassName="text-xs font-semibold text-zinc-200"
+                      ringClassName="bg-zinc-700/50"
+                    />
                     <div className="min-w-0 flex-1">
                       <span className="font-medium text-zinc-200">{name}</span>
                       <p className="text-xs text-zinc-500">

@@ -12,6 +12,7 @@ export type BeatPreview = {
 export type ProfileCard = {
   id: string;
   displayName: string;
+  avatarUrl?: string | null;
   role: Role;
   city: string;
   niche: string;

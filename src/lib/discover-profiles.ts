@@ -56,7 +56,7 @@ export async function getLiveProfileCards(
   let q = supabase
     .from("profiles")
     .select(
-      "id, display_name, role, niche, goal, city, neighborhood, latitude, longitude, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, display_name, avatar_url, role, niche, goal, city, neighborhood, latitude, longitude, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .not("onboarding_completed_at", "is", null)
     .order("updated_at", { ascending: false })
@@ -213,6 +213,7 @@ export async function getLiveProfileCards(
     return {
       id: row.id,
       displayName: name,
+      avatarUrl: row.avatar_url?.trim() ?? null,
       role,
       city: row.neighborhood?.trim() || row.city?.trim() || "—",
       niche: focus,

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { MatchThreadClient } from "@/components/match-thread-client";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { isUuid } from "@/lib/uuid";
-import { profileInitials } from "@/lib/match-ui";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -42,7 +42,7 @@ export default async function MatchConversationPage({ params, searchParams }: Pr
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, display_name, role")
+    .select("id, display_name, avatar_url, role")
     .eq("id", id)
     .maybeSingle();
   if (!profile) notFound();
@@ -64,7 +64,6 @@ export default async function MatchConversationPage({ params, searchParams }: Pr
     .limit(250);
 
   const name = profile.display_name?.trim() || "Match";
-  const initials = profileInitials(profile.display_name);
   const notice = sp.notice ? decodeURIComponent(sp.notice) : null;
   const draft = sp.draft ? decodeURIComponent(sp.draft) : null;
   let blockedNotice: string | null = null;
@@ -106,12 +105,13 @@ export default async function MatchConversationPage({ params, searchParams }: Pr
             href={`/p/${id}`}
             className="flex min-w-0 flex-1 items-center gap-3 rounded-xl py-1 transition hover:bg-white/[0.04]"
           >
-            <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-500/35 to-amber-700/25 text-xs font-semibold text-amber-50"
-              aria-hidden
-            >
-              {initials}
-            </div>
+            <ProfileAvatar
+              name={name}
+              avatarUrl={profile.avatar_url}
+              sizeClassName="h-10 w-10"
+              textClassName="text-xs font-semibold text-amber-50"
+              ringClassName="bg-gradient-to-br from-amber-500/35 to-amber-700/25"
+            />
             <div className="min-w-0">
               <h1 className="truncate text-base font-semibold text-zinc-50">{name}</h1>
               <p className="truncate text-xs text-zinc-500">Tap for full profile</p>

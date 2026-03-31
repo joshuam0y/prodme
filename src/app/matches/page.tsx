@@ -2,10 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { setDiscoverAction } from "@/app/explore/actions";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { trackServerEvent } from "@/lib/analytics";
-import { profileInitials } from "@/lib/match-ui";
 import { roleLabel } from "@/lib/role-label";
 
 export const metadata: Metadata = {
@@ -147,11 +147,12 @@ export default async function MatchesPage({
 
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, display_name, role, city, niche")
+    .select("id, display_name, avatar_url, role, city, niche")
     .in("id", matchIds);
   type MiniProfile = {
     id: string;
     display_name: string | null;
+    avatar_url: string | null;
     role: string | null;
     city: string | null;
     niche: string | null;
@@ -175,7 +176,6 @@ export default async function MatchesPage({
         {orderedMatchIds.map((id) => {
           const p = byId.get(id);
           const name = p?.display_name?.trim() || "Member";
-          const initials = profileInitials(p?.display_name ?? null);
           const chat = byMatchMessage.get(id);
           const unread = chat?.unreadIncoming ?? 0;
           const isNewMatch = !chat;
@@ -195,12 +195,13 @@ export default async function MatchesPage({
                   href={`/matches/${id}`}
                   className="flex gap-3 p-4 transition hover:bg-white/[0.04]"
                 >
-                  <div
-                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-500/35 to-amber-700/25 text-sm font-semibold text-amber-50 ring-2 ring-amber-500/20"
-                    aria-hidden
-                  >
-                    {initials}
-                  </div>
+                  <ProfileAvatar
+                    name={name}
+                    avatarUrl={p?.avatar_url}
+                    sizeClassName="h-14 w-14"
+                    textClassName="text-sm font-semibold text-amber-50"
+                    ringClassName="ring-2 ring-amber-500/20 bg-gradient-to-br from-amber-500/35 to-amber-700/25"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">

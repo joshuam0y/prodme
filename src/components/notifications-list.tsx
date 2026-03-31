@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ProfileAvatar } from "@/components/profile-avatar";
 
 type NotificationRow = {
   id: number;
@@ -9,6 +10,7 @@ type NotificationRow = {
   title: string;
   body: string | null;
   href: string | null;
+  actor_avatar_url?: string | null;
   created_at: string;
   read_at: string | null;
 };
@@ -49,10 +51,19 @@ export function NotificationsList({ notifications }: Props) {
             }`}
           >
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-zinc-100">{n.title}</p>
-                {n.body ? <p className="mt-1 text-sm text-zinc-400">{n.body}</p> : null}
-                <p className="mt-2 text-xs uppercase tracking-wider text-zinc-500">{n.kind}</p>
+              <div className="flex min-w-0 items-start gap-3">
+                <ProfileAvatar
+                  name={n.title}
+                  avatarUrl={n.actor_avatar_url}
+                  sizeClassName="h-11 w-11"
+                  textClassName="text-xs font-semibold text-zinc-100"
+                  ringClassName="border border-white/10 bg-zinc-800/60"
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-zinc-100">{n.title}</p>
+                  {n.body ? <p className="mt-1 text-sm text-zinc-400">{n.body}</p> : null}
+                  <p className="mt-2 text-xs uppercase tracking-wider text-zinc-500">{n.kind}</p>
+                </div>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-2">
                 <span className="text-xs text-zinc-500">

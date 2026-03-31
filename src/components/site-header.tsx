@@ -2,6 +2,7 @@ import type { User } from "@supabase/supabase-js";
 import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import { isAdminEmail } from "@/lib/env";
 import { MobileNavLink } from "@/components/mobile-nav-link";
 
@@ -16,6 +17,7 @@ const allNavLinks = [
 
 type Props = {
   user: User | null;
+  profileAvatarUrl?: string | null;
   supabaseEnabled: boolean;
   unreadMessages?: number;
   unreadNotifications?: number;
@@ -25,6 +27,7 @@ type Props = {
 
 export function SiteHeader({
   user,
+  profileAvatarUrl = null,
   supabaseEnabled,
   unreadMessages = 0,
   unreadNotifications = 0,
@@ -101,7 +104,16 @@ export function SiteHeader({
                           href="/profile"
                           className="rounded-lg px-3 py-2 text-sm text-zinc-300 transition-colors hover:bg-white/5 hover:text-zinc-100"
                         >
-                          Profile
+                          <span className="inline-flex items-center gap-2">
+                            <ProfileAvatar
+                              name={user.email}
+                              avatarUrl={profileAvatarUrl}
+                              sizeClassName="h-6 w-6"
+                              textClassName="text-[10px] font-semibold text-zinc-100"
+                              ringClassName="border border-white/10 bg-zinc-800/60"
+                            />
+                            Profile
+                          </span>
                         </MobileNavLink>
                       ) : null}
                       <form action={signOut}>
@@ -177,7 +189,16 @@ export function SiteHeader({
                     href="/profile"
                     className="rounded-lg px-2 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 sm:px-3"
                   >
-                    Profile
+                    <span className="inline-flex items-center gap-2">
+                      <ProfileAvatar
+                        name={user.email}
+                        avatarUrl={profileAvatarUrl}
+                        sizeClassName="h-7 w-7"
+                        textClassName="text-[10px] font-semibold text-zinc-100"
+                        ringClassName="border border-white/10 bg-zinc-800/60"
+                      />
+                      Profile
+                    </span>
                   </Link>
                 ) : null}
                 <form action={signOut} className="inline">

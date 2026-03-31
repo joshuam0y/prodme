@@ -9,6 +9,7 @@ import {
   removeDiscoverAction,
   resetDiscoverSwipes,
 } from "@/app/explore/actions";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import type { BeatPreview, ProfileCard } from "@/lib/types";
 import { isUuid } from "@/lib/uuid";
 import { profileInitials } from "@/lib/match-ui";
@@ -649,19 +650,28 @@ export function SwipeStack({ profiles, viewerId }: Props) {
         />
         <div className="space-y-3 px-4 pb-6 pt-1 sm:px-6 sm:pb-8 sm:pt-2">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-50">
-                {current.displayName}
-              </h2>
-              <p className="text-sm text-zinc-400">
-                {roleLabel[current.role]} · {current.city}
-                {typeof current.distanceKm === "number" ? ` · ${Math.round(current.distanceKm)} km away` : ""}
-              </p>
-              {current.rankReason ? (
-                <p className="mt-1 inline-flex rounded-full border border-amber-500/35 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-200">
-                  {current.rankReason}
+            <div className="flex min-w-0 items-start gap-3">
+              <ProfileAvatar
+                name={current.displayName}
+                avatarUrl={current.avatarUrl}
+                sizeClassName="h-12 w-12"
+                textClassName="text-sm font-semibold text-zinc-100"
+                ringClassName="border border-white/10 bg-zinc-800/60"
+              />
+              <div className="min-w-0">
+                <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-50">
+                  {current.displayName}
+                </h2>
+                <p className="text-sm text-zinc-400">
+                  {roleLabel[current.role]} · {current.city}
+                  {typeof current.distanceKm === "number" ? ` · ${Math.round(current.distanceKm)} km away` : ""}
                 </p>
-              ) : null}
+                {current.rankReason ? (
+                  <p className="mt-1 inline-flex rounded-full border border-amber-500/35 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-200">
+                    {current.rankReason}
+                  </p>
+                ) : null}
+              </div>
             </div>
             <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] sm:text-xs text-zinc-300">
               {current.niche}

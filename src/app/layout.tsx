@@ -57,6 +57,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   let user: User | null = null;
+  let profileAvatarUrl: string | null = null;
   let showBuildProfileNav = true;
   let unreadMessages = 0;
   let unreadNotifications = 0;
@@ -70,9 +71,10 @@ export default async function RootLayout({
       if (user) {
         const { data: profileRow } = await supabase
           .from("profiles")
-          .select("onboarding_completed_at, niche, role")
+          .select("onboarding_completed_at, niche, role, avatar_url")
           .eq("id", user.id)
           .maybeSingle();
+        profileAvatarUrl = profileRow?.avatar_url?.trim() || null;
         if (isProfileQuestionnaireComplete(profileRow)) {
           showBuildProfileNav = false;
         }
@@ -95,6 +97,7 @@ export default async function RootLayout({
       }
     } catch {
       user = null;
+      profileAvatarUrl = null;
       unreadMessages = 0;
       unreadNotifications = 0;
     }
@@ -109,6 +112,7 @@ export default async function RootLayout({
         <RefreshToHome />
         <SiteHeader
           user={user}
+          profileAvatarUrl={profileAvatarUrl}
           supabaseEnabled={supabaseEnabled}
           unreadMessages={unreadMessages}
           unreadNotifications={unreadNotifications}
