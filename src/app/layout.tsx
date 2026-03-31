@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { User } from "@supabase/supabase-js";
+import { Analytics } from "@vercel/analytics/next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { RefreshToHome } from "@/components/refresh-to-home";
 import { SiteFooter } from "@/components/site-footer";
@@ -115,6 +116,7 @@ export default async function RootLayout({
         />
         <div className="flex flex-1 flex-col">{children}</div>
         <SiteFooter />
+        <Analytics />
       </body>
     </html>
   );
