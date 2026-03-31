@@ -10,7 +10,6 @@ const allNavLinks = [
   { href: "/likes", label: "Likes", authOnly: true },
   { href: "/matches", label: "Messages", authOnly: true },
   { href: "/notifications", label: "Alerts", authOnly: true },
-  { href: "/saved", label: "Saved", authOnly: true },
   { href: "/bundles", label: "Bundles" },
   { href: "/onboarding", label: "Profile", hideWhenProfileComplete: true },
 ] as const;

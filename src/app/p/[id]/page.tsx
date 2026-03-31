@@ -54,7 +54,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   const { data: row, error } = await supabase
     .from("profiles")
     .select(
-      "id, display_name, role, niche, goal, city, neighborhood, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, display_name, avatar_url, role, niche, goal, city, neighborhood, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .eq("id", id)
     .maybeSingle();
@@ -81,6 +81,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   const anyExtraAudio = Boolean(extraBeats?.some((b) => Boolean(b.audioUrl)));
   const galleryOpen = sp.gallery === "1";
   const galleryItems = [
+    ...(profile.avatar_url?.trim() ? [{ url: profile.avatar_url.trim(), label: `${name} profile photo` }] : []),
     ...(starBeat?.coverUrl ? [{ url: starBeat.coverUrl, label: starBeat.title }] : []),
     ...((extraBeats ?? []).filter((b) => Boolean(b.coverUrl)).map((b) => ({ url: b.coverUrl, label: b.title }))),
   ];
@@ -138,6 +139,24 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
         <p className="mb-4 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-center text-sm text-amber-200/90">
           This is your public profile — what others see when you share your link.
         </p>
+      ) : null}
+
+      {profile.avatar_url?.trim() ? (
+        <div className="mb-6 flex justify-center">
+          <Link
+            href={`/p/${id}?gallery=1#img-0`}
+            className="relative h-28 w-28 overflow-hidden rounded-full border border-white/10 bg-zinc-900/40 ring-1 ring-white/10 transition hover:ring-amber-500/40"
+            aria-label="Open profile photo"
+          >
+            <Image
+              src={profile.avatar_url.trim()}
+              alt={`${name} profile photo`}
+              fill
+              className="object-cover"
+              unoptimized={profile.avatar_url.includes("picsum.photos")}
+            />
+          </Link>
+        </div>
       ) : null}
 
       <div className="flex flex-col gap-1">

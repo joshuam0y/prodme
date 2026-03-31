@@ -53,6 +53,7 @@ export type BeatBundle = {
 export type DbProfile = {
   id: string;
   display_name: string | null;
+  avatar_url?: string | null;
   role: string | null;
   niche: string | null;
   goal: string | null;

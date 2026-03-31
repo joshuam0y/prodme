@@ -72,7 +72,7 @@ export async function setProfileRating(
         return {
           ok: false,
           error:
-            "You can only rate profiles after you mark them as Saved or Interested.",
+            "You can only rate profiles after you like or save them from Discover.",
         };
       }
     }

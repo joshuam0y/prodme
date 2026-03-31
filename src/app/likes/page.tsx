@@ -75,7 +75,7 @@ export default async function LikesPage({
     <main className="mx-auto w-full max-w-lg flex-1 px-4 pb-12 pt-8 sm:px-6">
       <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">Likes</h1>
       <p className="mt-2 max-w-md text-sm leading-relaxed text-zinc-500">
-        Like someone back to match — then you&apos;ll chat in{" "}
+        See who liked you and who you liked back. Match to start chatting in{" "}
         <Link href="/matches" className="font-medium text-amber-400/90 underline-offset-2 hover:underline">
           Messages
         </Link>
