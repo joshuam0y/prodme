@@ -39,6 +39,12 @@ export function MatchThreadClient({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [matchTyping, setMatchTyping] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [moderationNotice, setModerationNotice] = useState<string | null>(null);
+  const [reporting, setReporting] = useState(false);
+  const [blocking, setBlocking] = useState(false);
+  const blocked = Boolean(moderationNotice?.toLowerCase().includes("blocked"));
   const listRef = useRef<HTMLUListElement | null>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const typingStateRef = useRef(false);
@@ -64,19 +70,25 @@ export function MatchThreadClient({
   const refreshMessages = useCallback(async () => {
     if (isRefreshingRef.current) return;
     isRefreshingRef.current = true;
+    setIsSyncing(true);
     try {
       const res = await fetch(`/api/matches/${matchId}/messages`, { method: "GET" });
       const json = (await res.json()) as {
         ok: boolean;
         messages?: Message[];
+        error?: string;
       };
       if (res.ok && json.ok && Array.isArray(json.messages)) {
         mergeMessages(json.messages);
+        setLastSyncedAt(new Date().toISOString());
+      } else if (json.error === "blocked") {
+        setModerationNotice("Messaging is unavailable because one of you has blocked the other.");
       }
     } catch {
       // Non-blocking fallback.
     } finally {
       isRefreshingRef.current = false;
+      setIsSyncing(false);
     }
   }, [matchId, mergeMessages]);
 
@@ -206,7 +218,7 @@ export function MatchThreadClient({
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const text = body.trim();
-    if (!text || sending) return;
+    if (!text || sending || blocked) return;
 
     setSending(true);
     setError(null);
@@ -238,7 +250,9 @@ export function MatchThreadClient({
       if (!res.ok || !json.ok || !json.message) {
         setMessages((prev) => prev.filter((m) => String(m.id) !== tempId));
         setError(
-          json.error === "not_matched"
+          json.error === "blocked"
+            ? "Messaging is unavailable because this profile is blocked."
+            : json.error === "not_matched"
             ? "You can only message mutual matches."
             : "Could not send message.",
         );
@@ -258,6 +272,12 @@ export function MatchThreadClient({
 
   return (
     <>
+      <div className="mb-2 flex items-center justify-between px-1 text-[11px] text-zinc-500">
+        <span>{isSyncing ? "Syncing messages..." : "Realtime + backup sync active"}</span>
+        <span>
+          {lastSyncedAt ? `Updated ${new Date(lastSyncedAt).toLocaleTimeString()}` : "Waiting for first sync"}
+        </span>
+      </div>
       <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-zinc-950/50">
         <ul
           ref={listRef}
@@ -307,6 +327,69 @@ export function MatchThreadClient({
           {error}
         </p>
       ) : null}
+      {moderationNotice ? (
+        <p className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+          {moderationNotice}
+        </p>
+      ) : null}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={reporting || messages.length === 0}
+          onClick={async () => {
+            if (reporting || messages.length === 0) return;
+            const lastIncoming = [...messages]
+              .reverse()
+              .find((m) => m.sender_id === matchId && !m.pending);
+            setReporting(true);
+            try {
+              const res = await fetch(`/api/matches/${matchId}/report`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({
+                  reason: "abusive_or_spam",
+                  messageId:
+                    lastIncoming && typeof lastIncoming.id === "number"
+                      ? lastIncoming.id
+                      : undefined,
+                }),
+              });
+              if (res.ok) {
+                setModerationNotice("Report submitted. We will review this conversation.");
+              }
+            } finally {
+              setReporting(false);
+            }
+          }}
+          className="rounded-full border border-white/15 px-3 py-1.5 text-xs text-zinc-400 transition hover:bg-white/5 disabled:opacity-40"
+        >
+          {reporting ? "Reporting..." : "Report conversation"}
+        </button>
+        <button
+          type="button"
+          disabled={blocking}
+          onClick={async () => {
+            if (blocking) return;
+            setBlocking(true);
+            try {
+              const res = await fetch(`/api/matches/${matchId}/block`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ reason: "user_requested_block" }),
+              });
+              if (res.ok) {
+                setModerationNotice("This profile is blocked. Messaging has been disabled.");
+                setError("You blocked this profile.");
+              }
+            } finally {
+              setBlocking(false);
+            }
+          }}
+          className="rounded-full border border-red-500/35 px-3 py-1.5 text-xs text-red-300 transition hover:bg-red-500/10 disabled:opacity-40"
+        >
+          {blocking ? "Blocking..." : "Block profile"}
+        </button>
+      </div>
       <form
         className="mt-3 rounded-2xl border border-white/10 bg-zinc-900/60 p-2 shadow-inner shadow-black/20"
         onSubmit={onSubmit}
@@ -327,7 +410,7 @@ export function MatchThreadClient({
         <div className="flex justify-end border-t border-white/5 px-2 pb-1 pt-2">
           <button
             type="submit"
-            disabled={sending}
+            disabled={sending || blocked}
             className="rounded-full bg-amber-500 px-5 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-60"
           >
             {sending ? "Sending..." : "Send"}

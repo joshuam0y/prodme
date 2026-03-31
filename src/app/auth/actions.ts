@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getSiteOrigin } from "@/lib/site-url";
+import { trackServerEvent } from "@/lib/analytics";
 import { redirect } from "next/navigation";
 
 function safeNext(path: string | null): string {
@@ -25,11 +26,17 @@ export async function signIn(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
+    await trackServerEvent({
+      event: "auth_signin_failed",
+      path: "/login",
+      metadata: { reason: "supabase_error" },
+    });
     redirect(
       `/login?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`,
     );
   }
 
+  await trackServerEvent({ event: "auth_signin_success", path: "/login" });
   redirect(next);
 }
 
@@ -65,6 +72,10 @@ export async function signUp(formData: FormData) {
       /already been registered/i.test(lower);
 
     if (accountExists) {
+      await trackServerEvent({
+        event: "auth_signup_blocked_existing",
+        path: "/signup",
+      });
       redirect(
         `/signup?error=account_exists&next=${encodeURIComponent(next)}`,
       );
@@ -75,6 +86,7 @@ export async function signUp(formData: FormData) {
     );
   }
 
+  await trackServerEvent({ event: "auth_signup_submitted", path: "/signup" });
   redirect(
     `/signup?notice=${encodeURIComponent("Check your email to confirm your account. Each confirmation link works once — use the latest email if you request another.")}`,
   );
@@ -246,12 +258,27 @@ export async function completeOnboarding(payload: OnboardingPayload) {
         .from("profiles")
         .upsert(baseUpsert, { onConflict: "id" });
       if (retryError) {
+        await trackServerEvent({
+          event: "onboarding_failed",
+          path: "/onboarding",
+          metadata: { reason: "retry_error" },
+        });
         redirect(`/onboarding?error=${encodeURIComponent(retryError.message)}`);
       }
     } else {
+      await trackServerEvent({
+        event: "onboarding_failed",
+        path: "/onboarding",
+        metadata: { reason: "upsert_error" },
+      });
       redirect(`/onboarding?error=${encodeURIComponent(upsertError.message)}`);
     }
   }
 
+  await trackServerEvent({
+    event: "onboarding_completed",
+    path: "/onboarding",
+    metadata: { role: payload.role },
+  });
   redirect("/explore");
 }

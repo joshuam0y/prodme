@@ -66,6 +66,21 @@ export default async function MatchConversationPage({ params, searchParams }: Pr
   const name = profile.display_name?.trim() || "Match";
   const initials = profileInitials(profile.display_name);
   const notice = sp.notice ? decodeURIComponent(sp.notice) : null;
+  let blockedNotice: string | null = null;
+  try {
+    const { data: blocks } = await supabase
+      .from("profile_blocks")
+      .select("blocker_id, blocked_id")
+      .or(
+        `and(blocker_id.eq.${user.id},blocked_id.eq.${id}),and(blocker_id.eq.${id},blocked_id.eq.${user.id})`,
+      )
+      .limit(1);
+    if (blocks && blocks.length > 0) {
+      blockedNotice = "Messaging is unavailable because one of you has blocked the other.";
+    }
+  } catch {
+    blockedNotice = null;
+  }
   const list = (rows ?? []).map((m) => ({
     id: m.id,
     sender_id: m.sender_id,
@@ -108,6 +123,11 @@ export default async function MatchConversationPage({ params, searchParams }: Pr
         {notice ? (
           <p className="mb-3 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
             {notice}
+          </p>
+        ) : null}
+        {blockedNotice ? (
+          <p className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+            {blockedNotice}
           </p>
         ) : null}
         <MatchThreadClient

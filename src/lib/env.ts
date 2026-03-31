@@ -8,3 +8,17 @@ export function isSupabaseConfigured(): boolean {
 export function isVercelRuntime(): boolean {
   return process.env.VERCEL === "1";
 }
+
+export function getAdminEmails(): string[] {
+  const raw = process.env.ADMIN_EMAILS ?? "";
+  return raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function isAdminEmail(email: string | null | undefined): boolean {
+  const normalized = (email ?? "").trim().toLowerCase();
+  if (!normalized) return false;
+  return getAdminEmails().includes(normalized);
+}

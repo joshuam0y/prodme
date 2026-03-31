@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { SwipeStack } from "@/components/swipe-stack";
 import { mockProfiles } from "@/data/mock";
 import { getLiveProfileCards, inferProfileRole } from "@/lib/discover-profiles";
+import { trackServerEvent } from "@/lib/analytics";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { Role } from "@/lib/types";
@@ -30,6 +31,7 @@ export default async function ExplorePage({
 
   let viewerId: string | null = null;
   let viewerRole: Role | null = null;
+  let needsOnboarding = false;
   let communityCount = mockProfiles.length;
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -45,12 +47,13 @@ export default async function ExplorePage({
     }
     const { data: prof } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, onboarding_completed_at")
       .eq("id", viewerId)
       .maybeSingle();
     if (prof?.role?.trim()) {
       viewerRole = inferProfileRole(prof.role);
     }
+    needsOnboarding = !prof?.onboarding_completed_at;
     const { count } = await supabase
       .from("profiles")
       .select("id", { count: "exact", head: true })
@@ -79,6 +82,11 @@ export default async function ExplorePage({
   const filterLinks = FILTERS.filter(
     (f) => !(viewerRole === "venue" && f.group === "venues"),
   );
+  await trackServerEvent({
+    event: "discover_opened",
+    path: `/explore${groupFilter ? `?group=${groupFilter}` : ""}`,
+    metadata: { groupFilter: groupFilter || "all" },
+  });
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-10 sm:px-6">
@@ -114,6 +122,20 @@ export default async function ExplorePage({
           <p className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-100">
             {notice}
           </p>
+        ) : null}
+        {viewerId && needsOnboarding ? (
+          <div className="mx-auto mt-4 max-w-xl rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-left">
+            <p className="text-sm font-medium text-amber-100">Finish your profile to improve match quality.</p>
+            <p className="mt-1 text-xs text-amber-200/90">
+              Completed profiles rank higher and unlock better recommendations.
+            </p>
+            <Link
+              href="/onboarding"
+              className="mt-2 inline-flex rounded-full bg-amber-500 px-3 py-1.5 text-xs font-semibold text-zinc-950 transition hover:bg-amber-400"
+            >
+              Complete onboarding
+            </Link>
+          </div>
         ) : null}
         <div className="mt-8">
           <p

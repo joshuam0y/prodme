@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { trackServerEvent } from "@/lib/analytics";
 
 export default async function Home({
   searchParams,
@@ -7,6 +8,7 @@ export default async function Home({
 }) {
   const params = await searchParams;
   const showSupabaseHint = params.error === "supabase";
+  await trackServerEvent({ event: "landing_opened", path: "/" });
 
   return (
     <main className="flex flex-1 flex-col">

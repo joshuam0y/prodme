@@ -62,6 +62,16 @@ export function OnboardingForm({ error }: Props) {
     current.id === "niche"
       ? Boolean((answers.niche ?? "").trim().length)
       : Boolean(answers[current.id]);
+  const profileSignals = [
+    Boolean((answers.display_name ?? "").trim()),
+    Boolean(answers.role),
+    Boolean((answers.niche ?? "").trim()),
+    Boolean(answers.goal),
+    Boolean((answers.city ?? "").trim()),
+  ];
+  const completeness = Math.round(
+    (profileSignals.filter(Boolean).length / profileSignals.length) * 100,
+  );
 
   const setAnswer = (key: string, value: string) => {
     setAnswers((a) => ({ ...a, [key]: value }));
@@ -91,6 +101,14 @@ export function OnboardingForm({ error }: Props) {
           className="h-full rounded-full bg-amber-500 transition-[width] duration-300"
           style={{ width: `${progress}%` }}
         />
+      </div>
+      <div className="mb-6 rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+          Profile completeness: {completeness}%
+        </p>
+        <p className="mt-1 text-xs text-zinc-500">
+          Add your role, style, goal, and city to rank higher and get better matches.
+        </p>
       </div>
 
       {error ? (

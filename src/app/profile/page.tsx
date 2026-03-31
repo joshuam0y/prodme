@@ -6,6 +6,7 @@ import { formatDisplayDate } from "@/lib/format-date";
 import { isProfileQuestionnaireComplete } from "@/lib/profile-completion";
 import { parseExtraBeats } from "@/lib/profile-beats";
 import type { DbProfile } from "@/lib/types";
+import { trackServerEvent } from "@/lib/analytics";
 import { ProfileBeatsForm } from "./profile-beats-form";
 import { ProfileVenuePhotosForm } from "./profile-venue-photos-form";
 import { StarRatingDisplay } from "@/components/star-rating-display";
@@ -62,6 +63,8 @@ export default async function ProfilePage() {
   let ratingAvg: number | null = null;
   let ratingCount = 0;
   let ratingsDisabled = false;
+  let entitlementPlan = "free";
+  let entitlementStatus = "active";
   try {
     const { data: ratingRows } = await supabase
       .from("profile_ratings")
@@ -77,6 +80,19 @@ export default async function ProfilePage() {
     ratingCount = 0;
     ratingsDisabled = true;
   }
+  try {
+    const { data: entitlement } = await supabase
+      .from("billing_entitlements")
+      .select("plan, status")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    entitlementPlan = entitlement?.plan ?? "free";
+    entitlementStatus = entitlement?.status ?? "active";
+  } catch {
+    entitlementPlan = "free";
+    entitlementStatus = "active";
+  }
+  await trackServerEvent({ event: "profile_opened", path: "/profile" });
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
@@ -126,6 +142,14 @@ export default async function ProfilePage() {
           </dt>
           <dd className="mt-1 text-zinc-100">
             {formatDisplayDate(profile?.onboarding_completed_at)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+            Plan
+          </dt>
+          <dd className="mt-1 text-zinc-100">
+            {entitlementPlan} · {entitlementStatus}
           </dd>
         </div>
         <div>

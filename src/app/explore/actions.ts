@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { trackServerEvent } from "@/lib/analytics";
 import { isUuid } from "@/lib/uuid";
 
 export type DiscoverAction = "pass" | "save";
@@ -41,6 +42,12 @@ export async function recordDiscoverAction(
     return { ok: false };
   }
 
+  await trackServerEvent({
+    event: action === "save" ? "discover_saved_profile" : "discover_passed_profile",
+    path: "/explore",
+    metadata: { targetId },
+  });
+
   return { ok: true };
 }
 
@@ -75,6 +82,12 @@ export async function setDiscoverAction(
     console.error("setDiscoverAction", error.message);
     return { ok: false };
   }
+
+  await trackServerEvent({
+    event: action === "save" ? "likes_like_back" : "likes_pass",
+    path: pathToRevalidate,
+    metadata: { targetId },
+  });
 
   if (action === "pass") {
     const { error: pipelineErr } = await supabase

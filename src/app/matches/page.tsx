@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { setDiscoverAction } from "@/app/explore/actions";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { trackServerEvent } from "@/lib/analytics";
 import { profileInitials } from "@/lib/match-ui";
 import { roleLabel } from "@/lib/role-label";
 
@@ -29,6 +30,7 @@ export default async function MatchesPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/matches");
+  await trackServerEvent({ event: "matches_opened", path: "/matches" });
 
   const params = await searchParams;
   const notice = params.notice ? decodeURIComponent(params.notice) : null;

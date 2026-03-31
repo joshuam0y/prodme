@@ -2,6 +2,8 @@ import type { User } from "@supabase/supabase-js";
 import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
+import { isAdminEmail } from "@/lib/env";
+import { MobileNavLink } from "@/components/mobile-nav-link";
 
 const allNavLinks = [
   { href: "/explore", label: "Discover" },
@@ -26,6 +28,7 @@ export function SiteHeader({
   unreadMessages = 0,
   showBuildProfileNav = true,
 }: Props) {
+  const admin = isAdminEmail(user?.email);
   const links = (showBuildProfileNav
     ? allNavLinks
     : allNavLinks.filter(
@@ -58,7 +61,7 @@ export function SiteHeader({
                 {links.map(({ href, label }) => {
                   const isMessages = href === "/matches";
                   return (
-                    <Link
+                    <MobileNavLink
                       key={href}
                       href={href}
                       className="rounded-lg px-3 py-2 text-sm text-zinc-300 transition-colors hover:bg-white/5 hover:text-zinc-100"
@@ -71,19 +74,27 @@ export function SiteHeader({
                           </span>
                         ) : null}
                       </span>
-                    </Link>
+                    </MobileNavLink>
                   );
                 })}
                 {supabaseEnabled ? (
                   user ? (
                     <>
+                      {admin ? (
+                        <MobileNavLink
+                          href="/admin/moderation"
+                          className="rounded-lg px-3 py-2 text-sm text-zinc-300 transition-colors hover:bg-white/5 hover:text-zinc-100"
+                        >
+                          Moderation
+                        </MobileNavLink>
+                      ) : null}
                       {!showBuildProfileNav ? (
-                        <Link
+                        <MobileNavLink
                           href="/profile"
                           className="rounded-lg px-3 py-2 text-sm text-zinc-300 transition-colors hover:bg-white/5 hover:text-zinc-100"
                         >
                           Profile
-                        </Link>
+                        </MobileNavLink>
                       ) : null}
                       <form action={signOut}>
                         <button
@@ -96,18 +107,18 @@ export function SiteHeader({
                     </>
                   ) : (
                     <>
-                      <Link
+                      <MobileNavLink
                         href="/login"
                         className="rounded-lg px-3 py-2 text-sm text-zinc-300 transition hover:bg-white/5 hover:text-zinc-100"
                       >
                         Sign in
-                      </Link>
-                      <Link
+                      </MobileNavLink>
+                      <MobileNavLink
                         href="/signup"
                         className="rounded-lg bg-amber-500/15 px-3 py-2 text-sm font-medium text-amber-400 ring-1 ring-amber-500/30 transition hover:bg-amber-500/25"
                       >
                         Sign up
-                      </Link>
+                      </MobileNavLink>
                     </>
                   )
                 ) : null}
@@ -139,6 +150,14 @@ export function SiteHeader({
           {supabaseEnabled ? (
             user ? (
               <>
+                {admin ? (
+                  <Link
+                    href="/admin/moderation"
+                    className="rounded-lg px-2 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 sm:px-3"
+                  >
+                    Moderation
+                  </Link>
+                ) : null}
                 {!showBuildProfileNav ? (
                   <Link
                     href="/profile"

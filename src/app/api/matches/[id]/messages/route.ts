@@ -1,9 +1,29 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { trackServerEvent } from "@/lib/analytics";
 import { isUuid } from "@/lib/uuid";
 
 type Ctx = { params: Promise<{ id: string }> };
+
+async function isBlockedEitherDirection(
+  currentUserId: string,
+  otherUserId: string,
+): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("profile_blocks")
+      .select("blocker_id")
+      .or(
+        `and(blocker_id.eq.${currentUserId},blocked_id.eq.${otherUserId}),and(blocker_id.eq.${otherUserId},blocked_id.eq.${currentUserId})`,
+      )
+      .limit(1);
+    return Boolean(data && data.length > 0);
+  } catch {
+    return false;
+  }
+}
 
 export async function GET(_req: Request, { params }: Ctx) {
   const { id } = await params;
@@ -17,6 +37,9 @@ export async function GET(_req: Request, { params }: Ctx) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false, error: "not_signed_in" }, { status: 401 });
   if (user.id === id) return NextResponse.json({ ok: false, error: "self" }, { status: 400 });
+  if (await isBlockedEitherDirection(user.id, id)) {
+    return NextResponse.json({ ok: false, error: "blocked" }, { status: 403 });
+  }
 
   const { data, error } = await supabase
     .from("match_messages")
@@ -49,6 +72,9 @@ export async function POST(req: Request, { params }: Ctx) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false, error: "not_signed_in" }, { status: 401 });
   if (user.id === id) return NextResponse.json({ ok: false, error: "self" }, { status: 400 });
+  if (await isBlockedEitherDirection(user.id, id)) {
+    return NextResponse.json({ ok: false, error: "blocked" }, { status: 403 });
+  }
 
   const { data: mySwipe } = await supabase
     .from("discover_swipes")
@@ -81,5 +107,10 @@ export async function POST(req: Request, { params }: Ctx) {
   if (error || !data) {
     return NextResponse.json({ ok: false, error: "insert_failed" }, { status: 500 });
   }
+  await trackServerEvent({
+    event: "message_sent",
+    path: `/matches/${id}`,
+    metadata: { recipientId: id },
+  });
   return NextResponse.json({ ok: true, message: data });
 }
