@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { trackServerEvent } from "@/lib/analytics";
+import { createNotification } from "@/lib/notifications";
 import { isUuid } from "@/lib/uuid";
 import type { MobileApiError, MobileApiResponse, MobileMessagesRow } from "@/lib/mobile-api/types";
 
@@ -132,6 +134,32 @@ export async function POST(req: Request, { params }: Ctx) {
 
   if (error || !data) {
     return NextResponse.json({ ok: false, error: "insert_failed" } satisfies MobileApiResponse<never>, { status: 500 });
+  }
+
+  await trackServerEvent({
+    event: "message_sent",
+    path: `/matches/${id}`,
+    metadata: { recipientId: id },
+  });
+
+  try {
+    const { data: me } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle();
+    const actorName = me?.display_name?.trim() || "Someone";
+    await createNotification({
+      userId: id,
+      actorId: user.id,
+      kind: "message_received",
+      title: `${actorName} sent you a message`,
+      body: text.slice(0, 120),
+      href: `/matches/${user.id}`,
+      metadata: { actorId: user.id, messageId: data.id },
+    });
+  } catch {
+    // Best-effort only.
   }
 
   return NextResponse.json(

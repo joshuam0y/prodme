@@ -9,6 +9,7 @@ const allNavLinks = [
   { href: "/explore", label: "Discover" },
   { href: "/likes", label: "Likes", authOnly: true },
   { href: "/matches", label: "Messages", authOnly: true },
+  { href: "/notifications", label: "Alerts", authOnly: true },
   { href: "/saved", label: "Saved", authOnly: true },
   { href: "/bundles", label: "Bundles" },
   { href: "/onboarding", label: "Profile", hideWhenProfileComplete: true },
@@ -18,6 +19,7 @@ type Props = {
   user: User | null;
   supabaseEnabled: boolean;
   unreadMessages?: number;
+  unreadNotifications?: number;
   /** When false, hide the Profile → onboarding link (user finished questionnaire). */
   showBuildProfileNav?: boolean;
 };
@@ -26,6 +28,7 @@ export function SiteHeader({
   user,
   supabaseEnabled,
   unreadMessages = 0,
+  unreadNotifications = 0,
   showBuildProfileNav = true,
 }: Props) {
   const admin = isAdminEmail(user?.email);
@@ -60,6 +63,7 @@ export function SiteHeader({
               <nav className="flex flex-col gap-1">
                 {links.map(({ href, label }) => {
                   const isMessages = href === "/matches";
+                  const isAlerts = href === "/notifications";
                   return (
                     <MobileNavLink
                       key={href}
@@ -71,6 +75,11 @@ export function SiteHeader({
                         {isMessages && unreadMessages > 0 ? (
                           <span className="inline-flex min-w-[1rem] items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[10px] font-semibold text-zinc-950">
                             {unreadMessages > 9 ? "9+" : unreadMessages}
+                          </span>
+                        ) : null}
+                        {isAlerts && unreadNotifications > 0 ? (
+                          <span className="inline-flex min-w-[1rem] items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-semibold text-zinc-950">
+                            {unreadNotifications > 9 ? "9+" : unreadNotifications}
                           </span>
                         ) : null}
                       </span>
@@ -130,6 +139,7 @@ export function SiteHeader({
         <nav className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-end sm:gap-3">
           {links.map(({ href, label }) => {
             const isMessages = href === "/matches";
+            const isAlerts = href === "/notifications";
             return (
               <Link
                 key={href}
@@ -141,6 +151,11 @@ export function SiteHeader({
                   {isMessages && unreadMessages > 0 ? (
                     <span className="inline-flex min-w-[1rem] items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[10px] font-semibold text-zinc-950">
                       {unreadMessages > 9 ? "9+" : unreadMessages}
+                    </span>
+                  ) : null}
+                  {isAlerts && unreadNotifications > 0 ? (
+                    <span className="inline-flex min-w-[1rem] items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-semibold text-zinc-950">
+                      {unreadNotifications > 9 ? "9+" : unreadNotifications}
                     </span>
                   ) : null}
                 </span>

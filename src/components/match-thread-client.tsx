@@ -330,8 +330,10 @@ export function MatchThreadClient({
           json.error === "blocked"
             ? "Messaging is unavailable because this profile is blocked."
             : json.error === "not_matched"
-            ? "You can only message mutual matches."
-            : "Could not send message.",
+              ? "You can only message mutual matches."
+              : json.error === "rate_limited"
+                ? "You are sending messages too quickly. Please wait a few minutes."
+                : "Could not send message.",
         );
         return;
       }

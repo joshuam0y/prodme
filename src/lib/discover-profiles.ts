@@ -102,10 +102,16 @@ export async function getLiveProfileCards(
 
   const rankScore = (row: (typeof rows)[number]) => {
     const stats = ratingStats.get(row.id);
-    if (!stats) return 0;
+    let score = 0;
+    if (row.verified) score += 0.18;
+    if ((row.looking_for ?? "").trim()) score += 0.08;
+    if ((row.prompt_1_answer ?? "").trim()) score += 0.06;
+    if ((row.prompt_2_answer ?? "").trim()) score += 0.06;
+    if (!stats) return score;
     const confidence = Math.min(1, stats.count / 8);
     const quality = stats.avg / 5;
-    return quality * (0.35 + 0.65 * confidence);
+    score += quality * (0.35 + 0.65 * confidence);
+    return score;
   };
 
   const rankedRows = [...rows].sort((a, b) => {
@@ -135,6 +141,9 @@ export async function getLiveProfileCards(
 
   const reasonFor = (row: (typeof rows)[number]) => {
     const stats = ratingStats.get(row.id);
+    if (row.verified && (row.looking_for ?? "").trim()) return "Verified and clear";
+    if (row.verified) return "Verified";
+    if ((row.looking_for ?? "").trim()) return "Knows what they want";
     if (stats && stats.count >= 6 && stats.avg >= 4.3) return "Highly rated";
     if (stats && stats.count >= 3 && stats.avg >= 4.0) return "Trending";
     return "Newly active";

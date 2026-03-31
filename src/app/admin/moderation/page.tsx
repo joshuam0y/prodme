@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail, isSupabaseConfigured } from "@/lib/env";
@@ -24,7 +25,7 @@ type BlockRow = {
 export default async function ModerationAdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ notice?: string }>;
+  searchParams: Promise<{ notice?: string; q?: string }>;
 }) {
   if (!isSupabaseConfigured()) redirect("/?error=supabase");
   const supabase = await createClient();
@@ -36,6 +37,7 @@ export default async function ModerationAdminPage({
 
   const params = await searchParams;
   const notice = params.notice ? decodeURIComponent(params.notice) : null;
+  const query = (params.q ? decodeURIComponent(params.q) : "").trim();
 
   const { data: reports } = await supabase
     .from("match_message_reports")
@@ -48,6 +50,37 @@ export default async function ModerationAdminPage({
     .select("blocker_id, blocked_id, reason, created_at")
     .order("created_at", { ascending: false })
     .limit(200);
+
+  const { count: signupsCount } = await supabase
+    .from("product_events")
+    .select("id", { count: "exact", head: true })
+    .eq("event_name", "sign_up_succeeded");
+  const { count: onboardingCount } = await supabase
+    .from("product_events")
+    .select("id", { count: "exact", head: true })
+    .eq("event_name", "onboarding_completed");
+  const { count: matchCount } = await supabase
+    .from("product_events")
+    .select("id", { count: "exact", head: true })
+    .eq("event_name", "match_created");
+  const { count: messageCount } = await supabase
+    .from("product_events")
+    .select("id", { count: "exact", head: true })
+    .eq("event_name", "message_sent");
+  const { data: recentEvents } = await supabase
+    .from("product_events")
+    .select("id, event_name, user_id, path, created_at")
+    .order("created_at", { ascending: false })
+    .limit(12);
+
+  const userLookup = query
+    ? await supabase
+        .from("profiles")
+        .select("id, display_name, role, city, verified, looking_for, updated_at")
+        .or(`id.eq.${query},display_name.ilike.%${query.replace(/[%_,]/g, "")}%`)
+        .order("updated_at", { ascending: false })
+        .limit(20)
+    : { data: [] };
   const openCount = ((reports as ReportRow[] | null) ?? []).filter((r) => r.status === "open").length;
   const blockRows = (blocks as BlockRow[] | null) ?? [];
   const blockKey = (a: string, b: string) => `${a}:${b}`;
@@ -85,6 +118,130 @@ export default async function ModerationAdminPage({
           {notice}
         </p>
       ) : null}
+
+      <section className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: "Signups", value: signupsCount ?? 0 },
+          { label: "Onboarded", value: onboardingCount ?? 0 },
+          { label: "Matches", value: matchCount ?? 0 },
+          { label: "Messages sent", value: messageCount ?? 0 },
+        ].map((metric) => (
+          <div key={metric.label} className="rounded-xl border border-white/10 bg-zinc-900/40 p-4">
+            <p className="text-xs uppercase tracking-wider text-zinc-500">{metric.label}</p>
+            <p className="mt-2 text-2xl font-semibold text-zinc-100">{metric.value}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="mt-8 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="rounded-2xl border border-white/10 bg-zinc-900/40 p-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">Internal profile lookup</h2>
+          <form className="mt-3 flex gap-2" action="/admin/moderation">
+            <input
+              type="text"
+              name="q"
+              defaultValue={query}
+              placeholder="Search by profile ID or display name"
+              className="flex-1 rounded-xl border border-white/10 bg-zinc-950/50 px-4 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-600"
+            />
+            <button
+              type="submit"
+              className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950"
+            >
+              Search
+            </button>
+          </form>
+          <p className="mt-2 text-xs text-zinc-500">
+            Admin-only lookup. Users still cannot search for each other anywhere in the product.
+          </p>
+          <ul className="mt-4 space-y-2">
+            {(((userLookup.data as Array<{
+              id: string;
+              display_name: string | null;
+              role: string | null;
+              city: string | null;
+              verified: boolean | null;
+              looking_for: string | null;
+              updated_at: string | null;
+            }> | null) ?? [])).length === 0 ? (
+              <li className="rounded-xl border border-white/10 bg-zinc-950/30 px-4 py-3 text-sm text-zinc-500">
+                {query ? "No matching profiles found." : "Search a profile by ID or display name."}
+              </li>
+            ) : (
+              (((userLookup.data as Array<{
+                id: string;
+                display_name: string | null;
+                role: string | null;
+                city: string | null;
+                verified: boolean | null;
+                looking_for: string | null;
+                updated_at: string | null;
+              }> | null) ?? [])).map((p) => (
+                <li key={p.id} className="rounded-xl border border-white/10 bg-zinc-950/30 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-1 text-sm text-zinc-300">
+                      <p className="font-medium text-zinc-100">{p.display_name?.trim() || "Member"}</p>
+                      <p className="text-zinc-500">{p.id}</p>
+                      <p className="text-zinc-500">
+                        {[p.role, p.city, p.verified ? "Verified" : "Not verified"].filter(Boolean).join(" · ")}
+                      </p>
+                      {p.looking_for?.trim() ? (
+                        <p className="text-zinc-400">Looking for: {p.looking_for.trim()}</p>
+                      ) : null}
+                    </div>
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/p/${p.id}`}
+                        className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-medium text-zinc-200 hover:bg-white/5"
+                      >
+                        Public profile
+                      </Link>
+                      <form
+                        action={async () => {
+                          "use server";
+                          await setProfileVerified(p.id, !Boolean(p.verified));
+                        }}
+                      >
+                        <button
+                          type="submit"
+                          className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
+                            p.verified
+                              ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-200"
+                              : "border-white/20 bg-white/5 text-zinc-200"
+                          }`}
+                        >
+                          {p.verified ? "Unverify" : "Verify"}
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-zinc-900/40 p-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">Recent product events</h2>
+          <ul className="mt-3 space-y-2">
+            {((recentEvents as Array<{
+              id: number;
+              event_name: string;
+              user_id: string | null;
+              path: string | null;
+              created_at: string;
+            }> | null) ?? []).map((e) => (
+              <li key={e.id} className="rounded-xl border border-white/10 bg-zinc-950/30 px-3 py-2">
+                <p className="text-sm font-medium text-zinc-100">{e.event_name}</p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  {e.path ?? "no-path"} · {e.user_id ?? "anon"} ·{" "}
+                  {new Date(e.created_at).toLocaleString()}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
 
       <section className="mt-8">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">Reports</h2>

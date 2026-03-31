@@ -51,6 +51,7 @@ export default async function RootLayout({
   let user: User | null = null;
   let showBuildProfileNav = true;
   let unreadMessages = 0;
+  let unreadNotifications = 0;
   const supabaseEnabled = isSupabaseConfigured();
 
   if (supabaseEnabled) {
@@ -73,10 +74,21 @@ export default async function RootLayout({
           .eq("recipient_id", user.id)
           .is("read_at", null);
         unreadMessages = count ?? 0;
+        try {
+          const { count: notifCount } = await supabase
+            .from("notifications")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .is("read_at", null);
+          unreadNotifications = notifCount ?? 0;
+        } catch {
+          unreadNotifications = 0;
+        }
       }
     } catch {
       user = null;
       unreadMessages = 0;
+      unreadNotifications = 0;
     }
   }
 
@@ -91,6 +103,7 @@ export default async function RootLayout({
           user={user}
           supabaseEnabled={supabaseEnabled}
           unreadMessages={unreadMessages}
+          unreadNotifications={unreadNotifications}
           showBuildProfileNav={showBuildProfileNav}
         />
         <div className="flex flex-1 flex-col">{children}</div>

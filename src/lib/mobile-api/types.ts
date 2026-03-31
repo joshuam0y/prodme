@@ -62,6 +62,26 @@ export type MobileMessagesRow = {
   pending?: boolean;
 };
 
+export type MobileNotificationRow = {
+  id: number;
+  kind: string;
+  title: string;
+  body: string | null;
+  href: string | null;
+  created_at: string;
+  read_at: string | null;
+};
+
+export type MobileNotificationsPayload = {
+  notifications: MobileNotificationRow[];
+  unreadCount: number;
+};
+
+export type MobileUnreadCounts = {
+  unreadMessages: number;
+  unreadNotifications: number;
+};
+
 export type MobilePublicProfile = {
   id: string;
   displayName: string;

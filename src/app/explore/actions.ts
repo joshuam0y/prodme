@@ -4,9 +4,78 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { trackServerEvent } from "@/lib/analytics";
+import { createNotification } from "@/lib/notifications";
 import { isUuid } from "@/lib/uuid";
 
 export type DiscoverAction = "pass" | "save";
+
+async function getActorName(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<string> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", userId)
+    .maybeSingle();
+  return data?.display_name?.trim() || "Someone";
+}
+
+async function maybeNotifyForSave(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  actorId: string,
+  targetId: string,
+): Promise<boolean> {
+  const actorName = await getActorName(supabase, actorId);
+
+  await createNotification({
+    userId: targetId,
+    actorId,
+    kind: "profile_saved",
+    title: `${actorName} saved your profile`,
+    body: "Open likes to see who is interested.",
+    href: "/likes",
+    metadata: { actorId },
+  });
+
+  const { data: reciprocal } = await supabase
+    .from("discover_swipes")
+    .select("viewer_id")
+    .eq("viewer_id", targetId)
+    .eq("target_id", actorId)
+    .in("action", ["save", "interested"])
+    .maybeSingle();
+
+  const matched = Boolean(reciprocal);
+  if (!matched) return false;
+
+  await trackServerEvent({
+    event: "match_created",
+    path: "/explore",
+    metadata: { targetId },
+  });
+
+  await createNotification({
+    userId: targetId,
+    actorId,
+    kind: "match_created",
+    title: `You matched with ${actorName}`,
+    body: "Say hi and start the conversation.",
+    href: `/matches/${actorId}`,
+    metadata: { actorId },
+  });
+  await createNotification({
+    userId: actorId,
+    actorId: targetId,
+    kind: "match_created",
+    title: "It’s a match",
+    body: "You have a new mutual match waiting.",
+    href: `/matches/${targetId}`,
+    metadata: { actorId: targetId },
+  });
+
+  return true;
+}
 
 export async function recordDiscoverAction(
   targetId: string,
@@ -50,23 +119,8 @@ export async function recordDiscoverAction(
 
   if (action !== "save") return { ok: true };
 
-  // Mutual match check: did they also "save" you?
   try {
-    const { data: reciprocal } = await supabase
-      .from("discover_swipes")
-      .select("viewer_id")
-      .eq("viewer_id", targetId)
-      .eq("target_id", user.id)
-      .in("action", ["save", "interested"])
-      .maybeSingle();
-    const matched = Boolean(reciprocal);
-    if (matched) {
-      await trackServerEvent({
-        event: "match_created",
-        path: "/explore",
-        metadata: { targetId },
-      });
-    }
+    const matched = await maybeNotifyForSave(supabase, user.id, targetId);
     return { ok: true, matched };
   } catch {
     return { ok: true };
@@ -110,6 +164,14 @@ export async function setDiscoverAction(
     path: pathToRevalidate,
     metadata: { targetId },
   });
+
+  if (action === "save") {
+    try {
+      await maybeNotifyForSave(supabase, user.id, targetId);
+    } catch {
+      // Best-effort only.
+    }
+  }
 
   if (action === "pass") {
     const { error: pipelineErr } = await supabase

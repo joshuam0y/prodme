@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { trackServerEvent } from "@/lib/analytics";
+import { createNotification } from "@/lib/notifications";
 import { isUuid } from "@/lib/uuid";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -76,6 +77,16 @@ export async function POST(req: Request, { params }: Ctx) {
     return NextResponse.json({ ok: false, error: "blocked" }, { status: 403 });
   }
 
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const { count: recentSentCount } = await supabase
+    .from("match_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("sender_id", user.id)
+    .gte("created_at", tenMinutesAgo);
+  if ((recentSentCount ?? 0) >= 25) {
+    return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
+  }
+
   const { data: mySwipe } = await supabase
     .from("discover_swipes")
     .select("action")
@@ -112,5 +123,24 @@ export async function POST(req: Request, { params }: Ctx) {
     path: `/matches/${id}`,
     metadata: { recipientId: id },
   });
+  try {
+    const { data: me } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle();
+    const actorName = me?.display_name?.trim() || "Someone";
+    await createNotification({
+      userId: id,
+      actorId: user.id,
+      kind: "message_received",
+      title: `${actorName} sent you a message`,
+      body: text.slice(0, 120),
+      href: `/matches/${user.id}`,
+      metadata: { actorId: user.id, messageId: data.id },
+    });
+  } catch {
+    // Best-effort only.
+  }
   return NextResponse.json({ ok: true, message: data });
 }
