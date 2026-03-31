@@ -32,8 +32,8 @@ async function maybeNotifyForSave(
     userId: targetId,
     actorId,
     kind: "profile_saved",
-    title: `${actorName} saved your profile`,
-    body: "Open likes to see who is interested.",
+    title: `${actorName} liked you`,
+    body: "Open Likes to see who is interested.",
     href: "/likes",
     metadata: { actorId },
   });

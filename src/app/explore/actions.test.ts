@@ -117,8 +117,8 @@ describe("setDiscoverAction", () => {
       userId: "22222222-2222-2222-2222-222222222222",
       actorId: "viewer-1",
       kind: "profile_saved",
-      title: "DJ Nova saved your profile",
-      body: "Open likes to see who is interested.",
+      title: "DJ Nova liked you",
+      body: "Open Likes to see who is interested.",
       href: "/likes",
       metadata: { actorId: "viewer-1" },
     });
