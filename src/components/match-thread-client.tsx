@@ -44,6 +44,7 @@ export function MatchThreadClient({
   const [moderationNotice, setModerationNotice] = useState<string | null>(null);
   const [reporting, setReporting] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [blockedByMe, setBlockedByMe] = useState(false);
   const blocked = Boolean(moderationNotice?.toLowerCase().includes("blocked"));
   const listRef = useRef<HTMLUListElement | null>(null);
   const typingTimeoutRef = useRef<number | null>(null);
@@ -83,6 +84,8 @@ export function MatchThreadClient({
         setLastSyncedAt(new Date().toISOString());
       } else if (json.error === "blocked") {
         setModerationNotice("Messaging is unavailable because one of you has blocked the other.");
+      } else {
+        setModerationNotice(null);
       }
     } catch {
       // Non-blocking fallback.
@@ -167,6 +170,29 @@ export function MatchThreadClient({
   }, [currentUserId, markRead, matchId, supabase]);
 
   useEffect(() => {
+    const loadBlockState = async () => {
+      try {
+        const res = await fetch(`/api/matches/${matchId}/block`, { method: "GET" });
+        const json = (await res.json()) as {
+          ok: boolean;
+          blockedByMe?: boolean;
+          blockedByThem?: boolean;
+        };
+        if (res.ok && json.ok) {
+          const byMe = Boolean(json.blockedByMe);
+          const byThem = Boolean(json.blockedByThem);
+          setBlockedByMe(byMe);
+          if (byMe || byThem) {
+            setModerationNotice("Messaging is unavailable because one of you has blocked the other.");
+          } else {
+            setModerationNotice(null);
+          }
+        }
+      } catch {
+        // Non-blocking.
+      }
+    };
+    void loadBlockState();
     void refreshMessages();
     const interval = window.setInterval(() => {
       void refreshMessages();
@@ -181,7 +207,7 @@ export function MatchThreadClient({
       window.removeEventListener("focus", onVisible);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [refreshMessages]);
+  }, [matchId, refreshMessages]);
 
   const sendTyping = useCallback(
     (isTyping: boolean) => {
@@ -372,22 +398,36 @@ export function MatchThreadClient({
             if (blocking) return;
             setBlocking(true);
             try {
-              const res = await fetch(`/api/matches/${matchId}/block`, {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ reason: "user_requested_block" }),
-              });
+              const res = await fetch(`/api/matches/${matchId}/block`, blockedByMe
+                ? { method: "DELETE" }
+                : {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ reason: "user_requested_block" }),
+                  });
               if (res.ok) {
-                setModerationNotice("This profile is blocked. Messaging has been disabled.");
-                setError("You blocked this profile.");
+                if (blockedByMe) {
+                  setBlockedByMe(false);
+                  setModerationNotice(null);
+                  setError(null);
+                  void refreshMessages();
+                } else {
+                  setBlockedByMe(true);
+                  setModerationNotice("Messaging is unavailable because one of you has blocked the other.");
+                  setError("You blocked this profile.");
+                }
               }
             } finally {
               setBlocking(false);
             }
           }}
-          className="rounded-full border border-red-500/35 px-3 py-1.5 text-xs text-red-300 transition hover:bg-red-500/10 disabled:opacity-40"
+          className={`rounded-full px-3 py-1.5 text-xs transition disabled:opacity-40 ${
+            blockedByMe
+              ? "border border-emerald-500/35 text-emerald-300 hover:bg-emerald-500/10"
+              : "border border-red-500/35 text-red-300 hover:bg-red-500/10"
+          }`}
         >
-          {blocking ? "Blocking..." : "Block profile"}
+          {blocking ? (blockedByMe ? "Unblocking..." : "Blocking...") : blockedByMe ? "Unblock profile" : "Block profile"}
         </button>
       </div>
       <form
