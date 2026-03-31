@@ -19,6 +19,11 @@ Then paste these files into these template editors:
 - `Invite user` -> `docs/supabase-email-templates/invite-user.html`
 - `Change Email Address` -> `docs/supabase-email-templates/change-email.html`
 
+These templates now use a custom server-side verifier route:
+- `https://prodlinkapp.vercel.app/auth/confirm`
+
+That is intentional. It avoids the cross-browser PKCE/code-verifier problem that can happen with default confirmation links.
+
 ## Exact Steps
 
 1. Open your Supabase project dashboard.
@@ -38,13 +43,16 @@ Set:
 - `Site URL` -> `https://prodlinkapp.vercel.app`
 
 Make sure your allowed redirect URLs include at least:
+- `https://prodlinkapp.vercel.app/auth/confirm`
 - `https://prodlinkapp.vercel.app/auth/callback`
 - `http://127.0.0.1:3000/auth/callback`
+- `http://127.0.0.1:3000/auth/confirm`
 
 If Supabase shows a list for additional redirect URLs, add both.
 
 ## Important Notes
 
 - Keep Supabase variables like `{{ .ConfirmationURL }}` exactly as they are in the HTML files.
-- Do not replace `{{ .ConfirmationURL }}` with your site URL.
+- These templates use `{{ .SiteURL }}` and `{{ .TokenHash }}` on purpose.
+- Do not replace `{{ .TokenHash }}` with a literal value.
 - If an email client renders SVG poorly, replace the logo URL in the templates with a hosted PNG version.

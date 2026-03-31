@@ -37,7 +37,7 @@
             <tr>
               <td style="padding:28px 32px 8px 32px;text-align:center;">
                 <a
-                  href="{{ .ConfirmationURL }}"
+                  href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/onboarding"
                   style="display:inline-block;background:#f59e0b;color:#09090b;text-decoration:none;font-size:15px;font-weight:700;line-height:1;padding:14px 24px;border-radius:999px;"
                 >
                   Confirm email
@@ -66,7 +66,7 @@
             <tr>
               <td style="padding:8px 32px 0 32px;">
                 <p style="margin:0;word-break:break-all;font-size:12px;line-height:1.7;color:#fbbf24;">
-                  <a href="{{ .ConfirmationURL }}" style="color:#fbbf24;text-decoration:none;">{{ .ConfirmationURL }}</a>
+                  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/onboarding" style="color:#fbbf24;text-decoration:none;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/onboarding</a>
                 </p>
               </td>
             </tr>
