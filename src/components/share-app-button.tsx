@@ -44,7 +44,8 @@ export function ShareAppButton({
   }
 
   async function copyInviteLink(url: string) {
-    await navigator.clipboard.writeText(url);
+    const inviteText = `Try ProdLink - discover music collaborators, venues, and opportunities.\n${url}`;
+    await navigator.clipboard.writeText(inviteText);
     showFeedback(copiedLabel, "Invite link copied to clipboard");
   }
 
@@ -63,7 +64,7 @@ export function ShareAppButton({
         try {
           await navigator.share({
             title: "ProdLink",
-            text: "Join me on ProdLink.",
+            text: "Try ProdLink - discover music collaborators, venues, and opportunities.",
             url,
           });
         } catch (error) {
