@@ -28,6 +28,7 @@ const roleLabel: Record<ProfileCard["role"], string> = {
 };
 
 const THRESHOLD_PX = 72;
+const TAP_OPEN_THRESHOLD_PX = 10;
 const MAX_EXTRA = 5;
 
 function loadDismissedIds(key: string): Set<string> {
@@ -385,6 +386,14 @@ export function SwipeStack({ profiles, viewerId }: Props) {
 
     if (horizontal) {
       advance(dx < 0 ? "left" : "right");
+      return;
+    }
+
+    const isTapIntent =
+      Math.abs(dx) <= TAP_OPEN_THRESHOLD_PX &&
+      Math.abs(dy) <= TAP_OPEN_THRESHOLD_PX;
+    if (isTapIntent && isUuid(current.id)) {
+      router.push(`/p/${current.id}`);
       return;
     }
 
