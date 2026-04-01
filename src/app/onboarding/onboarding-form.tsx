@@ -3,6 +3,7 @@
 import { completeOnboarding } from "@/app/auth/actions";
 import { useTransition } from "react";
 import { useState } from "react";
+import { getProfilePromptOptions } from "@/lib/profile-prompts";
 
 function isVenueRole(role?: string) {
   const s = (role ?? "").toLowerCase();
@@ -55,6 +56,7 @@ export function OnboardingForm({ error }: Props) {
 
   const steps = stepsForRole(answers.role);
   const current = steps[step];
+  const promptOptions = getProfilePromptOptions(answers.role);
   const isLast = step === steps.length - 1;
   const progress = ((step + 1) / steps.length) * 100;
 
@@ -72,6 +74,17 @@ export function OnboardingForm({ error }: Props) {
   const completeness = Math.round(
     (profileSignals.filter(Boolean).length / profileSignals.length) * 100,
   );
+  const prompt1Question = (answers.prompt_1_question ?? "").trim();
+  const prompt1Answer = (answers.prompt_1_answer ?? "").trim();
+  const prompt2Question = (answers.prompt_2_question ?? "").trim();
+  const prompt2Answer = (answers.prompt_2_answer ?? "").trim();
+  const duplicatePrompts =
+    Boolean(prompt1Question) &&
+    Boolean(prompt2Question) &&
+    prompt1Question === prompt2Question;
+  const prompt2Incomplete =
+    (Boolean(prompt2Question) && !Boolean(prompt2Answer)) ||
+    (Boolean(prompt2Answer) && !Boolean(prompt2Question));
 
   const setAnswer = (key: string, value: string) => {
     setAnswers((a) => ({ ...a, [key]: value }));
@@ -81,7 +94,7 @@ export function OnboardingForm({ error }: Props) {
     const role = answers.role;
     const niche = answers.niche;
     const goal = answers.goal;
-    if (!role || !niche?.trim() || !goal) return;
+    if (!role || !niche?.trim() || !goal || !prompt1Question || !prompt1Answer || duplicatePrompts || prompt2Incomplete) return;
 
     startTransition(() => {
       completeOnboarding({
@@ -90,6 +103,10 @@ export function OnboardingForm({ error }: Props) {
         niche: niche.trim(),
         goal,
         city: (answers.city ?? "").trim(),
+        prompt_1_question: prompt1Question,
+        prompt_1_answer: prompt1Answer,
+        prompt_2_question: prompt2Question,
+        prompt_2_answer: prompt2Answer,
       });
     });
   };
@@ -193,6 +210,92 @@ export function OnboardingForm({ error }: Props) {
             </div>
           </div>
         )}
+        <div className="mt-8 rounded-xl border border-white/10 bg-zinc-900/40 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Profile prompt 1
+          </p>
+          <p className="mt-1 text-xs text-zinc-500">
+            Required. Give people at least one strong conversation starter on your profile.
+          </p>
+          <label className="mt-4 block text-xs font-medium text-zinc-500">
+            Prompt question
+            <select
+              className="mt-1.5 w-full rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-2.5 text-sm text-zinc-200 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+              value={answers.prompt_1_question ?? ""}
+              onChange={(e) => setAnswer("prompt_1_question", e.target.value)}
+            >
+              <option value="">Choose a prompt...</option>
+              {promptOptions.map((option) => (
+                <option key={option.question} value={option.question}>
+                  {option.question}
+                </option>
+              ))}
+            </select>
+          </label>
+          {prompt1Question ? (
+            <p className="mt-2 text-xs text-zinc-500">
+              {promptOptions.find((option) => option.question === prompt1Question)?.cue ||
+                "Answer this in a way that gives someone an easy opener."}
+            </p>
+          ) : null}
+          <label className="mt-4 block text-xs font-medium text-zinc-500">
+            Prompt answer
+            <textarea
+              className="mt-1.5 w-full rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+              rows={3}
+              value={answers.prompt_1_answer ?? ""}
+              onChange={(e) => setAnswer("prompt_1_answer", e.target.value)}
+              placeholder="Give people something specific to reply to..."
+            />
+          </label>
+        </div>
+        <div className="mt-6 rounded-xl border border-white/10 bg-zinc-900/30 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Profile prompt 2
+          </p>
+          <p className="mt-1 text-xs text-zinc-500">
+            Optional for now. If you add it, use a different question and fill in both fields.
+          </p>
+          <label className="mt-4 block text-xs font-medium text-zinc-500">
+            Prompt question
+            <select
+              className="mt-1.5 w-full rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-2.5 text-sm text-zinc-200 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+              value={answers.prompt_2_question ?? ""}
+              onChange={(e) => setAnswer("prompt_2_question", e.target.value)}
+            >
+              <option value="">Choose a second prompt...</option>
+              {promptOptions
+                .filter((option) => option.question !== prompt1Question)
+                .map((option) => (
+                  <option key={option.question} value={option.question}>
+                    {option.question}
+                  </option>
+                ))}
+            </select>
+          </label>
+          {prompt2Question ? (
+            <p className="mt-2 text-xs text-zinc-500">
+              {promptOptions.find((option) => option.question === prompt2Question)?.cue ||
+                "Keep it specific enough that someone could reply to it."}
+            </p>
+          ) : null}
+          <label className="mt-4 block text-xs font-medium text-zinc-500">
+            Prompt answer
+            <textarea
+              className="mt-1.5 w-full rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+              rows={3}
+              value={answers.prompt_2_answer ?? ""}
+              onChange={(e) => setAnswer("prompt_2_answer", e.target.value)}
+              placeholder="Optional second angle..."
+            />
+          </label>
+          {duplicatePrompts ? (
+            <p className="mt-3 text-xs text-red-300">Choose a different question for prompt 2.</p>
+          ) : null}
+          {prompt2Incomplete ? (
+            <p className="mt-3 text-xs text-red-300">If you add a second prompt, include both the question and answer.</p>
+          ) : null}
+        </div>
       </div>
 
       <div className="mt-10 flex justify-between gap-4">

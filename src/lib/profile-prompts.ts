@@ -64,3 +64,32 @@ export function getProfilePromptSubheading(role: string | null | undefined): str
     ? "Pick booking prompts that help artists understand your room, your crowd, and how to reach out."
     : "Pick conversation starters instead of writing prompt titles from scratch.";
 }
+
+export function normalizePromptValue(value: string | null | undefined): string {
+  return (value ?? "").trim();
+}
+
+export function isCompletePrompt(question: string | null | undefined, answer: string | null | undefined): boolean {
+  return Boolean(normalizePromptValue(question) && normalizePromptValue(answer));
+}
+
+export function hasAnyCompletePrompt(input: {
+  prompt1Question?: string | null;
+  prompt1Answer?: string | null;
+  prompt2Question?: string | null;
+  prompt2Answer?: string | null;
+}): boolean {
+  return (
+    isCompletePrompt(input.prompt1Question, input.prompt1Answer) ||
+    isCompletePrompt(input.prompt2Question, input.prompt2Answer)
+  );
+}
+
+export function hasDuplicatePromptQuestions(input: {
+  prompt1Question?: string | null;
+  prompt2Question?: string | null;
+}): boolean {
+  const prompt1 = normalizePromptValue(input.prompt1Question);
+  const prompt2 = normalizePromptValue(input.prompt2Question);
+  return Boolean(prompt1 && prompt2 && prompt1 === prompt2);
+}

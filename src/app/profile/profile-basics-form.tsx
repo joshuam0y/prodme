@@ -5,6 +5,9 @@ import {
   getProfilePromptHeading,
   getProfilePromptOptions,
   getProfilePromptSubheading,
+  hasAnyCompletePrompt,
+  hasDuplicatePromptQuestions,
+  isCompletePrompt,
   isVenueProfileRole,
 } from "@/lib/profile-prompts";
 import { generateProfileBasicsSuggestions, updateProfileBasics } from "./actions";
@@ -52,6 +55,19 @@ export function ProfileBasicsForm({ initial }: Props) {
   const promptOptions = useMemo(() => getProfilePromptOptions(initial.role), [initial.role]);
   const promptHeading = useMemo(() => getProfilePromptHeading(initial.role), [initial.role]);
   const promptSubheading = useMemo(() => getProfilePromptSubheading(initial.role), [initial.role]);
+  const duplicatePromptQuestions = hasDuplicatePromptQuestions({ prompt1Question: prompt1Q, prompt2Question: prompt2Q });
+  const prompt1Incomplete =
+    ((prompt1Q ?? "").trim().length > 0 || (prompt1A ?? "").trim().length > 0) &&
+    !isCompletePrompt(prompt1Q, prompt1A);
+  const prompt2Incomplete =
+    ((prompt2Q ?? "").trim().length > 0 || (prompt2A ?? "").trim().length > 0) &&
+    !isCompletePrompt(prompt2Q, prompt2A);
+  const hasRequiredPrompt = hasAnyCompletePrompt({
+    prompt1Question: prompt1Q,
+    prompt1Answer: prompt1A,
+    prompt2Question: prompt2Q,
+    prompt2Answer: prompt2A,
+  });
   const suggestedPromptOptions = useMemo(() => {
     const current = [prompt1Q, prompt2Q].filter(Boolean);
     const unique = promptOptions.filter(
@@ -208,11 +224,13 @@ export function ProfileBasicsForm({ initial }: Props) {
               onChange={(e) => setPrompt2Q(e.target.value)}
             >
               <option value="">Choose a prompt...</option>
-              {promptOptions.map((option) => (
-                <option key={option.question} value={option.question}>
-                  {option.question}
-                </option>
-              ))}
+              {promptOptions
+                .filter((option) => option.question !== (prompt1Q ?? "").trim())
+                .map((option) => (
+                  <option key={option.question} value={option.question}>
+                    {option.question}
+                  </option>
+                ))}
             </select>
           </label>
           {prompt2Q ? (
@@ -235,6 +253,18 @@ export function ProfileBasicsForm({ initial }: Props) {
               }
             />
           </label>
+          {prompt1Incomplete ? (
+            <p className="text-xs text-red-300">Prompt 1 needs both a question and an answer.</p>
+          ) : null}
+          {prompt2Incomplete ? (
+            <p className="text-xs text-red-300">Prompt 2 needs both a question and an answer if you use it.</p>
+          ) : null}
+          {duplicatePromptQuestions ? (
+            <p className="text-xs text-red-300">Prompt 1 and Prompt 2 must use different questions.</p>
+          ) : null}
+          {!hasRequiredPrompt ? (
+            <p className="text-xs text-red-300">Add at least one complete prompt before saving.</p>
+          ) : null}
         </div>
       </div>
       <div className="mt-6 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
@@ -351,6 +381,18 @@ export function ProfileBasicsForm({ initial }: Props) {
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
+            if (!hasRequiredPrompt) {
+              setMessage("Add at least one prompt question and answer.");
+              return;
+            }
+            if (prompt1Incomplete || prompt2Incomplete) {
+              setMessage("Each prompt you use needs both a question and an answer.");
+              return;
+            }
+            if (duplicatePromptQuestions) {
+              setMessage("Choose two different prompt questions.");
+              return;
+            }
             const result = await updateProfileBasics({
               display_name: displayName,
               niche,

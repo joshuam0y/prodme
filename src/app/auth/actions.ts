@@ -6,6 +6,11 @@ import { isAiProfileCoachConfigured, isSupabaseConfigured } from "@/lib/env";
 import { getSiteOrigin } from "@/lib/site-url";
 import { trackServerEvent } from "@/lib/analytics";
 import { redirect } from "next/navigation";
+import {
+  hasDuplicatePromptQuestions,
+  isCompletePrompt,
+  normalizePromptValue,
+} from "@/lib/profile-prompts";
 
 function safeNext(path: string | null): string {
   if (!path || !path.startsWith("/") || path.startsWith("//")) {
@@ -209,6 +214,10 @@ export type OnboardingPayload = {
   niche: string;
   goal: string;
   city?: string;
+  prompt_1_question: string;
+  prompt_1_answer: string;
+  prompt_2_question?: string;
+  prompt_2_answer?: string;
 };
 
 async function refreshAiAfterOnboarding(userId: string, payload: OnboardingPayload) {
@@ -221,6 +230,10 @@ async function refreshAiAfterOnboarding(userId: string, payload: OnboardingPaylo
       niche: payload.niche,
       goal: payload.goal,
       city: payload.city ?? "",
+      prompt1Question: payload.prompt_1_question,
+      prompt1Answer: payload.prompt_1_answer,
+      prompt2Question: payload.prompt_2_question ?? "",
+      prompt2Answer: payload.prompt_2_answer ?? "",
     };
     const ai = await enrichProfileWithAi(profileInput);
     const embedding = await generateProfileEmbedding(profileInput);
@@ -263,6 +276,23 @@ export async function completeOnboarding(payload: OnboardingPayload) {
     (user.email?.split("@")[0] ?? "Member");
 
   const city = payload.city?.trim() ?? "";
+  const prompt1Question = normalizePromptValue(payload.prompt_1_question);
+  const prompt1Answer = normalizePromptValue(payload.prompt_1_answer);
+  const prompt2Question = normalizePromptValue(payload.prompt_2_question);
+  const prompt2Answer = normalizePromptValue(payload.prompt_2_answer);
+
+  if (!isCompletePrompt(prompt1Question, prompt1Answer)) {
+    redirect(`/onboarding?error=${encodeURIComponent("Add at least one prompt question and answer.")}`);
+  }
+  if (
+    (prompt2Question && !isCompletePrompt(prompt2Question, prompt2Answer)) ||
+    (prompt2Answer && !isCompletePrompt(prompt2Question, prompt2Answer))
+  ) {
+    redirect(`/onboarding?error=${encodeURIComponent("Your second prompt needs both a question and an answer.")}`);
+  }
+  if (hasDuplicatePromptQuestions({ prompt1Question, prompt2Question })) {
+    redirect(`/onboarding?error=${encodeURIComponent("Choose two different prompt questions.")}`);
+  }
 
   const baseUpsert = {
     id: user.id,
@@ -270,6 +300,10 @@ export async function completeOnboarding(payload: OnboardingPayload) {
     role: payload.role,
     niche: payload.niche,
     goal: payload.goal,
+    prompt_1_question: prompt1Question,
+    prompt_1_answer: prompt1Answer,
+    prompt_2_question: prompt2Question || null,
+    prompt_2_answer: prompt2Answer || null,
     onboarding_completed_at: new Date().toISOString(),
   };
 

@@ -12,6 +12,12 @@ import type { ProfileCoachInput, ProfileCoachSuggestion } from "@/lib/ai/types";
 import { createClient } from "@/lib/supabase/server";
 import { isAiProfileCoachConfigured, isSupabaseConfigured } from "@/lib/env";
 import type { DbExtraBeat } from "@/lib/profile-beats";
+import {
+  hasAnyCompletePrompt,
+  hasDuplicatePromptQuestions,
+  isCompletePrompt,
+  normalizePromptValue,
+} from "@/lib/profile-prompts";
 
 async function refreshAiProfileData(
   userId: string,
@@ -325,6 +331,52 @@ export async function updateProfileBasics(
   if (typeof payload.prompt_2_question === "string") patch.prompt_2_question = payload.prompt_2_question.trim();
   if (typeof payload.prompt_2_answer === "string") patch.prompt_2_answer = payload.prompt_2_answer.trim();
   if (Object.keys(patch).length === 0) return { ok: true };
+
+  const promptFields = [
+    "prompt_1_question",
+    "prompt_1_answer",
+    "prompt_2_question",
+    "prompt_2_answer",
+  ];
+  if (promptFields.some((field) => field in patch)) {
+    const { data: currentPromptProfile } = await supabase
+      .from("profiles")
+      .select("prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const prompt1Question =
+      typeof patch.prompt_1_question === "string"
+        ? patch.prompt_1_question
+        : normalizePromptValue(currentPromptProfile?.prompt_1_question);
+    const prompt1Answer =
+      typeof patch.prompt_1_answer === "string"
+        ? patch.prompt_1_answer
+        : normalizePromptValue(currentPromptProfile?.prompt_1_answer);
+    const prompt2Question =
+      typeof patch.prompt_2_question === "string"
+        ? patch.prompt_2_question
+        : normalizePromptValue(currentPromptProfile?.prompt_2_question);
+    const prompt2Answer =
+      typeof patch.prompt_2_answer === "string"
+        ? patch.prompt_2_answer
+        : normalizePromptValue(currentPromptProfile?.prompt_2_answer);
+
+    if (!hasAnyCompletePrompt({ prompt1Question, prompt1Answer, prompt2Question, prompt2Answer })) {
+      return { ok: false, error: "Add at least one prompt question and answer." };
+    }
+    if (
+      (normalizePromptValue(prompt1Question) && !isCompletePrompt(prompt1Question, prompt1Answer)) ||
+      (normalizePromptValue(prompt1Answer) && !isCompletePrompt(prompt1Question, prompt1Answer)) ||
+      (normalizePromptValue(prompt2Question) && !isCompletePrompt(prompt2Question, prompt2Answer)) ||
+      (normalizePromptValue(prompt2Answer) && !isCompletePrompt(prompt2Question, prompt2Answer))
+    ) {
+      return { ok: false, error: "Each prompt needs both a question and an answer." };
+    }
+    if (hasDuplicatePromptQuestions({ prompt1Question, prompt2Question })) {
+      return { ok: false, error: "Choose two different prompt questions." };
+    }
+  }
 
   const aiRelevantFields = [
     "display_name",
