@@ -24,6 +24,7 @@ export function DiscoverFilterBar({
   const [group, setGroup] = useState<DiscoverGroup>(initialGroup);
   const [sort, setSort] = useState<Sort>(initialSort);
   const [km, setKm] = useState(initialKm);
+  const [open, setOpen] = useState(false);
 
   const debounceRef = useRef<number | null>(null);
 
@@ -55,8 +56,13 @@ export function DiscoverFilterBar({
   }, [baseParams, group, km, pathname, router, sort]);
 
   return (
-    <details className="mx-auto mt-6 max-w-3xl rounded-3xl border border-white/10 bg-zinc-900/45 text-left shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3.5 text-sm text-zinc-200 [&::-webkit-details-marker]:hidden sm:px-5">
+    <section className="mx-auto mt-6 max-w-3xl rounded-3xl border border-white/10 bg-zinc-900/45 text-left shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-4 px-4 py-3.5 text-sm text-zinc-200 sm:px-5"
+      >
         <span className="inline-flex items-center gap-3">
           <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-200">
             Filters
@@ -65,8 +71,11 @@ export function DiscoverFilterBar({
             {activeCount > 0 ? `${activeCount} active` : "Discover controls"}
           </span>
         </span>
-        <span className="text-xs uppercase tracking-[0.22em] text-zinc-500">Open</span>
-      </summary>
+        <span className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+          {open ? "Close" : "Open"}
+        </span>
+      </button>
+      {open ? (
       <div className="border-t border-white/10 px-4 py-4 sm:px-5">
         <div className="grid gap-4 lg:grid-cols-[1.15fr_1fr]">
           <div className="rounded-2xl border border-white/10 bg-zinc-950/35 p-4">
@@ -130,6 +139,7 @@ export function DiscoverFilterBar({
           </label>
         </div>
       </div>
-    </details>
+      ) : null}
+    </section>
   );
 }
