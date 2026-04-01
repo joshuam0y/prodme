@@ -8,7 +8,7 @@ import {
   moderateTextWithAi,
 } from "@/lib/ai/client";
 import { buildFallbackProfileCoachSuggestion, fallbackModerateText } from "@/lib/ai/fallback";
-import type { ProfileCoachInput } from "@/lib/ai/types";
+import type { ProfileCoachInput, ProfileCoachSuggestion } from "@/lib/ai/types";
 import { createClient } from "@/lib/supabase/server";
 import { isAiProfileCoachConfigured, isSupabaseConfigured } from "@/lib/env";
 import type { DbExtraBeat } from "@/lib/profile-beats";
@@ -424,18 +424,7 @@ export async function generateProfileBasicsSuggestions(
 ): Promise<
   | {
       ok: true;
-      suggestion: {
-        niche: string;
-        goal: string;
-        lookingFor: string;
-        prompt1Question: string;
-        prompt1Answer: string;
-        prompt2Question: string;
-        prompt2Answer: string;
-        summary: string;
-        tags: string[];
-        score: number;
-      };
+      suggestion: ProfileCoachSuggestion;
     }
   | { ok: false; error: string }
 > {
