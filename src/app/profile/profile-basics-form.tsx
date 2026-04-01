@@ -36,7 +36,6 @@ export function ProfileBasicsForm({ initial }: Props) {
   const [displayName, setDisplayName] = useState(initial.displayName);
   const [niche, setNiche] = useState(initial.niche);
   const [goal, setGoal] = useState(initial.goal);
-  const [city, setCity] = useState(initial.city);
   const [lookingFor, setLookingFor] = useState(initial.lookingFor);
   const [prompt1Q, setPrompt1Q] = useState(initial.prompt1Q);
   const [prompt1A, setPrompt1A] = useState(initial.prompt1A);
@@ -96,19 +95,18 @@ export function ProfileBasicsForm({ initial }: Props) {
     <section className="mt-10 rounded-2xl border border-white/10 bg-zinc-900/40 p-6">
       <h2 className="text-sm font-semibold text-zinc-100">Quick profile edits</h2>
       <p className="mt-1 text-sm text-zinc-500">Change only what you want and save.</p>
+      <p className="mt-1 text-xs text-zinc-600">
+        Update city, neighborhood, and pin in the Location section below.
+      </p>
       {message ? (
         <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200/95">
           {message}
         </p>
       ) : null}
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      <div className="mt-6">
         <label className="block text-xs font-medium text-zinc-500">
           Display name
           <input className={fieldClass} value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-        </label>
-        <label className="block text-xs font-medium text-zinc-500">
-          City
-          <input className={fieldClass} value={city} onChange={(e) => setCity(e.target.value)} />
         </label>
       </div>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -287,7 +285,7 @@ export function ProfileBasicsForm({ initial }: Props) {
                   role: initial.role,
                   niche,
                   goal,
-                  city,
+                  city: initial.city,
                   lookingFor,
                   prompt1Question: prompt1Q,
                   prompt1Answer: prompt1A,
@@ -397,7 +395,6 @@ export function ProfileBasicsForm({ initial }: Props) {
               display_name: displayName,
               niche,
               goal,
-              city,
               looking_for: lookingFor,
               prompt_1_question: prompt1Q,
               prompt_1_answer: prompt1A,
