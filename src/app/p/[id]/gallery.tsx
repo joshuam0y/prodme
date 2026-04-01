@@ -92,3 +92,35 @@ export function ProfileGalleryModal({
   );
 }
 
+export function ProfileAvatarModal({
+  profileId,
+  imageUrl,
+  label,
+}: {
+  profileId: string;
+  imageUrl: string;
+  label: string;
+}) {
+  const src = imageUrl.trim();
+  if (!src) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Profile photo"
+    >
+      <Link
+        href={`/p/${profileId}`}
+        className="absolute right-4 top-4 rounded-full border border-white/20 bg-zinc-900/70 px-4 py-2 text-sm text-zinc-100 hover:bg-zinc-900"
+      >
+        Close
+      </Link>
+      <div className="relative h-[min(70vw,28rem)] w-[min(70vw,28rem)] overflow-hidden rounded-full border border-white/10 bg-zinc-900 shadow-2xl">
+        <Image src={src} alt={label} fill className="object-cover" unoptimized />
+      </div>
+    </div>
+  );
+}
+

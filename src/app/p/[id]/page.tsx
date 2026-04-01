@@ -9,9 +9,9 @@ import { isVenueProfileRole } from "@/lib/profile-prompts";
 import { isUuid } from "@/lib/uuid";
 import type { DbProfile } from "@/lib/types";
 import { StarRatingDisplay } from "@/components/star-rating-display";
-import { ProfileGallery, ProfileGalleryModal } from "./gallery";
+import { ProfileAvatarModal, ProfileGallery, ProfileGalleryModal } from "./gallery";
 
-type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ gallery?: string }> };
+type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ gallery?: string; avatar?: string }> };
 
 function InfoSection({
   title,
@@ -106,6 +106,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   const isVenueProfile = isVenueProfileRole(profile.role);
   const anyExtraAudio = Boolean(extraBeats?.some((b) => Boolean(b.audioUrl)));
   const galleryOpen = sp.gallery === "1";
+  const avatarOpen = sp.avatar === "1";
   const prompt1Question = profile.prompt_1_question?.trim() || null;
   const prompt1Answer = profile.prompt_1_answer?.trim() || null;
   const prompt2Question = profile.prompt_2_question?.trim() || null;
@@ -232,6 +233,13 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
       {galleryOpen ? <ProfileGalleryModal profileId={id} items={galleryItems} /> : null}
+      {avatarOpen && profile.avatar_url?.trim() ? (
+        <ProfileAvatarModal
+          profileId={id}
+          imageUrl={profile.avatar_url.trim()}
+          label={`${name} profile photo`}
+        />
+      ) : null}
       <div className="relative mb-8 overflow-hidden rounded-[28px] border border-white/10 bg-zinc-900/40 shadow-[0_20px_80px_rgba(0,0,0,0.28)]">
         <div
           className={`h-32 bg-gradient-to-br ${
@@ -249,16 +257,10 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.14),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_30%)]" />
       </div>
 
-      {isOwn ? (
-        <p className="mb-4 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-center text-sm text-amber-200/90">
-          This is your public profile — what others see when you share your link.
-        </p>
-      ) : null}
-
       {profile.avatar_url?.trim() ? (
         <div className="-mt-20 mb-6 flex justify-center">
           <Link
-            href={`/p/${id}?gallery=1#img-0`}
+            href={`/p/${id}?avatar=1`}
             className="relative h-32 w-32 overflow-hidden rounded-full border-4 border-zinc-950 bg-zinc-900/40 shadow-[0_18px_60px_rgba(0,0,0,0.35)] ring-1 ring-white/10 transition hover:ring-amber-500/40"
             aria-label="Open profile photo"
           >
@@ -280,6 +282,11 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
         <p className="text-sm text-zinc-400">
           {metaBits.join(" · ")}
         </p>
+        {isOwn ? (
+          <p className="mt-3 inline-flex max-w-fit rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200/90">
+            Your public profile view
+          </p>
+        ) : null}
       </div>
 
       {heroIntro ? (
