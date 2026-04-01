@@ -16,6 +16,8 @@ export const metadata: Metadata = {
 function formatPreview(body: string, mine: boolean): string {
   const b = body.trim();
   if (!b) return "Say hi…";
+  if (b.startsWith("[image] ")) return mine ? "You sent a photo" : "Sent a photo";
+  if (b.startsWith("[voice] ")) return mine ? "You sent a voice note" : "Sent a voice note";
   const short = b.length > 72 ? `${b.slice(0, 72)}…` : b;
   return mine ? `You: ${short}` : short;
 }

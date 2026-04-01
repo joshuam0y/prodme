@@ -9,6 +9,13 @@ import { isUuid } from "@/lib/uuid";
 
 type Ctx = { params: Promise<{ id: string }> };
 
+function notificationPreview(body: string): string {
+  const value = body.trim();
+  if (value.startsWith("[image] ")) return "Sent you a photo";
+  if (value.startsWith("[voice] ")) return "Sent you a voice note";
+  return body.slice(0, 120);
+}
+
 async function isBlockedEitherDirection(
   currentUserId: string,
   otherUserId: string,
@@ -165,7 +172,7 @@ export async function POST(req: Request, { params }: Ctx) {
       actorId: user.id,
       kind: "message_received",
       title: `${actorName} sent you a message`,
-      body: text.slice(0, 120),
+      body: notificationPreview(text),
       href: `/matches/${user.id}`,
       metadata: { actorId: user.id, messageId: data.id },
     });

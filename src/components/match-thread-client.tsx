@@ -15,6 +15,31 @@ type Message = {
   pending?: boolean;
 };
 
+const IMAGE_PREFIX = "[image] ";
+const VOICE_PREFIX = "[voice] ";
+
+function parseMessageBody(body: string): { kind: "text" | "image" | "voice"; value: string } {
+  const trimmed = body.trim();
+  if (trimmed.startsWith(IMAGE_PREFIX)) {
+    return { kind: "image", value: trimmed.slice(IMAGE_PREFIX.length).trim() };
+  }
+  if (trimmed.startsWith(VOICE_PREFIX)) {
+    return { kind: "voice", value: trimmed.slice(VOICE_PREFIX.length).trim() };
+  }
+  return { kind: "text", value: body };
+}
+
+function extFromFile(file: File): string {
+  const byName = file.name.split(".").pop()?.toLowerCase();
+  if (byName && byName.length <= 5 && /^[a-z0-9]+$/i.test(byName)) return byName;
+  if (file.type.includes("webm")) return "webm";
+  if (file.type.includes("mpeg")) return "mp3";
+  if (file.type.includes("wav")) return "wav";
+  if (file.type.includes("png")) return "png";
+  if (file.type.includes("webp")) return "webp";
+  return "jpg";
+}
+
 type Props = {
   matchId: string;
   currentUserId: string;
@@ -75,11 +100,17 @@ export function MatchThreadClient({
     ];
   }, [matchName, matchRole]);
   const [quickOpeners, setQuickOpeners] = useState(defaultOpeners);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [recording, setRecording] = useState(false);
   const listRef = useRef<HTMLUListElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const typingStateRef = useRef(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaChunksRef = useRef<Blob[]>([]);
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const isRefreshingRef = useRef(false);
@@ -328,9 +359,24 @@ export function MatchThreadClient({
     void sendMessage();
   };
 
+  const uploadMessageFile = useCallback(
+    async (file: File, baseName: string) => {
+      const ext = extFromFile(file);
+      const path = `${currentUserId}/messages/${baseName}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("profile-media").upload(path, file, {
+        upsert: true,
+        contentType: file.type || undefined,
+      });
+      if (error) throw new Error(error.message);
+      const { data } = supabase.storage.from("profile-media").getPublicUrl(path);
+      return data.publicUrl;
+    },
+    [currentUserId, supabase],
+  );
+
   const sendMessage = useCallback(async () => {
     const text = body.trim();
-    if (!text || sending || blocked) return;
+    if (!text || sending || blocked || uploadingMedia) return;
 
     setSending(true);
     setError(null);
@@ -386,7 +432,40 @@ export function MatchThreadClient({
     } finally {
       setSending(false);
     }
-  }, [body, blocked, currentUserId, matchId, refreshMessages, sendTyping, sending]);
+  }, [body, blocked, currentUserId, matchId, refreshMessages, sendTyping, sending, uploadingMedia]);
+
+  const sendMediaMessage = useCallback(
+    async (kind: "image" | "voice", file: File) => {
+      if (sending || blocked || uploadingMedia) return;
+      setUploadingMedia(true);
+      setError(null);
+      try {
+        const url = await uploadMessageFile(file, kind === "image" ? "message-image" : "voice-note");
+        const nextBody = `${kind === "image" ? IMAGE_PREFIX : VOICE_PREFIX}${url}`;
+        const res = await fetch(`/api/matches/${matchId}/messages`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ body: nextBody }),
+        });
+        const json = (await res.json()) as {
+          ok: boolean;
+          error?: string;
+          message?: Message;
+        };
+        if (!res.ok || !json.ok || !json.message) {
+          setError("Could not send media.");
+          return;
+        }
+        setMessages((prev) => [...prev, json.message!]);
+        void refreshMessages();
+      } catch (error) {
+        setError(error instanceof Error ? error.message : "Could not send media.");
+      } finally {
+        setUploadingMedia(false);
+      }
+    },
+    [blocked, matchId, refreshMessages, sending, uploadMessageFile, uploadingMedia],
+  );
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -427,6 +506,7 @@ export function MatchThreadClient({
               const next = messages[i + 1];
               const showSeen =
                 mine && (!next || next.sender_id !== currentUserId) && m.read_at !== null;
+              const parsed = parseMessageBody(m.body);
               return (
                 <li key={String(m.id)} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                   <div
@@ -436,7 +516,22 @@ export function MatchThreadClient({
                         : "rounded-bl-md bg-white/[0.06] text-zinc-100 ring-1 ring-white/10"
                     } ${m.pending ? "opacity-70" : ""}`}
                   >
-                    <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                    {parsed.kind === "image" ? (
+                      <a href={parsed.value} target="_blank" rel="noreferrer" className="block">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={parsed.value}
+                          alt="Shared in chat"
+                          className="max-h-72 w-full rounded-xl object-cover"
+                        />
+                      </a>
+                    ) : parsed.kind === "voice" ? (
+                      <audio controls preload="none" src={parsed.value} className="h-10 w-64 max-w-full">
+                        <track kind="captions" />
+                      </audio>
+                    ) : (
+                      <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                    )}
                     {showSeen ? (
                       <p className="mt-1 text-right text-[10px] font-medium text-emerald-400/80">
                         Seen
@@ -506,6 +601,23 @@ export function MatchThreadClient({
               </button>
             ))}
           </div>
+        </div>
+      ) : null}
+      {emojiOpen ? (
+        <div className="mt-3 flex flex-wrap gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          {["🔥", "🎧", "🎤", "🎶", "📍", "🫡", "👀", "💿", "🙏", "🤝", "😮‍💨", "🖤"].map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => {
+                setBody((prev) => `${prev}${emoji}`);
+                textareaRef.current?.focus();
+              }}
+              className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-lg transition hover:bg-white/[0.08]"
+            >
+              {emoji}
+            </button>
+          ))}
         </div>
       ) : null}
       <div className="mt-3 flex items-center justify-end">
@@ -689,6 +801,17 @@ export function MatchThreadClient({
             Best first messages are short, specific, and clearly tied to their sound, room, or goal.
           </div>
         ) : null}
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void sendMediaMessage("image", file);
+            e.currentTarget.value = "";
+          }}
+        />
         <label htmlFor="chat-body" className="sr-only">
           Message {matchName}
         </label>
@@ -709,17 +832,75 @@ export function MatchThreadClient({
           className="w-full resize-none rounded-xl border-0 bg-transparent px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-0"
           placeholder={`Message ${matchName}...`}
         />
-        <div className="flex items-center justify-between border-t border-white/5 px-2 pb-1 pt-2">
-          <p className="text-[11px] text-zinc-600">
-            Press Enter to send, Shift+Enter for a new line.
-          </p>
-          <button
-            type="submit"
-            disabled={sending || blocked}
-            className="rounded-full bg-amber-500 px-5 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-60"
-          >
-            {sending ? "Sending..." : "Send"}
-          </button>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/5 px-2 pb-1 pt-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setEmojiOpen((value) => !value)}
+              className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
+            >
+              Emoji
+            </button>
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              disabled={uploadingMedia || blocked}
+              className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-white/5 disabled:opacity-50"
+            >
+              Photo
+            </button>
+            <button
+              type="button"
+              disabled={uploadingMedia || blocked}
+              onClick={async () => {
+                if (recording) {
+                  mediaRecorderRef.current?.stop();
+                  return;
+                }
+                try {
+                  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                  mediaChunksRef.current = [];
+                  const recorder = new MediaRecorder(stream);
+                  mediaRecorderRef.current = recorder;
+                  recorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) mediaChunksRef.current.push(event.data);
+                  };
+                  recorder.onstop = async () => {
+                    setRecording(false);
+                    stream.getTracks().forEach((track) => track.stop());
+                    const blob = new Blob(mediaChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+                    const file = new File([blob], `voice-note-${Date.now()}.webm`, {
+                      type: blob.type || "audio/webm",
+                    });
+                    await sendMediaMessage("voice", file);
+                  };
+                  recorder.start();
+                  setRecording(true);
+                } catch {
+                  setError("Microphone access was blocked.");
+                }
+              }}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${
+                recording
+                  ? "border-red-500/35 bg-red-500/10 text-red-200"
+                  : "border-white/10 text-zinc-300 hover:bg-white/5"
+              }`}
+            >
+              {recording ? "Stop recording" : "Voice"}
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <p className="text-[11px] text-zinc-600">
+              {uploadingMedia ? "Uploading..." : "Enter sends, Shift+Enter adds a line."}
+            </p>
+            <button
+              type="submit"
+              disabled={sending || blocked || uploadingMedia}
+              className="rounded-full bg-amber-500 px-5 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-60"
+            >
+              {sending ? "Sending..." : "Send"}
+            </button>
+          </div>
         </div>
       </form>
     </>

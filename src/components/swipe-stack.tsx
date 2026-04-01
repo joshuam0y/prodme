@@ -738,6 +738,42 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
               ) : null}
             </div>
           ) : null}
+          {current.prompt1Question && current.prompt1Answer ? (
+            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+                Featured prompt
+              </p>
+              <p className="mt-2 text-sm font-medium text-zinc-100">
+                {current.prompt1Question}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+                {current.prompt1Answer}
+              </p>
+            </div>
+          ) : null}
+          {current.prompt2Question && current.prompt2Answer ? (
+            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+                More from their profile
+              </p>
+              <p className="mt-2 text-sm font-medium text-zinc-100">
+                {current.prompt2Question}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+                {current.prompt2Answer}
+              </p>
+            </div>
+          ) : null}
+          {current.goal ? (
+            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+                Current focus
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+                {current.goal}
+              </p>
+            </div>
+          ) : null}
           {star && heroCover ? (
             <div className="space-y-3 rounded-[26px] border border-white/5 bg-white/[0.05] p-4 sm:p-5">
               <div className="flex flex-col items-start gap-4 sm:flex-row">
