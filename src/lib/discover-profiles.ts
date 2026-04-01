@@ -8,6 +8,7 @@ export function inferProfileRole(raw: string | null): Role {
   const s = (raw ?? "").toLowerCase();
   if (s.includes("producer")) return "producer";
   if (s.includes("dj")) return "dj";
+  if (s.includes("engineer")) return "engineer";
   if (s.includes("venue") || s.includes("promoter")) return "venue";
   if (s.includes("artist")) return "artist";
   return "artist";
@@ -15,9 +16,10 @@ export function inferProfileRole(raw: string | null): Role {
 
 function accentForRole(r: Role): string {
   const m: Record<Role, string> = {
-    producer: "from-violet-600 to-fuchsia-600",
-    artist: "from-emerald-600 to-teal-600",
-    dj: "from-amber-500 to-orange-600",
+    producer: "from-amber-400 via-orange-500 to-amber-600",
+    artist: "from-zinc-100 via-amber-300 to-orange-500",
+    dj: "from-amber-500 via-orange-500 to-amber-700",
+    engineer: "from-zinc-300 via-zinc-100 to-amber-500",
     venue: "from-slate-600 to-zinc-700",
   };
   return m[r];

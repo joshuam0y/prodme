@@ -36,7 +36,7 @@ export default async function Home({
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-pretty text-lg leading-relaxed text-zinc-400">
             Build a profile, share your sound, and find artists, producers, DJs,
-            and venues that match your style and goals.
+            engineers, and venues that match your style and goals.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Link
@@ -46,10 +46,10 @@ export default async function Home({
               Start discovering
             </Link>
             <Link
-              href="/onboarding"
+              href="/how-it-works"
               className="inline-flex h-12 min-w-[200px] items-center justify-center rounded-full border border-white/15 bg-white/5 px-8 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
             >
-              Build your profile
+              See how it works
             </Link>
           </div>
         </div>

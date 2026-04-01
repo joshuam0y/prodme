@@ -1,4 +1,4 @@
-export type Role = "producer" | "artist" | "dj" | "venue";
+export type Role = "producer" | "artist" | "dj" | "engineer" | "venue";
 
 /** Short audio preview for discover cards (URLs must allow streaming). */
 export type BeatPreview = {

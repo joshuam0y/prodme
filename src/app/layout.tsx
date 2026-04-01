@@ -110,16 +110,20 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[var(--background)]">
         <RefreshToHome />
-        <SiteHeader
-          user={user}
-          profileAvatarUrl={profileAvatarUrl}
-          supabaseEnabled={supabaseEnabled}
-          unreadMessages={unreadMessages}
-          unreadNotifications={unreadNotifications}
-          showBuildProfileNav={showBuildProfileNav}
-        />
-        <div className="flex flex-1 flex-col">{children}</div>
-        <SiteFooter />
+        <div className="flex min-h-full flex-1 md:flex-row">
+          <SiteHeader
+            user={user}
+            profileAvatarUrl={profileAvatarUrl}
+            supabaseEnabled={supabaseEnabled}
+            unreadMessages={unreadMessages}
+            unreadNotifications={unreadNotifications}
+            showBuildProfileNav={showBuildProfileNav}
+          />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex flex-1 flex-col">{children}</div>
+            <SiteFooter />
+          </div>
+        </div>
         <Analytics />
       </body>
     </html>

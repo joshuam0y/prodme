@@ -3,6 +3,7 @@ import type { Role } from "@/lib/types";
 function normalizeRole(role: string | null | undefined): Role | null {
   const value = (role ?? "").trim().toLowerCase();
   if (value.includes("venue") || value.includes("promoter")) return "venue";
+  if (value.includes("engineer")) return "engineer";
   if (value.includes("artist") || value.includes("vocal")) return "artist";
   if (value === "dj") return "dj";
   if (value === "producer") return "producer";
@@ -23,6 +24,10 @@ export function buildDefaultDraftOpener(matchName: string, targetRole?: string |
 
   if (role === "dj") {
     return `Hey ${name}, what kind of sets or opportunities are you most focused on right now?`;
+  }
+
+  if (role === "engineer") {
+    return `Hey ${name}, what kind of artists or sessions are you most excited to work on right now?`;
   }
 
   return `Hey ${name}, what are you working on right now?`;
@@ -74,6 +79,18 @@ export function buildRoleAwareOpeners(input: {
       theirLookingFor
         ? `You said you're looking for ${theirLookingFor.toLowerCase()}. What would a strong fit look like?`
         : "What kind of connection would actually be useful for you right now?",
+    ];
+  }
+
+  if (role === "engineer") {
+    return [
+      `Hey ${themName}, what kind of sessions or artists are you most focused on right now?`,
+      theirNiche
+        ? `You mentioned ${theirNiche.toLowerCase()} - what kind of sound are you best at helping people shape?`
+        : "What kind of records do you love helping people finish?",
+      theirLookingFor
+        ? `You said you're looking for ${theirLookingFor.toLowerCase()}. What makes someone a strong fit to work with you?`
+        : "What kind of collaborator usually gets the best work out of you?",
     ];
   }
 

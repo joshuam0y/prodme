@@ -17,7 +17,7 @@ function stepsForRole(role?: string) {
       id: "role",
       title: "What do you do?",
       subtitle: "We’ll tune discovery and copy to your side of the table.",
-      options: ["Producer", "Artist / vocalist", "DJ", "Venue / promoter"],
+      options: ["Producer", "Artist / vocalist", "DJ", "Engineer", "Venue / promoter"],
     },
     {
       id: "niche",

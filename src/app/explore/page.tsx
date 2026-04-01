@@ -1,22 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SwipeStack } from "@/components/swipe-stack";
-import { DistanceFilter } from "@/components/distance-filter";
 import { DiscoverFilterBar } from "@/components/discover-filter-bar";
 import { getLiveProfileCards, inferProfileRole } from "@/lib/discover-profiles";
 import { trackServerEvent } from "@/lib/analytics";
+import { roleLabel } from "@/lib/role-label";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { isProfileQuestionnaireComplete } from "@/lib/profile-completion";
 import type { Role } from "@/lib/types";
 
 type DiscoverGroup = "creatives" | "venues";
-
-const FILTERS: { group: DiscoverGroup | ""; label: string }[] = [
-  { group: "", label: "All" },
-  { group: "creatives", label: "Creatives" },
-  { group: "venues", label: "Venues" },
-];
 
 function isGroup(s: string | undefined): s is DiscoverGroup | "" {
   return s === "" || s === "creatives" || s === "venues";
@@ -113,10 +107,6 @@ export default async function ExplorePage({
   const effectiveGroupFilter =
     viewerRole === "venue" && groupFilter === "" ? "creatives" : groupFilter;
 
-  const filterLinks =
-    viewerRole === "venue"
-      ? FILTERS.filter((f) => f.group === "creatives")
-      : FILTERS;
   await trackServerEvent({
     event: "discover_opened",
     path: `/explore${effectiveGroupFilter ? `?group=${effectiveGroupFilter}` : ""}`,
@@ -124,20 +114,16 @@ export default async function ExplorePage({
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-10 sm:px-6">
-      <div className="mb-8 text-center">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
           Discover
         </h1>
-        <p className="mt-3 mx-auto max-w-xl text-sm leading-relaxed text-zinc-500">
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-500">
           {viewerId ? (
             <>
-              Browse real prodLink members who finished building their profiles.
-              {viewerRole === "venue"
-                ? " You only browse creatives."
-                : " Filter by creatives or venues."}{" "}
-              <span className="text-zinc-400">Open a card → View full profile</span> for the public
-              page.
+              Swipe through active prodLink profiles, open any card for the full profile, and keep the momentum going.
+              {viewerRole === "venue" ? " Your feed stays focused on creatives." : null}
             </>
           ) : (
             <>
@@ -158,46 +144,14 @@ export default async function ExplorePage({
             {notice}
           </p>
         ) : null}
-        <div className="mt-8">
-          <p
-            id="discover-filters"
-            className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-zinc-500"
-          >
-            Show
-          </p>
-          <div
-            className="flex flex-wrap items-center justify-center gap-2"
-            role="group"
-            aria-labelledby="discover-filters"
-          >
-            {filterLinks.map(({ group, label }) => {
-              const href = group ? `/explore?group=${group}` : "/explore";
-              const linkActive =
-                group === ""
-                  ? effectiveGroupFilter === ""
-                  : effectiveGroupFilter === group;
-              return (
-                <Link
-                  key={group || "all"}
-                  href={href}
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition sm:text-sm ${
-                    linkActive
-                      ? "bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40"
-                      : "bg-white/5 text-zinc-400 ring-1 ring-white/10 hover:bg-white/10 hover:text-zinc-200"
-                  }`}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
         <DiscoverFilterBar
-          key={`${groupFilter || "all"}-${sort}-${lookingForQ}`}
+          key={`${groupFilter || "all"}-${sort}-${lookingForQ}-${maxKm}`}
+          initialGroup={effectiveGroupFilter}
           initialSort={sort}
           initialLookingFor={lookingForQ}
+          initialKm={maxKm}
+          allowVenueFilter={viewerRole !== "venue"}
         />
-        <DistanceFilter key={`${groupFilter || "all"}-${maxKm}`} initialKm={maxKm} />
       </div>
 
       {recommendedProfiles.length > 0 ? (
@@ -224,7 +178,7 @@ export default async function ExplorePage({
                   <div className="min-w-0">
                     <p className="truncate font-medium text-zinc-100">{profile.displayName}</p>
                     <p className="mt-1 text-xs text-zinc-500">
-                      {profile.role} · {profile.city}
+                      {roleLabel(profile.role)} · {profile.city}
                     </p>
                   </div>
                   <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-zinc-300">

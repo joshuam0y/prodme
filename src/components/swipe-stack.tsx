@@ -24,6 +24,7 @@ const roleLabel: Record<ProfileCard["role"], string> = {
   producer: "Producer",
   artist: "Artist",
   dj: "DJ",
+  engineer: "Engineer",
   venue: "Venue",
 };
 
@@ -150,6 +151,15 @@ export function SwipeStack({ profiles, viewerId }: Props) {
     if (!preloadUrl) return;
     const img = new window.Image();
     img.src = preloadUrl;
+  }, [visibleProfiles]);
+
+  useEffect(() => {
+    const next = visibleProfiles[1];
+    if (!next || next.role === "venue" || !next.starBeat?.audioUrl) return;
+    const preloader = new Audio();
+    preloader.preload = "auto";
+    preloader.src = next.starBeat.audioUrl;
+    preloader.load();
   }, [visibleProfiles]);
 
   useEffect(() => {
@@ -494,7 +504,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
   const stampOpacity = Math.min(1, Math.max(0, (absX - 26) / 90));
 
   return (
-    <div className="relative mx-auto w-full max-w-md">
+    <div className="relative mx-auto w-full max-w-2xl">
       {matchModal ? (
         <div
           className="fixed inset-0 z-[95] flex items-center justify-center bg-black/80 p-4"
@@ -618,7 +628,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerEnd}
         style={dragTransform}
-        className={`relative z-10 min-h-[420px] sm:min-h-[480px] touch-none overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/50 shadow-2xl select-none ${
+        className={`relative z-10 min-h-[560px] sm:min-h-[680px] touch-none overflow-hidden rounded-[30px] border border-white/10 bg-zinc-900/60 shadow-[0_30px_100px_rgba(0,0,0,0.3)] select-none ${
           dragging && !exitDir ? "cursor-grabbing" : "cursor-grab"
         } ${
           dragging && !exitDir
@@ -659,24 +669,24 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           </div>
         ) : null}
         <div
-          className={`h-28 bg-gradient-to-br ${current.accent} opacity-90`}
+          className={`h-40 bg-gradient-to-br ${current.accent} opacity-95 sm:h-48`}
           aria-hidden
         />
-        <div className="space-y-3 px-4 pb-6 pt-1 sm:px-6 sm:pb-8 sm:pt-2">
+        <div className="space-y-5 px-5 pb-7 pt-2 sm:px-7 sm:pb-9 sm:pt-3">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3">
               <ProfileAvatar
                 name={current.displayName}
                 avatarUrl={current.avatarUrl}
-                sizeClassName="h-12 w-12"
+                sizeClassName="h-14 w-14"
                 textClassName="text-sm font-semibold text-zinc-100"
                 ringClassName="border border-white/10 bg-zinc-800/60"
               />
               <div className="min-w-0">
-                <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-50">
+                <h2 className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-[2rem]">
                   {current.displayName}
                 </h2>
-                <p className="text-sm text-zinc-400">
+                <p className="mt-1 text-sm text-zinc-300 sm:text-base">
                   {roleLabel[current.role]} · {current.city}
                   {typeof current.distanceKm === "number" ? ` · ${Math.round(current.distanceKm)} km away` : ""}
                 </p>
@@ -687,16 +697,16 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                 ) : null}
               </div>
             </div>
-            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] sm:text-xs text-zinc-300">
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] sm:text-xs text-zinc-200">
               {current.niche}
             </span>
           </div>
           {star ? (
-            <p className="text-sm leading-relaxed text-zinc-300">{current.bio}</p>
+            <p className="max-w-2xl text-base leading-relaxed text-zinc-200">{current.bio}</p>
           ) : null}
           {star && heroCover ? (
-            <div className="space-y-2 rounded-xl border border-white/5 bg-white/[0.04] p-3 sm:p-4">
-              <div className="flex items-start gap-3">
+            <div className="space-y-3 rounded-[26px] border border-white/5 bg-white/[0.05] p-4 sm:p-5">
+              <div className="flex flex-col items-start gap-4 sm:flex-row">
                 {isVenueProfile || isPhotoOnlyStar ? (
                   <button
                     type="button"
@@ -704,25 +714,25 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                       e.stopPropagation();
                       openLightbox(heroCover);
                     }}
-                    className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-800 ring-1 ring-white/10 hover:ring-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                    className="relative h-28 w-full shrink-0 overflow-hidden rounded-2xl bg-zinc-800 ring-1 ring-white/10 hover:ring-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/40 sm:h-28 sm:w-28"
                     aria-label="Open featured photo"
                   >
                     <Image
                       src={heroCover}
                       alt=""
-                      width={80}
-                      height={80}
+                      width={160}
+                      height={160}
                       className="h-full w-full object-cover"
                       unoptimized
                     />
                   </button>
                 ) : (
-                  <div className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-800 ring-1 ring-white/10">
+                  <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-2xl bg-zinc-800 ring-1 ring-white/10 sm:h-28 sm:w-28">
                     <Image
                       src={heroCover}
                       alt=""
-                      width={80}
-                      height={80}
+                      width={160}
+                      height={160}
                       className="h-full w-full object-cover"
                       unoptimized
                     />
@@ -730,7 +740,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                 )}
                 <div className="min-w-0 flex-1">
                   <p
-                    className={`text-[10px] font-semibold uppercase tracking-widest ${
+                    className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${
                       playingStar ? "text-amber-500/90" : "text-zinc-400"
                     }`}
                   >
@@ -742,10 +752,10 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                         ? "Star track"
                         : "Now playing"}
                   </p>
-                  <p className="mt-0.5 truncate text-sm font-medium text-zinc-100">
+                  <p className="mt-1 truncate text-lg font-semibold text-zinc-100">
                     {isVenueProfile ? star.title : playingMeta?.title ?? star.title}
                   </p>
-                  <p className="mt-1 text-[11px] text-zinc-500">
+                  <p className="mt-2 text-sm text-zinc-400">
                     {isVenueProfile
                       ? "Photo highlights — swipe for the next person."
                       : isPhotoOnlyStar
@@ -755,11 +765,11 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                         : "Extra preview on this profile — swipe for the next person."}
                   </p>
                   {isVenueProfile || isPhotoOnlyStar ? (
-                    <p className="mt-1 text-[10px] uppercase tracking-wider text-amber-300/85">
+                    <p className="mt-2 text-[11px] uppercase tracking-[0.2em] text-amber-300/85">
                       Tap photo to expand
                     </p>
                   ) : null}
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <div className="mt-3 flex flex-wrap items-center gap-2.5">
                     {isVenueProfile || isPhotoOnlyStar ? null : (
                       <>
                         <button
@@ -768,7 +778,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                             e.stopPropagation();
                             toggleMainPlay();
                           }}
-                          className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-medium text-amber-300 ring-1 ring-amber-500/35 transition hover:bg-amber-500/30"
+                          className="rounded-full bg-amber-500/20 px-4 py-1.5 text-xs font-medium text-amber-300 ring-1 ring-amber-500/35 transition hover:bg-amber-500/30"
                         >
                           {audioReady ? "Pause" : "Play"}
                         </button>
@@ -779,7 +789,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                               e.stopPropagation();
                               playBeat(star);
                             }}
-                            className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
+                            className="rounded-full border border-white/15 px-4 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
                           >
                             Play star track
                           </button>
@@ -792,7 +802,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
 
               {extras.length > 0 ? (
                 <div>
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
                     {isVenueProfile ? "More photos" : "More beats"}
                   </p>
                   <ul className="flex flex-wrap gap-2">
@@ -946,9 +956,6 @@ export function SwipeStack({ profiles, viewerId }: Props) {
             View full profile
           </Link>
         ) : null}
-        <p className="text-center text-[11px] sm:text-xs text-zinc-600">
-          Drag left or right, or use Pass / Save — keys: ← → and Z to undo
-        </p>
       </div>
     </div>
   );
