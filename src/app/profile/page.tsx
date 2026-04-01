@@ -31,7 +31,7 @@ export default async function ProfilePage() {
   const { data: row, error } = await supabase
     .from("profiles")
     .select(
-      "id, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, latitude, longitude, location_radius_km, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, created_at, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, latitude, longitude, location_radius_km, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -45,7 +45,7 @@ export default async function ProfilePage() {
     const { data: minimalRow, error: minimalErr } = await supabase
       .from("profiles")
       .select(
-        "id, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, latitude, longitude, location_radius_km, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, updated_at",
+        "id, created_at, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, latitude, longitude, location_radius_km, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, updated_at",
       )
       .eq("id", user.id)
       .maybeSingle();
@@ -144,10 +144,18 @@ export default async function ProfilePage() {
         </div>
         <div>
           <dt className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-            Profile completed
+            Signed up
           </dt>
           <dd className="mt-1 text-zinc-100">
-            {formatDisplayDate(profile?.onboarding_completed_at)}
+            {formatDisplayDate(profile?.created_at ?? profile?.onboarding_completed_at)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+            Last seen
+          </dt>
+          <dd className="mt-1 text-zinc-100">
+            {formatDisplayDate(profile?.updated_at ?? profile?.onboarding_completed_at)}
           </dd>
         </div>
         <div>

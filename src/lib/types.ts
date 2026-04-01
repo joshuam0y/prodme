@@ -58,6 +58,7 @@ export type BeatBundle = {
 /** Row in `public.profiles` */
 export type DbProfile = {
   id: string;
+  created_at?: string | null;
   display_name: string | null;
   avatar_url?: string | null;
   ai_summary?: string | null;
