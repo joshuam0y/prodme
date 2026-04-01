@@ -1,7 +1,12 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { PROFILE_PROMPT_OPTIONS } from "@/lib/profile-prompts";
+import {
+  getProfilePromptHeading,
+  getProfilePromptOptions,
+  getProfilePromptSubheading,
+  isVenueProfileRole,
+} from "@/lib/profile-prompts";
 import { generateProfileBasicsSuggestions, updateProfileBasics } from "./actions";
 
 type Props = {
@@ -35,46 +40,38 @@ export function ProfileBasicsForm({ initial }: Props) {
   const [prompt2Q, setPrompt2Q] = useState(initial.prompt2Q);
   const [prompt2A, setPrompt2A] = useState(initial.prompt2A);
   const [message, setMessage] = useState<string | null>(null);
-  const [aiMeta, setAiMeta] = useState<{ summary: string; tags: string[]; score: number } | null>(null);
+  const [aiMeta, setAiMeta] = useState<{
+    summary: string;
+    strengths: string[];
+    improvements: string[];
+    nextStep: string | null;
+    tags: string[];
+    score: number;
+  } | null>(null);
+  const isVenue = useMemo(() => isVenueProfileRole(initial.role), [initial.role]);
+  const promptOptions = useMemo(() => getProfilePromptOptions(initial.role), [initial.role]);
+  const promptHeading = useMemo(() => getProfilePromptHeading(initial.role), [initial.role]);
+  const promptSubheading = useMemo(() => getProfilePromptSubheading(initial.role), [initial.role]);
   const suggestedPromptOptions = useMemo(() => {
-    const roleLower = initial.role.toLowerCase();
-    const preferred = PROFILE_PROMPT_OPTIONS.filter((option) => {
-      if (roleLower.includes("venue") || roleLower.includes("promoter")) {
-        return (
-          option.question.includes("city") ||
-          option.question.includes("ideal studio vibe") ||
-          option.question.includes("bring") ||
-          option.question.includes("trying to meet")
-        );
-      }
-      return (
-        option.question.includes("track") ||
-        option.question.includes("sound") ||
-        option.question.includes("collab") ||
-        option.question.includes("building toward") ||
-        option.question.includes("trying to meet")
-      );
-    });
-
     const current = [prompt1Q, prompt2Q].filter(Boolean);
-    const unique = [...preferred, ...PROFILE_PROMPT_OPTIONS].filter(
+    const unique = promptOptions.filter(
       (option, index, all) => all.findIndex((entry) => entry.question === option.question) === index,
     );
     return unique.filter((option) => !current.includes(option.question)).slice(0, 8);
-  }, [initial.role, prompt1Q, prompt2Q]);
+  }, [promptOptions, prompt1Q, prompt2Q]);
 
   function applyPrompt(slot: 1 | 2, question: string) {
     if (slot === 1) {
       setPrompt1Q(question);
       if (!prompt1A.trim()) {
-        const cue = PROFILE_PROMPT_OPTIONS.find((option) => option.question === question)?.cue ?? "";
+        const cue = promptOptions.find((option) => option.question === question)?.cue ?? "";
         setPrompt1A(cue);
       }
       return;
     }
     setPrompt2Q(question);
     if (!prompt2A.trim()) {
-      const cue = PROFILE_PROMPT_OPTIONS.find((option) => option.question === question)?.cue ?? "";
+      const cue = promptOptions.find((option) => option.question === question)?.cue ?? "";
       setPrompt2A(cue);
     }
   }
@@ -100,22 +97,44 @@ export function ProfileBasicsForm({ initial }: Props) {
       </div>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <label className="block text-xs font-medium text-zinc-500">
-          Style
-          <input className={fieldClass} value={niche} onChange={(e) => setNiche(e.target.value)} />
+          {isVenue ? "Room vibe" : "Style"}
+          <input
+            className={fieldClass}
+            value={niche}
+            onChange={(e) => setNiche(e.target.value)}
+            placeholder={
+              isVenue
+                ? "e.g. Intimate indie room for discovery shows and curated DJ nights"
+                : "e.g. Alt-pop with glossy hooks, late-night house, sample-heavy rap production"
+            }
+          />
         </label>
         <label className="block text-xs font-medium text-zinc-500">
           Goal
-          <input className={fieldClass} value={goal} onChange={(e) => setGoal(e.target.value)} />
+          <input
+            className={fieldClass}
+            value={goal}
+            onChange={(e) => setGoal(e.target.value)}
+            placeholder={
+              isVenue
+                ? "e.g. Book stronger weekly lineups and build a real local following"
+                : "e.g. Finish my next EP, land sessions, and play more local shows"
+            }
+          />
         </label>
       </div>
       <div className="mt-4">
         <label className="block text-xs font-medium text-zinc-500">
-          Looking for
+          {isVenue ? "Looking for artists who..." : "Looking for"}
           <input
             className={fieldClass}
             value={lookingFor}
             onChange={(e) => setLookingFor(e.target.value)}
-            placeholder="e.g. Vocalists · Studio sessions · Venue bookings"
+            placeholder={
+              isVenue
+                ? "e.g. Bring a real draw, fit our room, and know how to promote their set"
+                : "e.g. Vocalists · Studio sessions · DJ swaps · Venue bookings"
+            }
           />
         </label>
       </div>
@@ -123,10 +142,10 @@ export function ProfileBasicsForm({ initial }: Props) {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-              Prompts (Hinge-style)
+              {promptHeading}
             </p>
             <p className="mt-1 text-sm text-zinc-500">
-              Pick conversation starters instead of writing prompt titles from scratch.
+              {promptSubheading}
             </p>
           </div>
         </div>
@@ -154,7 +173,7 @@ export function ProfileBasicsForm({ initial }: Props) {
               onChange={(e) => setPrompt1Q(e.target.value)}
             >
               <option value="">Choose a prompt...</option>
-              {PROFILE_PROMPT_OPTIONS.map((option) => (
+              {promptOptions.map((option) => (
                 <option key={option.question} value={option.question}>
                   {option.question}
                 </option>
@@ -163,7 +182,7 @@ export function ProfileBasicsForm({ initial }: Props) {
           </label>
           {prompt1Q ? (
             <p className="text-xs text-zinc-500">
-              {PROFILE_PROMPT_OPTIONS.find((option) => option.question === prompt1Q)?.cue ||
+              {promptOptions.find((option) => option.question === prompt1Q)?.cue ||
                 "Answer this in a way that gives someone an easy opener."}
             </p>
           ) : null}
@@ -174,7 +193,11 @@ export function ProfileBasicsForm({ initial }: Props) {
               rows={3}
               value={prompt1A}
               onChange={(e) => setPrompt1A(e.target.value)}
-              placeholder="Say it in a sentence or two…"
+              placeholder={
+                isVenue
+                  ? "Give artists a concrete answer that helps them understand the room or your taste..."
+                  : "Say it in a sentence or two..."
+              }
             />
           </label>
           <label className="block text-xs font-medium text-zinc-500">
@@ -185,7 +208,7 @@ export function ProfileBasicsForm({ initial }: Props) {
               onChange={(e) => setPrompt2Q(e.target.value)}
             >
               <option value="">Choose a prompt...</option>
-              {PROFILE_PROMPT_OPTIONS.map((option) => (
+              {promptOptions.map((option) => (
                 <option key={option.question} value={option.question}>
                   {option.question}
                 </option>
@@ -194,7 +217,7 @@ export function ProfileBasicsForm({ initial }: Props) {
           </label>
           {prompt2Q ? (
             <p className="text-xs text-zinc-500">
-              {PROFILE_PROMPT_OPTIONS.find((option) => option.question === prompt2Q)?.cue ||
+              {promptOptions.find((option) => option.question === prompt2Q)?.cue ||
                 "Keep it specific enough that someone could reply to it."}
             </p>
           ) : null}
@@ -205,7 +228,11 @@ export function ProfileBasicsForm({ initial }: Props) {
               rows={3}
               value={prompt2A}
               onChange={(e) => setPrompt2A(e.target.value)}
-              placeholder="Artists, genres, vibe…"
+              placeholder={
+                isVenue
+                  ? "Share the crowd, booking taste, or what makes a strong pitch..."
+                  : "Artists, genres, vibe..."
+              }
             />
           </label>
         </div>
@@ -215,7 +242,9 @@ export function ProfileBasicsForm({ initial }: Props) {
           <div>
             <p className="text-sm font-semibold text-zinc-100">Profile coach</p>
             <p className="mt-1 text-sm text-zinc-500">
-              Get sharper feedback on clarity, tone, and whether your profile feels worth replying to.
+              {isVenue
+                ? "Get sharper feedback on whether your room, booking taste, and outreach expectations feel clear."
+                : "Get sharper feedback on clarity, tone, and whether your profile feels worth replying to."}
             </p>
           </div>
           <button
@@ -249,6 +278,9 @@ export function ProfileBasicsForm({ initial }: Props) {
                 setPrompt2A(suggestion.prompt2Answer);
                 setAiMeta({
                   summary: suggestion.summary,
+                  strengths: suggestion.strengths ?? [],
+                  improvements: suggestion.improvements ?? [],
+                  nextStep: suggestion.nextStep ?? null,
                   tags: suggestion.tags,
                   score: suggestion.score,
                 });
@@ -266,6 +298,38 @@ export function ProfileBasicsForm({ initial }: Props) {
               Coach feedback
             </p>
             <p className="mt-2 text-sm text-zinc-300">{aiMeta.summary}</p>
+            {aiMeta.strengths.length > 0 ? (
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300/80">
+                  What works
+                </p>
+                <ul className="mt-2 space-y-1 text-sm text-zinc-300">
+                  {aiMeta.strengths.map((item) => (
+                    <li key={item}>- {item}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {aiMeta.improvements.length > 0 ? (
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-amber-300/80">
+                  What's unclear
+                </p>
+                <ul className="mt-2 space-y-1 text-sm text-zinc-300">
+                  {aiMeta.improvements.map((item) => (
+                    <li key={item}>- {item}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {aiMeta.nextStep ? (
+              <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                  Next fix
+                </p>
+                <p className="mt-1 text-sm text-zinc-200">{aiMeta.nextStep}</p>
+              </div>
+            ) : null}
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
                 Clarity {aiMeta.score}/100

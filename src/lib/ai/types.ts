@@ -20,6 +20,9 @@ export type ProfileCoachSuggestion = {
   prompt2Question: string;
   prompt2Answer: string;
   summary: string;
+  strengths?: string[];
+  improvements?: string[];
+  nextStep?: string | null;
   tags: string[];
   score: number;
 };

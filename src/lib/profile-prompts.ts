@@ -3,7 +3,7 @@ export type ProfilePromptOption = {
   cue: string;
 };
 
-export const PROFILE_PROMPT_OPTIONS: ProfilePromptOption[] = [
+export const CREATIVE_PROFILE_PROMPT_OPTIONS: ProfilePromptOption[] = [
   { question: "The kind of collab I want more of is...", cue: "Talk about the exact energy, role, or type of project you want." },
   { question: "A track that explains my taste is...", cue: "Pick one song or artist and explain why it fits your world." },
   { question: "My creative green flags are...", cue: "Mention habits, work ethic, or communication style that make you easy to build with." },
@@ -25,3 +25,42 @@ export const PROFILE_PROMPT_OPTIONS: ProfilePromptOption[] = [
   { question: "The last thing that inspired me was...", cue: "Name a performance, sound, place, person, or moment." },
   { question: "The people I'm trying to meet on here are...", cue: "Be direct about who you want in your circle." },
 ];
+
+export const VENUE_PROFILE_PROMPT_OPTIONS: ProfilePromptOption[] = [
+  { question: "The kind of events we're booking more of are...", cue: "Name the energy, genres, crowd, or format you want more of." },
+  { question: "A great fit for our room usually looks like...", cue: "Describe the artists, audience, and vibe that work best in your space." },
+  { question: "What makes our venue stand out is...", cue: "Mention the room, sound, location, community, or atmosphere." },
+  { question: "We're most excited to hear from artists who...", cue: "Set expectations clearly so the right people know to reach out." },
+  { question: "The best night we've hosted lately felt like...", cue: "Make the space feel real with one vivid detail." },
+  { question: "If you're pitching us, include...", cue: "Tell artists exactly what helps you say yes faster." },
+  { question: "Our crowd usually shows up for...", cue: "Describe the audience honestly and specifically." },
+  { question: "Right now we're building toward...", cue: "Talk about your next season, series, residency, or type of event." },
+  { question: "We love working with artists who...", cue: "Highlight reliability, fit, professionalism, or performance energy." },
+  { question: "A booking green flag for us is...", cue: "Mention the signs that make you trust an artist or team." },
+  { question: "The city needs more nights like...", cue: "Show taste and point of view about the local scene." },
+  { question: "Ask us about...", cue: "Pick something that naturally starts a booking conversation." },
+];
+
+export const PROFILE_PROMPT_OPTIONS = [
+  ...CREATIVE_PROFILE_PROMPT_OPTIONS,
+  ...VENUE_PROFILE_PROMPT_OPTIONS,
+];
+
+export function isVenueProfileRole(role: string | null | undefined): boolean {
+  const normalized = (role ?? "").toLowerCase();
+  return normalized.includes("venue") || normalized.includes("promoter");
+}
+
+export function getProfilePromptOptions(role: string | null | undefined): ProfilePromptOption[] {
+  return isVenueProfileRole(role) ? VENUE_PROFILE_PROMPT_OPTIONS : CREATIVE_PROFILE_PROMPT_OPTIONS;
+}
+
+export function getProfilePromptHeading(role: string | null | undefined): string {
+  return isVenueProfileRole(role) ? "Prompts (booking-style)" : "Prompts (Hinge-style)";
+}
+
+export function getProfilePromptSubheading(role: string | null | undefined): string {
+  return isVenueProfileRole(role)
+    ? "Pick booking prompts that help artists understand your room, your crowd, and how to reach out."
+    : "Pick conversation starters instead of writing prompt titles from scratch.";
+}
