@@ -113,6 +113,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   const lookingFor = profile.looking_for?.trim() || null;
   const goal = profile.goal?.trim() || null;
   const niche = profile.niche?.trim() || null;
+  const heroUsesPrompt1 = Boolean(prompt1Question && prompt1Answer);
   const heroIntro = isVenueProfile
     ? lookingFor || prompt1Answer || goal || niche || null
     : prompt1Answer || lookingFor || goal || niche || null;
@@ -158,7 +159,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   const highlightTitle = isVenueProfile ? "Photo highlight" : starBeat?.audioUrl ? "Featured track" : "Featured photo";
   const collectionTitle = isVenueProfile ? "More photos" : anyExtraAudio ? "More tracks" : "More photos";
   const lookingForSection = lookingFor ? <InfoSection title={lookingForTitle}>{lookingFor}</InfoSection> : null;
-  const prompt1Section = prompt1Question && prompt1Answer ? (
+  const prompt1Section = prompt1Question && prompt1Answer && !heroUsesPrompt1 ? (
     <InfoSection title={promptLeadTitle} accent>
       <h3 className="text-sm font-semibold text-zinc-100">{prompt1Question}</h3>
       <p className="mt-2">{prompt1Answer}</p>
@@ -287,6 +288,11 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
             <p className="text-xs font-medium uppercase tracking-wider text-amber-300/90">
               {heroEyebrow}
             </p>
+          ) : null}
+          {heroUsesPrompt1 && prompt1Question ? (
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-50">
+              {prompt1Question}
+            </h2>
           ) : null}
           <p className="mt-2 text-xl leading-relaxed text-zinc-100 sm:text-[1.4rem]">
             {heroIntro}

@@ -1,8 +1,7 @@
 "use client";
 
 import { completeOnboarding } from "@/app/auth/actions";
-import { useTransition } from "react";
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { getProfilePromptOptions } from "@/lib/profile-prompts";
 
 function isVenueRole(role?: string) {
@@ -100,6 +99,10 @@ export function OnboardingForm({ error }: Props) {
   const setAnswer = (key: string, value: string) => {
     setAnswers((a) => ({ ...a, [key]: value }));
   };
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [step]);
 
   const submit = () => {
     const role = answers.role;
