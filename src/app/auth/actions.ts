@@ -214,6 +214,7 @@ export type OnboardingPayload = {
   niche: string;
   goal: string;
   city?: string;
+  looking_for: string;
   prompt_1_question: string;
   prompt_1_answer: string;
   prompt_2_question?: string;
@@ -230,6 +231,7 @@ async function refreshAiAfterOnboarding(userId: string, payload: OnboardingPaylo
       niche: payload.niche,
       goal: payload.goal,
       city: payload.city ?? "",
+      lookingFor: payload.looking_for,
       prompt1Question: payload.prompt_1_question,
       prompt1Answer: payload.prompt_1_answer,
       prompt2Question: payload.prompt_2_question ?? "",
@@ -276,10 +278,15 @@ export async function completeOnboarding(payload: OnboardingPayload) {
     (user.email?.split("@")[0] ?? "Member");
 
   const city = payload.city?.trim() ?? "";
+  const lookingFor = payload.looking_for.trim();
   const prompt1Question = normalizePromptValue(payload.prompt_1_question);
   const prompt1Answer = normalizePromptValue(payload.prompt_1_answer);
   const prompt2Question = normalizePromptValue(payload.prompt_2_question);
   const prompt2Answer = normalizePromptValue(payload.prompt_2_answer);
+
+  if (!lookingFor) {
+    redirect(`/onboarding?error=${encodeURIComponent("Add who or what you are looking for.")}`);
+  }
 
   if (!isCompletePrompt(prompt1Question, prompt1Answer)) {
     redirect(`/onboarding?error=${encodeURIComponent("Add at least one prompt question and answer.")}`);
@@ -300,6 +307,7 @@ export async function completeOnboarding(payload: OnboardingPayload) {
     role: payload.role,
     niche: payload.niche,
     goal: payload.goal,
+    looking_for: lookingFor,
     prompt_1_question: prompt1Question,
     prompt_1_answer: prompt1Answer,
     prompt_2_question: prompt2Question || null,

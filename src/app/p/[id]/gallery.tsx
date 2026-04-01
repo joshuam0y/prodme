@@ -9,16 +9,18 @@ type Item = { url: string; label: string };
 export function ProfileGallery({
   profileId,
   items,
+  title = "Gallery",
 }: {
   profileId: string;
   items: Item[];
+  title?: string;
 }) {
   const slides = useMemo(() => items.filter((i) => i.url.trim()), [items]);
   if (!slides.length) return null;
 
   return (
     <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
-      <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">Gallery</h2>
+      <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">{title}</h2>
       <div className="mt-3 grid grid-cols-3 gap-2">
         {slides.slice(0, 6).map((s, idx) => (
           <Link

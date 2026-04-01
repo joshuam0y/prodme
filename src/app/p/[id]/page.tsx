@@ -5,12 +5,40 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { beatsFromProfileRow } from "@/lib/profile-beats";
+import { isVenueProfileRole } from "@/lib/profile-prompts";
 import { isUuid } from "@/lib/uuid";
 import type { DbProfile } from "@/lib/types";
 import { StarRatingDisplay } from "@/components/star-rating-display";
 import { ProfileGallery, ProfileGalleryModal } from "./gallery";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ gallery?: string }> };
+
+function InfoSection({
+  title,
+  children,
+  compact = false,
+  accent = false,
+}: {
+  title: string;
+  children: React.ReactNode;
+  compact?: boolean;
+  accent?: boolean;
+}) {
+  return (
+    <section
+      className={`${compact ? "mt-4" : "mt-6"} rounded-2xl border border-white/10 bg-zinc-900/40 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.18)] backdrop-blur-sm`}
+    >
+      <h2
+        className={`text-xs font-medium uppercase tracking-wider ${
+          accent ? "text-amber-500/90" : "text-zinc-500"
+        }`}
+      >
+        {title}
+      </h2>
+      <div className="mt-2 text-sm leading-relaxed text-zinc-200">{children}</div>
+    </section>
+  );
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
@@ -75,14 +103,93 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   });
 
   const viewerId = viewer?.id ?? null;
-  const isVenueProfile =
-    profile.role?.toLowerCase().includes("venue") ||
-    profile.role?.toLowerCase().includes("promoter");
-  const aiTags = Array.isArray(profile.ai_tags)
-    ? profile.ai_tags.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0)
-    : [];
+  const isVenueProfile = isVenueProfileRole(profile.role);
   const anyExtraAudio = Boolean(extraBeats?.some((b) => Boolean(b.audioUrl)));
   const galleryOpen = sp.gallery === "1";
+  const prompt1Question = profile.prompt_1_question?.trim() || null;
+  const prompt1Answer = profile.prompt_1_answer?.trim() || null;
+  const prompt2Question = profile.prompt_2_question?.trim() || null;
+  const prompt2Answer = profile.prompt_2_answer?.trim() || null;
+  const lookingFor = profile.looking_for?.trim() || null;
+  const goal = profile.goal?.trim() || null;
+  const niche = profile.niche?.trim() || null;
+  const heroIntro = isVenueProfile
+    ? lookingFor || prompt1Answer || goal || niche || null
+    : prompt1Answer || lookingFor || goal || niche || null;
+  const heroEyebrow = isVenueProfile
+    ? lookingFor
+      ? "Booking fit"
+      : prompt1Question
+        ? "Room personality"
+        : goal
+          ? "Current focus"
+          : niche
+            ? "Venue vibe"
+            : null
+    : prompt1Question
+      ? "Featured answer"
+      : lookingFor
+        ? "Looking for"
+        : goal
+          ? "Current focus"
+          : niche
+            ? "About"
+            : null;
+  const heroSupport = isVenueProfile
+    ? niche || goal
+    : lookingFor || goal;
+  const heroChips = [
+    profile.role?.trim() || null,
+    profile.city?.trim() || null,
+    isVenueProfile ? goal : niche,
+  ].filter((value): value is string => Boolean(value));
+  const locationLabel = profile.neighborhood?.trim() || profile.city?.trim() || null;
+  const metaBits = [
+    profile.role?.trim() || "Creator",
+    locationLabel,
+    profile.verified ? "Verified" : null,
+  ].filter((value): value is string => Boolean(value));
+  const lookingForTitle = isVenueProfile ? "Booking fit" : "Looking for";
+  const goalTitle = isVenueProfile ? "What they're building" : "Focus";
+  const nicheTitle = isVenueProfile ? "Venue vibe" : "Sound";
+  const promptLeadTitle = isVenueProfile ? "Room Q&A" : "Featured prompt";
+  const promptFollowTitle = isVenueProfile ? "More from the room" : "More personality";
+  const galleryTitle = isVenueProfile ? "Venue gallery" : "Gallery";
+  const highlightTitle = isVenueProfile ? "Photo highlight" : starBeat?.audioUrl ? "Featured track" : "Featured photo";
+  const collectionTitle = isVenueProfile ? "More photos" : anyExtraAudio ? "More tracks" : "More photos";
+  const lookingForSection = lookingFor ? <InfoSection title={lookingForTitle}>{lookingFor}</InfoSection> : null;
+  const prompt1Section = prompt1Question && prompt1Answer ? (
+    <InfoSection title={promptLeadTitle} accent>
+      <h3 className="text-sm font-semibold text-zinc-100">{prompt1Question}</h3>
+      <p className="mt-2">{prompt1Answer}</p>
+    </InfoSection>
+  ) : null;
+  const prompt2Section = prompt2Question && prompt2Answer ? (
+    <InfoSection title={promptFollowTitle} compact>
+      <h3 className="text-sm font-semibold text-zinc-100">{prompt2Question}</h3>
+      <p className="mt-2">{prompt2Answer}</p>
+    </InfoSection>
+  ) : null;
+  const goalSection = goal ? (
+    <section className="mt-8">
+      <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+        {goalTitle}
+      </h2>
+      <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+        {goal}
+      </p>
+    </section>
+  ) : null;
+  const nicheSection = niche ? (
+    <section className="mt-6">
+      <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+        {nicheTitle}
+      </h2>
+      <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+        {niche}
+      </p>
+    </section>
+  ) : null;
   const galleryItems = [
     ...(profile.avatar_url?.trim() ? [{ url: profile.avatar_url.trim(), label: `${name} profile photo` }] : []),
     ...(starBeat?.coverUrl ? [{ url: starBeat.coverUrl, label: starBeat.title }] : []),
@@ -124,19 +231,22 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
       {galleryOpen ? <ProfileGalleryModal profileId={id} items={galleryItems} /> : null}
-      <div
-        className={`mb-8 h-32 rounded-2xl bg-gradient-to-br ${
-          profile.role?.toLowerCase().includes("producer")
-            ? "from-violet-600 to-fuchsia-600"
-            : profile.role?.toLowerCase().includes("dj")
-              ? "from-amber-500 to-orange-600"
-              : profile.role?.toLowerCase().includes("venue") ||
-                  profile.role?.toLowerCase().includes("promoter")
-                ? "from-slate-600 to-zinc-700"
-                : "from-emerald-600 to-teal-600"
-        } opacity-90`}
-        aria-hidden
-      />
+      <div className="relative mb-8 overflow-hidden rounded-[28px] border border-white/10 bg-zinc-900/40 shadow-[0_20px_80px_rgba(0,0,0,0.28)]">
+        <div
+          className={`h-32 bg-gradient-to-br ${
+            profile.role?.toLowerCase().includes("producer")
+              ? "from-violet-600 to-fuchsia-600"
+              : profile.role?.toLowerCase().includes("dj")
+                ? "from-amber-500 to-orange-600"
+                : profile.role?.toLowerCase().includes("venue") ||
+                    profile.role?.toLowerCase().includes("promoter")
+                  ? "from-slate-600 to-zinc-700"
+                  : "from-emerald-600 to-teal-600"
+          } opacity-90`}
+          aria-hidden
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.14),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_30%)]" />
+      </div>
 
       {isOwn ? (
         <p className="mb-4 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-center text-sm text-amber-200/90">
@@ -145,10 +255,10 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
       ) : null}
 
       {profile.avatar_url?.trim() ? (
-        <div className="mb-6 flex justify-center">
+        <div className="-mt-20 mb-6 flex justify-center">
           <Link
             href={`/p/${id}?gallery=1#img-0`}
-            className="relative h-28 w-28 overflow-hidden rounded-full border border-white/10 bg-zinc-900/40 ring-1 ring-white/10 transition hover:ring-amber-500/40"
+            className="relative h-32 w-32 overflow-hidden rounded-full border-4 border-zinc-950 bg-zinc-900/40 shadow-[0_18px_60px_rgba(0,0,0,0.35)] ring-1 ring-white/10 transition hover:ring-amber-500/40"
             aria-label="Open profile photo"
           >
             <Image
@@ -167,42 +277,33 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
           {name}
         </h1>
         <p className="text-sm text-zinc-400">
-          {profile.role ?? "Creator"}
-          {profile.neighborhood?.trim()
-            ? ` · ${profile.neighborhood.trim()}`
-            : profile.city?.trim()
-              ? ` · ${profile.city.trim()}`
-              : null}
-          {profile.niche ? ` · ${profile.niche}` : null}
-          {profile.verified ? " · Verified" : null}
+          {metaBits.join(" · ")}
         </p>
       </div>
 
-      {profile.ai_summary?.trim() || aiTags.length > 0 || typeof profile.ai_profile_score === "number" ? (
-        <section className="mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xs font-medium uppercase tracking-wider text-emerald-300/90">
-              AI summary
-            </h2>
-            {typeof profile.ai_profile_score === "number" ? (
-              <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200 ring-1 ring-emerald-500/30">
-                Score {profile.ai_profile_score}/100
-              </span>
-            ) : null}
-          </div>
-          {profile.ai_summary?.trim() ? (
-            <p className="mt-3 text-sm leading-relaxed text-zinc-200">
-              {profile.ai_summary.trim()}
+      {heroIntro ? (
+        <section className="mt-6 rounded-[28px] border border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-transparent p-6 shadow-[0_14px_50px_rgba(245,158,11,0.08)]">
+          {heroEyebrow ? (
+            <p className="text-xs font-medium uppercase tracking-wider text-amber-300/90">
+              {heroEyebrow}
             </p>
           ) : null}
-          {aiTags.length > 0 ? (
+          <p className="mt-2 text-xl leading-relaxed text-zinc-100 sm:text-[1.4rem]">
+            {heroIntro}
+          </p>
+          {heroSupport && heroSupport !== heroIntro ? (
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-300">
+              {heroSupport}
+            </p>
+          ) : null}
+          {heroChips.length > 0 ? (
             <div className="mt-4 flex flex-wrap gap-2">
-              {aiTags.map((tag) => (
+              {heroChips.map((chip) => (
                 <span
-                  key={tag}
-                  className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-zinc-300"
+                  key={chip}
+                  className="rounded-full border border-amber-500/20 bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-zinc-200"
                 >
-                  {tag}
+                  {chip}
                 </span>
               ))}
             </div>
@@ -210,63 +311,23 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
         </section>
       ) : null}
 
-      {profile.looking_for?.trim() ? (
-        <section className="mt-6 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-            Looking for
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-zinc-200">
-            {profile.looking_for.trim()}
-          </p>
-        </section>
-      ) : null}
-
-      {profile.prompt_1_question?.trim() && profile.prompt_1_answer?.trim() ? (
-        <section className="mt-6 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-amber-500/90">
-            Prompt
-          </p>
-          <h2 className="mt-2 text-sm font-semibold text-zinc-100">
-            {profile.prompt_1_question.trim()}
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-zinc-200">
-            {profile.prompt_1_answer.trim()}
-          </p>
-        </section>
-      ) : null}
-
-      {profile.prompt_2_question?.trim() && profile.prompt_2_answer?.trim() ? (
-        <section className="mt-4 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
-          <h2 className="text-sm font-semibold text-zinc-100">
-            {profile.prompt_2_question.trim()}
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-zinc-200">
-            {profile.prompt_2_answer.trim()}
-          </p>
-        </section>
-      ) : null}
-
-      {profile.goal ? (
-        <section className="mt-8">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-            Focus
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-zinc-300">
-            {profile.goal}
-          </p>
-        </section>
-      ) : null}
-
-      {profile.niche ? (
-        <section className="mt-6">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-            Niche
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-zinc-300">
-            {profile.niche}
-          </p>
-        </section>
-      ) : null}
+      {isVenueProfile ? (
+        <>
+          {lookingForSection}
+          {goalSection}
+          {nicheSection}
+          {prompt1Section}
+          {prompt2Section}
+        </>
+      ) : (
+        <>
+          {prompt1Section}
+          {prompt2Section}
+          {lookingForSection}
+          {goalSection}
+          {nicheSection}
+        </>
+      )}
 
       {ratingsDisabled ? (
         <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
@@ -298,7 +359,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
         isVenueProfile ? (
           <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
             <h2 className="text-xs font-medium uppercase tracking-wider text-amber-500/90">
-              Photo highlight
+              {highlightTitle}
             </h2>
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-zinc-800 ring-1 ring-white/10">
@@ -322,7 +383,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
         ) : (
           <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
             <h2 className="text-xs font-medium uppercase tracking-wider text-amber-500/90">
-              {starBeat.audioUrl ? "Star track" : "Featured photo"}
+              {highlightTitle}
             </h2>
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-zinc-800 ring-1 ring-white/10">
@@ -356,7 +417,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
       {extraBeats?.length ? (
         <section className="mt-6">
           <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-            {isVenueProfile ? "More photos" : anyExtraAudio ? "More beats" : "More photos"}
+            {collectionTitle}
           </h2>
           <ul className="mt-3 space-y-3">
             {extraBeats.map((b) => (
@@ -392,7 +453,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
         </section>
       ) : null}
 
-      <ProfileGallery profileId={id} items={galleryItems} />
+      <ProfileGallery profileId={id} items={galleryItems} title={galleryTitle} />
 
       <div className="mt-10 flex flex-col gap-3 sm:flex-row">
         <Link

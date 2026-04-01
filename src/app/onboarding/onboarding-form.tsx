@@ -42,6 +42,16 @@ function stepsForRole(role?: string) {
         ? ["Book performers for events", "Hire DJs / openers", "Find producers / artists"]
         : ["Sell beats or bundles", "Get gigs or placements", "Find collaborators"],
     },
+    {
+      id: "looking_for",
+      title: venue ? "What kind of artists are you looking for?" : "Who are you looking to meet?",
+      subtitle: venue
+        ? "Describe the artist fit, draw, energy, or professionalism you want."
+        : "Be clear about the collaborators, sessions, bookings, or opportunities you want.",
+      placeholder: venue
+        ? "e.g. Artists with a real live show, a local draw, and a sound that fits our room"
+        : "e.g. Vocalists for sessions, producers for co-production, DJs for swaps, indie venues for shows",
+    },
   ];
 }
 
@@ -61,14 +71,15 @@ export function OnboardingForm({ error }: Props) {
   const progress = ((step + 1) / steps.length) * 100;
 
   const canNext =
-    current.id === "niche"
-      ? Boolean((answers.niche ?? "").trim().length)
+    current.id === "niche" || current.id === "looking_for"
+      ? Boolean((answers[current.id] ?? "").trim().length)
       : Boolean(answers[current.id]);
   const profileSignals = [
     Boolean((answers.display_name ?? "").trim()),
     Boolean(answers.role),
     Boolean((answers.niche ?? "").trim()),
     Boolean(answers.goal),
+    Boolean((answers.looking_for ?? "").trim()),
     Boolean((answers.city ?? "").trim()),
   ];
   const completeness = Math.round(
@@ -94,7 +105,8 @@ export function OnboardingForm({ error }: Props) {
     const role = answers.role;
     const niche = answers.niche;
     const goal = answers.goal;
-    if (!role || !niche?.trim() || !goal || !prompt1Question || !prompt1Answer || duplicatePrompts || prompt2Incomplete) return;
+    const lookingFor = (answers.looking_for ?? "").trim();
+    if (!role || !niche?.trim() || !goal || !lookingFor || !prompt1Question || !prompt1Answer || duplicatePrompts || prompt2Incomplete) return;
 
     startTransition(() => {
       completeOnboarding({
@@ -103,6 +115,7 @@ export function OnboardingForm({ error }: Props) {
         niche: niche.trim(),
         goal,
         city: (answers.city ?? "").trim(),
+        looking_for: lookingFor,
         prompt_1_question: prompt1Question,
         prompt_1_answer: prompt1Answer,
         prompt_2_question: prompt2Question,
@@ -187,10 +200,11 @@ export function OnboardingForm({ error }: Props) {
               className="w-full rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
               rows={4}
               placeholder={"placeholder" in current ? current.placeholder : ""}
-              value={answers.niche ?? ""}
-              onChange={(e) => setAnswer("niche", e.target.value)}
+              value={(answers[current.id] ?? "")}
+              onChange={(e) => setAnswer(current.id, e.target.value)}
             />
-            <div>
+            {current.id === "niche" ? (
+              <div>
               <label
                 htmlFor="city"
                 className="text-xs font-medium text-zinc-500"
@@ -207,7 +221,8 @@ export function OnboardingForm({ error }: Props) {
                 onChange={(e) => setAnswer("city", e.target.value)}
                 className="mt-1.5 w-full rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
               />
-            </div>
+              </div>
+            ) : null}
           </div>
         )}
         <div className="mt-8 rounded-xl border border-white/10 bg-zinc-900/40 p-4">
