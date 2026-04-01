@@ -7,6 +7,7 @@ import { isProfileQuestionnaireComplete } from "@/lib/profile-completion";
 import { parseExtraBeats } from "@/lib/profile-beats";
 import type { DbProfile } from "@/lib/types";
 import { trackServerEvent } from "@/lib/analytics";
+import { ShareAppButton } from "@/components/share-app-button";
 import { ProfileAvatarForm } from "./profile-avatar-form";
 import { ProfileBasicsForm } from "./profile-basics-form";
 import { ProfileBeatsForm } from "./profile-beats-form";
@@ -199,6 +200,7 @@ export default async function ProfilePage() {
         >
           Discover
         </Link>
+        <ShareAppButton className="inline-flex justify-center rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-white/10" />
         {!incomplete ? (
           <Link
             href={`/p/${user.id}`}
