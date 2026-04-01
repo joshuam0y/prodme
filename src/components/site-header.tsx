@@ -77,12 +77,12 @@ export function SiteHeader({
             </Link>
 
             <details className="group relative">
-              <summary className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-lg border border-white/10 text-zinc-300 transition hover:bg-white/5 hover:text-zinc-100 [&::-webkit-details-marker]:hidden">
+              <summary className="flex h-9 min-w-9 cursor-pointer list-none items-center justify-center rounded-full border border-white/10 bg-zinc-950/40 px-3 text-zinc-300 transition hover:bg-white/5 hover:text-zinc-100 [&::-webkit-details-marker]:hidden">
                 <span className="text-lg leading-none group-open:hidden">≡</span>
                 <span className="text-lg leading-none hidden group-open:inline">×</span>
               </summary>
-              <div className="absolute right-0 mt-2 w-[min(86vw,300px)] rounded-2xl border border-white/10 bg-zinc-950/95 p-2 shadow-2xl backdrop-blur">
-                <nav className="flex flex-col gap-1">
+              <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-1.5rem)] rounded-xl border border-white/10 bg-zinc-950/97 p-1.5 shadow-2xl backdrop-blur">
+                <nav className="flex flex-col gap-0.5">
                   {links.map(({ href, label }) => {
                     const badge = badgeForHref(href);
                     return (
@@ -91,7 +91,7 @@ export function SiteHeader({
                         href={href}
                         className="rounded-lg px-3 py-2 text-sm text-zinc-300 transition-colors hover:bg-white/5 hover:text-zinc-100"
                       >
-                        <span className="inline-flex items-center gap-1.5">
+                        <span className="flex items-center justify-between gap-3">
                           {label}
                           {badge ? (
                             <span className="inline-flex min-w-[1rem] items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-semibold text-zinc-950">
@@ -118,7 +118,7 @@ export function SiteHeader({
                             href="/profile"
                             className="rounded-lg px-3 py-2 text-sm text-zinc-300 transition-colors hover:bg-white/5 hover:text-zinc-100"
                           >
-                            <span className="inline-flex items-center gap-2">
+                            <span className="flex items-center gap-2">
                               <ProfileAvatar
                                 name={user.email}
                                 avatarUrl={profileAvatarUrl}
@@ -158,7 +158,7 @@ export function SiteHeader({
                     )
                   ) : null}
                 </nav>
-                <div className="mt-2 border-t border-white/10 pt-2">
+                <div className="mt-1.5 border-t border-white/10 pt-1.5">
                   <ShareAppButton
                     className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-sm text-zinc-300 transition hover:bg-white/8 hover:text-zinc-100"
                     idleLabel="Share ProdLink"
