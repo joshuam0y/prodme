@@ -42,7 +42,7 @@ export default async function MatchConversationPage({ params, searchParams }: Pr
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url, role")
+    .select("id, display_name, avatar_url, role, city, niche, looking_for")
     .eq("id", id)
     .maybeSingle();
   if (!profile) notFound();
@@ -114,7 +114,9 @@ export default async function MatchConversationPage({ params, searchParams }: Pr
             />
             <div className="min-w-0">
               <h1 className="truncate text-base font-semibold text-zinc-50">{name}</h1>
-              <p className="truncate text-xs text-zinc-500">Tap for full profile</p>
+              <p className="truncate text-xs text-zinc-500">
+                {[profile.role?.trim(), profile.city?.trim(), profile.niche?.trim()].filter(Boolean).join(" · ") || "Tap for full profile"}
+              </p>
             </div>
           </Link>
         </div>
@@ -136,6 +138,11 @@ export default async function MatchConversationPage({ params, searchParams }: Pr
           currentUserId={user.id}
           matchName={name}
           matchRole={profile.role}
+          matchContext={{
+            city: profile.city ?? null,
+            niche: profile.niche ?? null,
+            lookingFor: profile.looking_for ?? null,
+          }}
           initialMessages={list}
           initialDraft={draft}
         />

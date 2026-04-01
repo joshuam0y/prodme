@@ -104,6 +104,17 @@ export default async function ExplorePage({
     .slice(0, 3);
   const effectiveGroupFilter =
     viewerRole === "venue" && groupFilter === "" ? "creatives" : groupFilter;
+  const activeSummary = [
+    effectiveGroupFilter === "creatives"
+      ? "showing creatives"
+      : effectiveGroupFilter === "venues"
+        ? "showing venues"
+        : null,
+    sort !== "trending" ? `sorted by ${sort}` : null,
+    maxKm !== 50 ? `within ${maxKm} km` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   await trackServerEvent({
     event: "discover_opened",
@@ -149,6 +160,11 @@ export default async function ExplorePage({
           initialKm={maxKm}
           allowVenueFilter={viewerRole !== "venue"}
         />
+        {activeSummary ? (
+          <p className="mt-4 text-xs uppercase tracking-[0.18em] text-zinc-500">
+            Active: <span className="text-zinc-300">{activeSummary}</span>
+          </p>
+        ) : null}
       </div>
 
       {recommendedProfiles.length > 0 ? (
@@ -209,6 +225,7 @@ export default async function ExplorePage({
         key={`${groupFilter || "all"}-${viewerRole ?? "?"}`}
         profiles={profiles}
         viewerId={viewerId}
+        activeSummary={activeSummary || null}
       />
     </main>
   );

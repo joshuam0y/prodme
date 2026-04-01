@@ -9,6 +9,52 @@ function isVenueRole(role?: string) {
   return s.includes("venue") || s.includes("promoter");
 }
 
+function roleHint(role?: string) {
+  const value = (role ?? "").toLowerCase();
+  if (value.includes("engineer")) {
+    return "Lead with the records you help shape, the kind of artists you work best with, and what someone would actually reach out to you for.";
+  }
+  if (value.includes("producer")) {
+    return "The strongest producer profiles feel specific: sound, sessions, placements, and what kind of artist or collaborator should message you.";
+  }
+  if (value.includes("dj")) {
+    return "The best DJ profiles describe the rooms, crowds, and energy you fit, not just the genre name.";
+  }
+  if (value.includes("artist") || value.includes("vocal")) {
+    return "Think like a conversation starter: show your taste, your current direction, and what kind of collaborator actually helps you move.";
+  }
+  if (isVenueRole(role)) {
+    return "The best venue profiles make the room feel real: crowd, capacity, sound, professionalism, and what makes an artist a good fit.";
+  }
+  return "Specific profiles get better matches and easier first messages.";
+}
+
+function stepExample(stepId: string, role?: string) {
+  const venue = isVenueRole(role);
+  const value = (role ?? "").toLowerCase();
+
+  if (stepId === "role") {
+    return "Choose the lane that should shape your discover feed and profile copy.";
+  }
+  if (stepId === "niche") {
+    if (venue) return "Good example: Curated electronic nights for a 200-cap room with a local crowd that shows up early.";
+    if (value.includes("engineer")) return "Good example: Clean but punchy hip-hop and alt-R&B mixes, vocal production, and session-ready roughs.";
+    if (value.includes("producer")) return "Good example: Sample-heavy rap production, darker late-night R&B, and melodic trap drums.";
+    if (value.includes("dj")) return "Good example: Fast club edits, Afro-house transitions, and late-night sets that keep the room moving.";
+    return "Good example: Airy alt-pop hooks, intimate live sets, and melodic writing with a darker edge.";
+  }
+  if (stepId === "goal") {
+    if (venue) return "Pick the one that matches what you need next, not every possible use case.";
+    return "Pick the one that would make this app feel successful for you in the next few weeks.";
+  }
+  if (stepId === "looking_for") {
+    if (venue) return "Good example: Artists with a real live show, solid promo habits, and a sound that fits our Thursday room.";
+    if (value.includes("engineer")) return "Good example: Independent artists who already have strong demos and want help finishing clean, emotional records.";
+    return "Good example: Vocalists for hooks, producers for co-production, DJs for swaps, and indie venues for live sets.";
+  }
+  return null;
+}
+
 function stepsForRole(role?: string) {
   const venue = isVenueRole(role);
 
@@ -81,6 +127,7 @@ export function OnboardingForm({ error }: Props) {
   const promptOptions = getProfilePromptOptions(answers.role);
   const isLast = step === steps.length - 1;
   const progress = ((step + 1) / steps.length) * 100;
+  const currentExample = stepExample(current.id, answers.role);
 
   const canNext =
     current.id === "niche" || current.id === "looking_for"
@@ -197,6 +244,14 @@ export function OnboardingForm({ error }: Props) {
           Add your role, style, goal, and location to rank higher and get better matches.
         </p>
       </div>
+      {answers.role ? (
+        <div className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-300/90">
+            Build a stronger profile
+          </p>
+          <p className="mt-1 text-sm text-zinc-300">{roleHint(answers.role)}</p>
+        </div>
+      ) : null}
 
       {error ? (
         <p className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
@@ -211,6 +266,11 @@ export function OnboardingForm({ error }: Props) {
           {current.title}
         </h1>
         <p className="mt-2 text-sm text-zinc-500">{current.subtitle}</p>
+        {currentExample ? (
+          <p className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm leading-relaxed text-zinc-400">
+            {currentExample}
+          </p>
+        ) : null}
 
         {step === 0 ? (
           <div className="mt-8">

@@ -20,6 +20,11 @@ type Props = {
   currentUserId: string;
   matchName: string;
   matchRole?: string | null;
+  matchContext?: {
+    city?: string | null;
+    niche?: string | null;
+    lookingFor?: string | null;
+  };
   initialMessages: Message[];
   initialDraft?: string | null;
 };
@@ -36,6 +41,7 @@ export function MatchThreadClient({
   currentUserId,
   matchName,
   matchRole = null,
+  matchContext,
   initialMessages,
   initialDraft = null,
 }: Props) {
@@ -77,6 +83,7 @@ export function MatchThreadClient({
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const isRefreshingRef = useRef(false);
+  const firstMessage = messages.length === 0;
 
   const mergeMessages = useCallback((incoming: Message[]) => {
     setMessages((prev) => {
@@ -406,6 +413,13 @@ export function MatchThreadClient({
               <p className="mt-1 text-xs text-zinc-600">
                 Short, specific messages get replies faster than generic intros.
               </p>
+              {(matchContext?.niche || matchContext?.lookingFor || matchContext?.city) ? (
+                <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left text-xs text-zinc-400">
+                  {matchContext?.niche ? <p>Sound/style: {matchContext.niche}</p> : null}
+                  {matchContext?.lookingFor ? <p className="mt-1">Looking for: {matchContext.lookingFor}</p> : null}
+                  {matchContext?.city ? <p className="mt-1">Based in: {matchContext.city}</p> : null}
+                </div>
+              ) : null}
             </li>
           ) : (
             messages.map((m, i) => {
@@ -670,6 +684,11 @@ export function MatchThreadClient({
         className="mt-3 rounded-2xl border border-white/10 bg-zinc-900/60 p-2 shadow-inner shadow-black/20"
         onSubmit={onSubmit}
       >
+        {firstMessage ? (
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-100/90">
+            Best first messages are short, specific, and clearly tied to their sound, room, or goal.
+          </div>
+        ) : null}
         <label htmlFor="chat-body" className="sr-only">
           Message {matchName}
         </label>
@@ -690,7 +709,10 @@ export function MatchThreadClient({
           className="w-full resize-none rounded-xl border-0 bg-transparent px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-0"
           placeholder={`Message ${matchName}...`}
         />
-        <div className="flex justify-end border-t border-white/5 px-2 pb-1 pt-2">
+        <div className="flex items-center justify-between border-t border-white/5 px-2 pb-1 pt-2">
+          <p className="text-[11px] text-zinc-600">
+            Press Enter to send, Shift+Enter for a new line.
+          </p>
           <button
             type="submit"
             disabled={sending || blocked}

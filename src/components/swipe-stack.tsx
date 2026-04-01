@@ -18,6 +18,7 @@ import { profileInitials } from "@/lib/match-ui";
 type Props = {
   profiles: ProfileCard[];
   viewerId?: string | null;
+  activeSummary?: string | null;
 };
 
 const roleLabel: Record<ProfileCard["role"], string> = {
@@ -58,7 +59,7 @@ function isInteractivePointerTarget(target: EventTarget | null): boolean {
 type PlayingMeta = { id: string; title: string; coverUrl: string };
 type SwipeDir = "left" | "right";
 
-export function SwipeStack({ profiles, viewerId }: Props) {
+export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) {
   const signedIn = Boolean(viewerId && viewerId.trim());
   const router = useRouter();
 
@@ -417,7 +418,9 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           No profiles to show yet.
         </p>
         <p className="max-w-sm text-sm text-zinc-500">
-          You may have already swiped everything that matches your filters.
+          {activeSummary
+            ? `Nothing matches your current setup: ${activeSummary}.`
+            : "You may have already swiped everything that matches your current setup."}
         </p>
         <button
           type="button"
@@ -447,8 +450,8 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           You&apos;re caught up for now.
         </p>
         <p className="max-w-sm text-sm text-zinc-500">
-          More creators and venues will land here as prodLink grows. Refresh
-          later or tweak your preferences (coming soon).
+          More creators and venues will land here as prodLink grows. Refresh later, widen your radius,
+          or switch the feed view to surface a different pocket of profiles.
         </p>
         <button
           type="button"
@@ -704,6 +707,37 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           {star ? (
             <p className="max-w-2xl text-base leading-relaxed text-zinc-200">{current.bio}</p>
           ) : null}
+          {current.lookingFor || current.matchWhy?.length ? (
+            <div className="rounded-2xl border border-white/5 bg-white/[0.035] p-4">
+              {current.lookingFor ? (
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+                    Looking for
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+                    {current.lookingFor}
+                  </p>
+                </div>
+              ) : null}
+              {current.matchWhy?.length ? (
+                <div className={current.lookingFor ? "mt-4" : ""}>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+                    Why this could fit
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {current.matchWhy.slice(0, 3).map((reason) => (
+                      <span
+                        key={reason}
+                        className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs text-zinc-300"
+                      >
+                        {reason}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {star && heroCover ? (
             <div className="space-y-3 rounded-[26px] border border-white/5 bg-white/[0.05] p-4 sm:p-5">
               <div className="flex flex-col items-start gap-4 sm:flex-row">
@@ -921,7 +955,16 @@ export function SwipeStack({ profiles, viewerId }: Props) {
         </div>
       ) : null}
 
-      <div className="mt-8 flex flex-col gap-4">
+      <div className="mt-6 flex flex-col gap-4">
+        <div className="rounded-2xl border border-white/10 bg-zinc-900/45 px-4 py-3 text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+            Quick actions
+          </p>
+          <p className="mt-1 text-sm text-zinc-400">
+            Save people you want to revisit, pass fast on weak fits, and open the full profile when
+            you need more context.
+          </p>
+        </div>
         <div className="flex justify-center gap-4">
           <button
             type="button"

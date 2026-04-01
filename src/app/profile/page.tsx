@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { isCommunityRatingsEnabled, isSupabaseConfigured } from "@/lib/env";
+import { isSupabaseConfigured } from "@/lib/env";
 import { formatDisplayDate } from "@/lib/format-date";
 import { isProfileQuestionnaireComplete } from "@/lib/profile-completion";
 import { parseExtraBeats } from "@/lib/profile-beats";
@@ -148,14 +148,6 @@ export default async function ProfilePage() {
           </dd>
         </div>
       </dl>
-
-      {!isCommunityRatingsEnabled() ? (
-        <p className="mt-3 text-xs text-zinc-600">
-          Community ratings are hidden for now. Re-enable with
-          {" "}
-          <code className="text-zinc-400">NEXT_PUBLIC_ENABLE_COMMUNITY_RATINGS=1</code>.
-        </p>
-      ) : null}
 
       {profile?.ai_summary?.trim() || aiTags.length > 0 || typeof profile?.ai_profile_score === "number" ? (
         <section className="mt-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
