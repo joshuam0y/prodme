@@ -9,7 +9,6 @@ import { isVenueProfileRole } from "@/lib/profile-prompts";
 import { isUuid } from "@/lib/uuid";
 import type { DbProfile } from "@/lib/types";
 import { formatDisplayDate } from "@/lib/format-date";
-import { StarRatingDisplay } from "@/components/star-rating-display";
 import { ProfileAvatarModal, ProfileGallery, ProfileGalleryModal } from "./gallery";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ gallery?: string; avatar?: string }> };
@@ -103,7 +102,6 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
     extra_beats: profile.extra_beats,
   });
 
-  const viewerId = viewer?.id ?? null;
   const isVenueProfile = isVenueProfileRole(profile.role);
   const anyExtraAudio = Boolean(extraBeats?.some((b) => Boolean(b.audioUrl)));
   const galleryOpen = sp.gallery === "1";
@@ -197,39 +195,6 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
     ...(starBeat?.coverUrl ? [{ url: starBeat.coverUrl, label: starBeat.title }] : []),
     ...((extraBeats ?? []).filter((b) => Boolean(b.coverUrl)).map((b) => ({ url: b.coverUrl, label: b.title }))),
   ];
-  let ratingAvg: number | null = null;
-  let ratingCount = 0;
-  let viewerRating: number | null = null;
-  let ratingsDisabled = false;
-
-  try {
-    const { data: ratingRows } = await supabase
-      .from("profile_ratings")
-      .select("rating")
-      .eq("target_id", id);
-    ratingCount = ratingRows?.length ?? 0;
-    ratingAvg =
-      ratingCount > 0
-        ? ratingRows!.reduce((sum, r) => sum + r.rating, 0) / ratingCount
-        : null;
-
-    if (viewerId) {
-      const { data: myRow } = await supabase
-        .from("profile_ratings")
-        .select("rating")
-        .eq("viewer_id", viewerId)
-        .eq("target_id", id)
-        .maybeSingle();
-      if (myRow?.rating) viewerRating = myRow.rating;
-    }
-  } catch {
-    // Ratings are optional; if the table doesn't exist yet, just hide the section.
-    ratingAvg = null;
-    ratingCount = 0;
-    viewerRating = null;
-    ratingsDisabled = true;
-  }
-
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
       {galleryOpen ? <ProfileGalleryModal profileId={id} items={galleryItems} /> : null}
@@ -373,32 +338,6 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
           {nicheSection}
         </>
       )}
-
-      {ratingsDisabled ? (
-        <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-amber-500/90">
-            Community rating
-          </h2>
-          <p className="mt-3 text-sm text-zinc-400">
-            Ratings are disabled for now. Run the latest Supabase migration (
-            <code className="text-xs text-zinc-300">006_profile_ratings.sql</code>).
-          </p>
-        </section>
-      ) : ratingAvg !== null ? (
-        <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-amber-500/90">
-            Community rating
-          </h2>
-          <div className="mt-3">
-            <StarRatingDisplay average={ratingAvg} count={ratingCount} />
-          </div>
-          {viewerRating !== null ? (
-            <p className="mt-2 text-xs text-zinc-400">
-              You rated this profile {viewerRating}★
-            </p>
-          ) : null}
-        </section>
-      ) : null}
 
       {starBeat ? (
         isVenueProfile ? (

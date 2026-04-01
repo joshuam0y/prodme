@@ -13,6 +13,10 @@ export function isAiProfileCoachConfigured(): boolean {
   return Boolean(process.env.OPENAI_API_KEY?.trim());
 }
 
+export function isCommunityRatingsEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_ENABLE_COMMUNITY_RATINGS === "1";
+}
+
 export function getAdminEmails(): string[] {
   const raw = process.env.ADMIN_EMAILS ?? "";
   return raw

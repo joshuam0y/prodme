@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/env";
+import { isCommunityRatingsEnabled, isSupabaseConfigured } from "@/lib/env";
 import { formatDisplayDate } from "@/lib/format-date";
 import { isProfileQuestionnaireComplete } from "@/lib/profile-completion";
 import { parseExtraBeats } from "@/lib/profile-beats";
@@ -12,7 +12,6 @@ import { ProfileBasicsForm } from "./profile-basics-form";
 import { ProfileBeatsForm } from "./profile-beats-form";
 import { ProfileLocationForm } from "./profile-location-form";
 import { ProfileVenuePhotosForm } from "./profile-venue-photos-form";
-import { StarRatingDisplay } from "@/components/star-rating-display";
 
 export default async function ProfilePage() {
   if (!isSupabaseConfigured()) {
@@ -66,26 +65,8 @@ export default async function ProfilePage() {
     ? profile.ai_tags.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0)
     : [];
 
-  let ratingAvg: number | null = null;
-  let ratingCount = 0;
-  let ratingsDisabled = false;
   let entitlementPlan = "free";
   let entitlementStatus = "active";
-  try {
-    const { data: ratingRows } = await supabase
-      .from("profile_ratings")
-      .select("rating")
-      .eq("target_id", user.id);
-    ratingCount = ratingRows?.length ?? 0;
-    ratingAvg =
-      ratingCount > 0
-        ? ratingRows!.reduce((sum, r) => sum + r.rating, 0) / ratingCount
-        : null;
-  } catch {
-    ratingAvg = null;
-    ratingCount = 0;
-    ratingsDisabled = true;
-  }
   try {
     const { data: entitlement } = await supabase
       .from("billing_entitlements")
@@ -166,23 +147,15 @@ export default async function ProfilePage() {
             {entitlementPlan} · {entitlementStatus}
           </dd>
         </div>
-        <div>
-          <dt className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-            Community rating
-          </dt>
-          <dd className="mt-1 text-zinc-100">
-            {ratingsDisabled ? (
-              <span className="text-xs text-zinc-400">
-                Ratings disabled for now.
-              </span>
-            ) : ratingAvg !== null ? (
-              <StarRatingDisplay average={ratingAvg} count={ratingCount} />
-            ) : (
-              "—"
-            )}
-          </dd>
-        </div>
       </dl>
+
+      {!isCommunityRatingsEnabled() ? (
+        <p className="mt-3 text-xs text-zinc-600">
+          Community ratings are hidden for now. Re-enable with
+          {" "}
+          <code className="text-zinc-400">NEXT_PUBLIC_ENABLE_COMMUNITY_RATINGS=1</code>.
+        </p>
+      ) : null}
 
       {profile?.ai_summary?.trim() || aiTags.length > 0 || typeof profile?.ai_profile_score === "number" ? (
         <section className="mt-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
