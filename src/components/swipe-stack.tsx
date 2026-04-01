@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   recordDiscoverAction,
   removeDiscoverAction,
@@ -30,7 +29,6 @@ const roleLabel: Record<ProfileCard["role"], string> = {
 };
 
 const THRESHOLD_PX = 72;
-const TAP_OPEN_THRESHOLD_PX = 10;
 const MAX_EXTRA = 5;
 
 function loadDismissedIds(key: string): Set<string> {
@@ -61,7 +59,6 @@ type SwipeDir = "left" | "right";
 
 export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) {
   const signedIn = Boolean(viewerId && viewerId.trim());
-  const router = useRouter();
 
   const dismissedKey = signedIn && viewerId ? `prodlink.discover.dismissedIds:${viewerId}` : "prodlink.discover.dismissedIds:anon";
 
@@ -291,11 +288,11 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
             if (!isUuid(dismissedId)) persistDismissedIds(dismissedKey, next);
             return next;
           });
-          router.refresh();
+          window.location.reload();
         }
       }, 220);
     },
-    [visibleProfiles, signedIn, dismissedKey, router, matchModal],
+    [visibleProfiles, signedIn, dismissedKey, matchModal],
   );
 
   const undoLastSwipe = useCallback(() => {
@@ -315,11 +312,11 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
           ? window.location.pathname + window.location.search
           : "/explore";
       void removeDiscoverAction(id, path)
-        .then(() => router.refresh())
+        .then(() => window.location.reload())
         .catch(() => {});
     }
     setLastSwipe(null);
-  }, [lastSwipe, dismissedKey, signedIn, router]);
+  }, [lastSwipe, dismissedKey, signedIn]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -399,15 +396,6 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
       advance(dx < 0 ? "left" : "right");
       return;
     }
-
-    const isTapIntent =
-      Math.abs(dx) <= TAP_OPEN_THRESHOLD_PX &&
-      Math.abs(dy) <= TAP_OPEN_THRESHOLD_PX;
-    if (isTapIntent && isUuid(current.id)) {
-      router.push(`/p/${current.id}`);
-      return;
-    }
-
     setDrag({ x: 0, y: 0 });
   };
 
@@ -432,7 +420,7 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
                 typeof window !== "undefined"
                   ? window.location.pathname + window.location.search
                   : "/explore";
-              void resetDiscoverSwipes(path).then(() => router.refresh());
+              void resetDiscoverSwipes(path).then(() => window.location.reload());
             }
           }}
           className="rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-zinc-950 transition-opacity hover:opacity-90"
@@ -463,7 +451,7 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
                 typeof window !== "undefined"
                   ? window.location.pathname + window.location.search
                   : "/explore";
-              void resetDiscoverSwipes(path).then(() => router.refresh());
+              void resetDiscoverSwipes(path).then(() => window.location.reload());
               return;
             }
 
@@ -707,6 +695,200 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
           {star ? (
             <p className="max-w-2xl text-base leading-relaxed text-zinc-200">{current.bio}</p>
           ) : null}
+          {star && heroCover ? (
+            <div className="space-y-3 rounded-[26px] border border-white/5 bg-white/[0.05] p-4 sm:p-5">
+              <div className="flex flex-col items-start gap-4 sm:flex-row">
+                {isVenueProfile || isPhotoOnlyStar ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openLightbox(heroCover);
+                    }}
+                    className="relative h-40 w-full shrink-0 overflow-hidden rounded-2xl bg-zinc-800 ring-1 ring-white/10 hover:ring-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/40 sm:h-36 sm:w-36"
+                    aria-label="Open featured photo"
+                  >
+                    <Image
+                      src={heroCover}
+                      alt=""
+                      width={220}
+                      height={220}
+                      className="h-full w-full object-cover"
+                      unoptimized
+                    />
+                  </button>
+                ) : (
+                  <div className="relative h-40 w-full shrink-0 overflow-hidden rounded-2xl bg-zinc-800 ring-1 ring-white/10 sm:h-36 sm:w-36">
+                    <Image
+                      src={heroCover}
+                      alt=""
+                      width={220}
+                      height={220}
+                      className="h-full w-full object-cover"
+                      unoptimized
+                    />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${
+                      playingStar ? "text-amber-500/90" : "text-zinc-400"
+                    }`}
+                  >
+                    {isVenueProfile
+                      ? "Featured venue photo"
+                      : isPhotoOnlyStar
+                        ? "Featured photo"
+                        : playingStar
+                          ? "Now playing"
+                          : "Featured audio"}
+                  </p>
+                  <p className="mt-1 truncate text-xl font-semibold text-zinc-100">
+                    {isVenueProfile ? star.title : playingMeta?.title ?? star.title}
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                    {isVenueProfile
+                      ? "Lead with the room. Open photos to see the space and keep swiping if the vibe fits."
+                      : isPhotoOnlyStar
+                        ? "Visual-first preview for this profile."
+                        : "Hear the clip first, then read the profile below if the sound feels right."}
+                  </p>
+                  {isVenueProfile || isPhotoOnlyStar ? (
+                    <p className="mt-2 text-[11px] uppercase tracking-[0.2em] text-amber-300/85">
+                      Tap photo to expand
+                    </p>
+                  ) : null}
+                  <div className="mt-3 flex flex-wrap items-center gap-2.5">
+                    {isVenueProfile || isPhotoOnlyStar ? null : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleMainPlay();
+                          }}
+                          className="rounded-full bg-amber-500/20 px-4 py-1.5 text-xs font-medium text-amber-300 ring-1 ring-amber-500/35 transition hover:bg-amber-500/30"
+                        >
+                          {audioReady ? "Pause" : "Play"}
+                        </button>
+                        {star && !playingStar ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              playBeat(star);
+                            }}
+                            className="rounded-full border border-white/15 px-4 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
+                          >
+                            Play star track
+                          </button>
+                        ) : null}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {extras.length > 0 ? (
+                <div>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+                    {isVenueProfile ? "More photos" : "More beats"}
+                  </p>
+                  <ul className="flex flex-wrap gap-2">
+                    {extras.map((beat) => {
+                      if (isVenueProfile) {
+                        return (
+                          <li key={beat.id} className="relative">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openLightbox(beat.coverUrl);
+                              }}
+                              className="relative h-14 w-14 overflow-hidden rounded-lg ring-1 ring-white/10 hover:ring-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                              aria-label={`Open photo: ${beat.title}`}
+                            >
+                              <Image
+                                src={beat.coverUrl}
+                                alt=""
+                                width={56}
+                                height={56}
+                                className="h-full w-full object-cover"
+                                unoptimized
+                              />
+                            </button>
+                          </li>
+                        );
+                      }
+
+                      if (!beat.audioUrl) {
+                        return (
+                          <li key={beat.id} className="relative">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openLightbox(beat.coverUrl);
+                              }}
+                              className="relative h-14 w-14 overflow-hidden rounded-lg ring-1 ring-white/10 hover:ring-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                              aria-label={`Open photo: ${beat.title}`}
+                            >
+                              <Image
+                                src={beat.coverUrl}
+                                alt=""
+                                width={56}
+                                height={56}
+                                className="h-full w-full object-cover"
+                                unoptimized
+                              />
+                            </button>
+                          </li>
+                        );
+                      }
+
+                      const active = playingMeta?.id === beat.id;
+                      return (
+                        <li key={beat.id} className="relative">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleBeatOrPlay(beat);
+                            }}
+                            className={`group relative h-14 w-14 overflow-hidden rounded-lg ring-1 transition ${
+                              active
+                                ? "ring-amber-400/80"
+                                : "ring-white/10 hover:ring-amber-500/50"
+                            }`}
+                            aria-label={
+                              active && audioReady ? `Pause ${beat.title}` : `Play ${beat.title}`
+                            }
+                          >
+                            <Image
+                              src={beat.coverUrl}
+                              alt=""
+                              width={56}
+                              height={56}
+                              className="h-full w-full object-cover"
+                              unoptimized
+                            />
+                            <span
+                              className={`absolute inset-0 flex items-center justify-center bg-black/45 text-lg text-white transition ${
+                                active ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                              }`}
+                              aria-hidden
+                            >
+                              {active && audioReady ? "⏸" : "▶"}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {current.lookingFor || current.matchWhy?.length ? (
             <div className="rounded-2xl border border-white/5 bg-white/[0.035] p-4">
               {current.lookingFor ? (
@@ -774,202 +956,7 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
               </p>
             </div>
           ) : null}
-          {star && heroCover ? (
-            <div className="space-y-3 rounded-[26px] border border-white/5 bg-white/[0.05] p-4 sm:p-5">
-              <div className="flex flex-col items-start gap-4 sm:flex-row">
-                {isVenueProfile || isPhotoOnlyStar ? (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openLightbox(heroCover);
-                    }}
-                    className="relative h-28 w-full shrink-0 overflow-hidden rounded-2xl bg-zinc-800 ring-1 ring-white/10 hover:ring-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/40 sm:h-28 sm:w-28"
-                    aria-label="Open featured photo"
-                  >
-                    <Image
-                      src={heroCover}
-                      alt=""
-                      width={160}
-                      height={160}
-                      className="h-full w-full object-cover"
-                      unoptimized
-                    />
-                  </button>
-                ) : (
-                  <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-2xl bg-zinc-800 ring-1 ring-white/10 sm:h-28 sm:w-28">
-                    <Image
-                      src={heroCover}
-                      alt=""
-                      width={160}
-                      height={160}
-                      className="h-full w-full object-cover"
-                      unoptimized
-                    />
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p
-                    className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${
-                      playingStar ? "text-amber-500/90" : "text-zinc-400"
-                    }`}
-                  >
-                    {isVenueProfile
-                      ? "Photo"
-                      : isPhotoOnlyStar
-                        ? "Featured photo"
-                      : playingStar
-                        ? "Star track"
-                        : "Now playing"}
-                  </p>
-                  <p className="mt-1 truncate text-lg font-semibold text-zinc-100">
-                    {isVenueProfile ? star.title : playingMeta?.title ?? star.title}
-                  </p>
-                  <p className="mt-2 text-sm text-zinc-400">
-                    {isVenueProfile
-                      ? "Photo highlights — swipe for the next person."
-                      : isPhotoOnlyStar
-                        ? "Photo highlight — swipe for the next person."
-                      : playingStar
-                        ? "Plays when you open this card — swipe for the next sound."
-                        : "Extra preview on this profile — swipe for the next person."}
-                  </p>
-                  {isVenueProfile || isPhotoOnlyStar ? (
-                    <p className="mt-2 text-[11px] uppercase tracking-[0.2em] text-amber-300/85">
-                      Tap photo to expand
-                    </p>
-                  ) : null}
-                  <div className="mt-3 flex flex-wrap items-center gap-2.5">
-                    {isVenueProfile || isPhotoOnlyStar ? null : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleMainPlay();
-                          }}
-                          className="rounded-full bg-amber-500/20 px-4 py-1.5 text-xs font-medium text-amber-300 ring-1 ring-amber-500/35 transition hover:bg-amber-500/30"
-                        >
-                          {audioReady ? "Pause" : "Play"}
-                        </button>
-                        {star && !playingStar ? (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              playBeat(star);
-                            }}
-                            className="rounded-full border border-white/15 px-4 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
-                          >
-                            Play star track
-                          </button>
-                        ) : null}
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {extras.length > 0 ? (
-                <div>
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
-                    {isVenueProfile ? "More photos" : "More beats"}
-                  </p>
-                  <ul className="flex flex-wrap gap-2">
-                    {extras.map((beat) => {
-                      if (isVenueProfile) {
-                        return (
-                          <li key={beat.id} className="relative">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openLightbox(beat.coverUrl);
-                              }}
-                              className="relative h-12 w-12 sm:h-14 sm:w-14 overflow-hidden rounded-lg ring-1 ring-white/10 hover:ring-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-                              aria-label={`Open photo: ${beat.title}`}
-                            >
-                              <Image
-                                src={beat.coverUrl}
-                                alt=""
-                                width={56}
-                                height={56}
-                                className="h-full w-full object-cover"
-                                unoptimized
-                              />
-                            </button>
-                          </li>
-                        );
-                      }
-
-                      if (!beat.audioUrl) {
-                        return (
-                          <li key={beat.id} className="relative">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openLightbox(beat.coverUrl);
-                              }}
-                              className="relative h-12 w-12 sm:h-14 sm:w-14 overflow-hidden rounded-lg ring-1 ring-white/10 hover:ring-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-                              aria-label={`Open photo: ${beat.title}`}
-                            >
-                              <Image
-                                src={beat.coverUrl}
-                                alt=""
-                                width={56}
-                                height={56}
-                                className="h-full w-full object-cover"
-                                unoptimized
-                              />
-                            </button>
-                          </li>
-                        );
-                      }
-
-                      const active = playingMeta?.id === beat.id;
-                      return (
-                        <li key={beat.id} className="relative">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleBeatOrPlay(beat);
-                            }}
-                            className={`group relative h-12 w-12 sm:h-14 sm:w-14 overflow-hidden rounded-lg ring-1 transition ${
-                              active
-                                ? "ring-amber-400/80"
-                                : "ring-white/10 hover:ring-amber-500/50"
-                            }`}
-                            aria-label={
-                              active && audioReady ? `Pause ${beat.title}` : `Play ${beat.title}`
-                            }
-                          >
-                            <Image
-                              src={beat.coverUrl}
-                              alt=""
-                              width={56}
-                              height={56}
-                              className="h-full w-full object-cover"
-                              unoptimized
-                            />
-                            <span
-                              className={`absolute inset-0 flex items-center justify-center bg-black/45 text-lg text-white transition ${
-                                active ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                              }`}
-                              aria-hidden
-                            >
-                              {active && audioReady ? "⏸" : "▶"}
-                            </span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ) : null}
-            </div>
-          ) : (
+          {!star || !heroCover ? (
             <div className="rounded-xl border border-white/5 bg-white/[0.04] px-4 py-3">
               <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
                 Profile note
@@ -978,7 +965,7 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
                 {current.bio || current.highlight}
               </p>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -997,8 +984,8 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
             Quick actions
           </p>
           <p className="mt-1 text-sm text-zinc-400">
-            Save people you want to revisit, pass fast on weak fits, and open the full profile when
-            you need more context.
+            This card is the profile. Lead with the photo or clip, skim the key sections, then save
+            or pass without leaving discover.
           </p>
         </div>
         <div className="flex justify-center gap-4">
@@ -1027,14 +1014,6 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
         >
           Undo last swipe (Z)
         </button>
-        {isUuid(current.id) ? (
-          <Link
-            href={`/p/${current.id}`}
-            className="block text-center text-sm font-medium text-amber-500/90 transition hover:text-amber-400 motion-reduce:transition-none"
-          >
-            View full profile
-          </Link>
-        ) : null}
       </div>
     </div>
   );
