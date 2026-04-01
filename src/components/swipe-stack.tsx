@@ -9,7 +9,6 @@ import {
   resetDiscoverSwipes,
 } from "@/app/explore/actions";
 import { ProfileAvatar } from "@/components/profile-avatar";
-import { ShareAppButton } from "@/components/share-app-button";
 import { buildDefaultDraftOpener } from "@/lib/match-openers";
 import type { BeatPreview, ProfileCard } from "@/lib/types";
 import { isUuid } from "@/lib/uuid";
@@ -1015,7 +1014,6 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
         >
           Undo last swipe (Z)
         </button>
-        <ShareAppButton className="w-full rounded-xl border border-amber-500/25 bg-amber-500/10 py-2 text-xs font-medium text-amber-300 transition hover:bg-amber-500/15" idleLabel="Invite friends" copiedLabel="Invite link copied" />
       </div>
     </div>
   );

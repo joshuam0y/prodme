@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { trackServerEvent } from "@/lib/analytics";
-import { ShareAppButton } from "@/components/share-app-button";
 
 export default async function Home({
   searchParams,
@@ -52,7 +51,6 @@ export default async function Home({
             >
               See how it works
             </Link>
-            <ShareAppButton className="inline-flex h-12 min-w-[200px] items-center justify-center rounded-full border border-white/15 bg-white/5 px-8 text-sm font-medium text-zinc-200 transition hover:bg-white/10" />
           </div>
         </div>
       </section>

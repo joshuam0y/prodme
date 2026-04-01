@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
 import { ProfileAvatar } from "@/components/profile-avatar";
+import { ShareAppButton } from "@/components/share-app-button";
 import { isAdminEmail } from "@/lib/env";
 import { MobileNavLink } from "@/components/mobile-nav-link";
 
@@ -147,6 +148,13 @@ export function SiteHeader({
                     )
                   ) : null}
                 </nav>
+                <div className="mt-2 border-t border-white/10 pt-2">
+                  <ShareAppButton
+                    className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-sm text-zinc-300 transition hover:bg-white/8 hover:text-zinc-100"
+                    idleLabel="Share ProdLink"
+                    copiedLabel="Invite link copied"
+                  />
+                </div>
               </div>
             </details>
           </div>
@@ -187,6 +195,11 @@ export function SiteHeader({
         </div>
 
         <div className="flex w-full flex-col gap-2 border-t border-white/10 pt-4">
+          <ShareAppButton
+            className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left text-sm font-medium text-zinc-300 transition hover:border-white/15 hover:bg-white/7 hover:text-zinc-50"
+            idleLabel="Invite friends"
+            copiedLabel="Invite link copied"
+          />
           {supabaseEnabled ? (
             user ? (
               <>
