@@ -135,6 +135,7 @@ export default async function MatchConversationPage({ params, searchParams }: Pr
           matchId={id}
           currentUserId={user.id}
           matchName={name}
+          matchRole={profile.role}
           initialMessages={list}
           initialDraft={draft}
         />

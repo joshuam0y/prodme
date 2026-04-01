@@ -22,6 +22,15 @@ type Props = {
 export function NotificationsList({ notifications }: Props) {
   const [items, setItems] = useState(notifications);
 
+  const kindLabel = (kind: string) => {
+    if (kind === "message_received") return "Message";
+    if (kind === "match_created") return "New match";
+    if (kind === "reply_nudge") return "Reply reminder";
+    if (kind === "new_match_nudge") return "Match reminder";
+    if (kind === "profile_saved") return "Like";
+    return kind.replaceAll("_", " ");
+  };
+
   const markRead = async (id: number) => {
     let shouldRequest = false;
     setItems((prev) =>
@@ -62,7 +71,9 @@ export function NotificationsList({ notifications }: Props) {
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-zinc-100">{n.title}</p>
                   {n.body ? <p className="mt-1 text-sm text-zinc-400">{n.body}</p> : null}
-                  <p className="mt-2 text-xs uppercase tracking-wider text-zinc-500">{n.kind}</p>
+                  <p className="mt-2 text-xs uppercase tracking-wider text-zinc-500">
+                    {kindLabel(n.kind)}
+                  </p>
                 </div>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-2">

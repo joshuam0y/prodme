@@ -6,6 +6,7 @@ import { ProfileAvatar } from "@/components/profile-avatar";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { trackServerEvent } from "@/lib/analytics";
+import { buildDefaultDraftOpener } from "@/lib/match-openers";
 import { roleLabel } from "@/lib/role-label";
 
 export const metadata: Metadata = {
@@ -118,14 +119,23 @@ export default async function MatchesPage({
     const bTs = mb?.createdAt ?? mutualAt(b);
     return bTs.localeCompare(aTs);
   });
+  const newMatchCount = orderedMatchIds.filter((id) => !byMatchMessage.has(id)).length;
+  const yourTurnCount = orderedMatchIds.filter((id) => {
+    const chat = byMatchMessage.get(id);
+    return Boolean(chat && !chat.mine && (chat.unreadIncoming ?? 0) > 0);
+  }).length;
+  const unreadThreadCount = orderedMatchIds.filter((id) => {
+    const chat = byMatchMessage.get(id);
+    return Boolean((chat?.unreadIncoming ?? 0) > 0);
+  }).length;
 
   if (!matchIds.length) {
     return (
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">Messages</h1>
         <p className="mt-3 max-w-md text-sm leading-relaxed text-zinc-500">
-          When you and someone both like each other, you can chat here — same idea as Tinder or
-          Hinge.
+          Mutual matches land here. Once someone likes you back, this becomes your fastest path to
+          a real conversation.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
@@ -167,6 +177,42 @@ export default async function MatchesPage({
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">Messages</h1>
         <p className="mt-1 text-sm text-zinc-500">Chats with your mutual matches.</p>
       </div>
+      <section className="mb-6 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-white/10 bg-zinc-900/40 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+            Needs reply
+          </p>
+          <p className="mt-2 text-2xl font-semibold text-zinc-50">{yourTurnCount}</p>
+          <p className="mt-1 text-xs text-zinc-500">Conversations where they spoke last.</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-zinc-900/40 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+            Unread
+          </p>
+          <p className="mt-2 text-2xl font-semibold text-zinc-50">{unreadThreadCount}</p>
+          <p className="mt-1 text-xs text-zinc-500">Matches with unread incoming messages.</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-zinc-900/40 p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+            New matches
+          </p>
+          <p className="mt-2 text-2xl font-semibold text-zinc-50">{newMatchCount}</p>
+          <p className="mt-1 text-xs text-zinc-500">Fresh mutual likes waiting on a first message.</p>
+        </div>
+      </section>
+      {yourTurnCount > 0 ? (
+        <p className="mb-5 rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          {yourTurnCount === 1
+            ? "One match is waiting on your reply."
+            : `${yourTurnCount} matches are waiting on your reply.`}
+        </p>
+      ) : newMatchCount > 0 ? (
+        <p className="mb-5 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+          {newMatchCount === 1
+            ? "You have a new match. Send the first message while the energy is fresh."
+            : `You have ${newMatchCount} new matches. Send the first message while the energy is fresh.`}
+        </p>
+      ) : null}
       {notice ? (
         <p className="mb-5 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
           {notice}
@@ -226,16 +272,16 @@ export default async function MatchesPage({
                     <p className="mt-2 line-clamp-2 text-sm text-zinc-400">
                       {chat
                         ? formatPreview(chat.body, chat.mine)
-                        : "You matched — tap to say hello."}
+                        : "New match waiting. Start the conversation while it is fresh."}
                     </p>
                     {isNewMatch ? (
                       <Link
                         href={`/matches/${id}?draft=${encodeURIComponent(
-                          "Hey! We matched — what are you working on right now?",
+                          buildDefaultDraftOpener(name, p?.role),
                         )}`}
                         className="mt-1 inline-flex w-fit items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/15"
                       >
-                        Say hi
+                        Start chat
                       </Link>
                     ) : null}
                     {yourTurn ? (

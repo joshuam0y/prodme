@@ -4,7 +4,10 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getLiveProfileCards, inferProfileRole } from "@/lib/discover-profiles";
 import { isSupabaseConfigured } from "@/lib/env";
-import { formatNotificationDisplay, markAllNotificationsRead } from "@/lib/notifications";
+import {
+  formatNotificationDisplay,
+  markAllNotificationsRead,
+} from "@/lib/notifications";
 import { NotificationsList } from "@/components/notifications-list";
 
 export const metadata: Metadata = {
@@ -92,6 +95,12 @@ export default async function NotificationsPage() {
     };
   });
   const unreadCount = notifications.filter((n) => n.read_at === null).length;
+  const unreadMessageAlerts = notifications.filter(
+    (n) => n.kind === "message_received" && n.read_at === null,
+  ).length;
+  const unreadMatchAlerts = notifications.filter(
+    (n) => n.kind === "match_created" && n.read_at === null,
+  ).length;
   const { data: viewerProfile } = await supabase
     .from("profiles")
     .select("role, niche, goal, looking_for, latitude, longitude")
@@ -131,6 +140,46 @@ export default async function NotificationsPage() {
           </form>
         ) : null}
       </div>
+
+      {unreadMessageAlerts > 0 ? (
+        <div className="mb-6 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4">
+          <p className="text-sm font-semibold text-amber-100">
+            {unreadMessageAlerts === 1
+              ? "A conversation is waiting on you."
+              : `${unreadMessageAlerts} conversations are waiting on you.`}
+          </p>
+          <p className="mt-1 text-sm text-amber-100/80">
+            Open Messages and reply while the thread is still warm.
+          </p>
+          <div className="mt-3">
+            <Link
+              href="/matches"
+              className="inline-flex rounded-full border border-amber-500/30 bg-amber-500/15 px-3 py-1.5 text-sm font-medium text-amber-100 transition hover:bg-amber-500/20"
+            >
+              Open Messages
+            </Link>
+          </div>
+        </div>
+      ) : unreadMatchAlerts > 0 ? (
+        <div className="mb-6 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4">
+          <p className="text-sm font-semibold text-emerald-100">
+            {unreadMatchAlerts === 1
+              ? "You have a fresh match waiting."
+              : `You have ${unreadMatchAlerts} fresh matches waiting.`}
+          </p>
+          <p className="mt-1 text-sm text-emerald-100/80">
+            Send the first message before the momentum drops.
+          </p>
+          <div className="mt-3">
+            <Link
+              href="/matches"
+              className="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3 py-1.5 text-sm font-medium text-emerald-100 transition hover:bg-emerald-500/20"
+            >
+              Start chats
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       {smartRecommendations.length > 0 ? (
         <section className="mb-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">

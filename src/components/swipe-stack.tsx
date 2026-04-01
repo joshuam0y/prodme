@@ -10,6 +10,7 @@ import {
   resetDiscoverSwipes,
 } from "@/app/explore/actions";
 import { ProfileAvatar } from "@/components/profile-avatar";
+import { buildDefaultDraftOpener } from "@/lib/match-openers";
 import type { BeatPreview, ProfileCard } from "@/lib/types";
 import { isUuid } from "@/lib/uuid";
 import { profileInitials } from "@/lib/match-ui";
@@ -75,6 +76,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
     id: string;
     name: string;
     initials: string;
+    role: ProfileCard["role"];
   } | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const gestureStarted = useRef(false);
@@ -235,6 +237,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                   id: top.id,
                   name: top.displayName,
                   initials: profileInitials(top.displayName),
+                  role: top.role,
                 });
                 if (typeof window !== "undefined") window.navigator?.vibrate?.([12, 25, 12]);
               }
@@ -507,7 +510,9 @@ export function SwipeStack({ profiles, viewerId }: Props) {
             </p>
             <div className="mt-6 grid gap-2">
               <Link
-                href={`/matches/${matchModal.id}?draft=${encodeURIComponent("Hey! We matched — what are you working on right now?")}`}
+                href={`/matches/${matchModal.id}?draft=${encodeURIComponent(
+                  buildDefaultDraftOpener(matchModal.name, matchModal.role),
+                )}`}
                 className="inline-flex h-11 items-center justify-center rounded-full bg-amber-500 px-5 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
               >
                 Message now

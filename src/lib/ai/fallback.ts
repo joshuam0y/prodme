@@ -7,6 +7,7 @@ import type {
   ReportTriageInput,
   ReportTriageResult,
 } from "@/lib/ai/types";
+import { buildRoleAwareOpeners } from "@/lib/match-openers";
 import { getProfilePromptOptions, isVenueProfileRole } from "@/lib/profile-prompts";
 
 const STOP_WORDS = new Set([
@@ -331,20 +332,13 @@ export function buildFallbackProfileCoachSuggestion(
 }
 
 export function buildFallbackMatchOpeners(input: MatchOpenersInput): string[] {
-  const themName = clean(input.themName) || "there";
-  const theirGoal = clean(input.themGoal);
-  const theirNiche = clean(input.themNiche);
-  const theirLookingFor = clean(input.themLookingFor);
-
-  return [
-    `Hey ${themName}, what are you focused on right now${theirGoal ? ` with ${theirGoal.toLowerCase()}` : ""}?`,
-    theirNiche
-      ? `You mentioned ${theirNiche.toLowerCase()} - what are you building in that lane right now?`
-      : `What kind of sound are you leaning into most right now?`,
-    theirLookingFor
-      ? `You said you're looking for ${theirLookingFor.toLowerCase()} - what would a great fit look like for you?`
-      : "What kind of collaboration are you most open to right now?",
-  ];
+  return buildRoleAwareOpeners({
+    themName: clean(input.themName),
+    themRole: clean(input.themRole),
+    themNiche: clean(input.themNiche),
+    themGoal: clean(input.themGoal),
+    themLookingFor: clean(input.themLookingFor),
+  });
 }
 
 export function fallbackModerateText(input: ModerationInput): ModerationResult {

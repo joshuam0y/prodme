@@ -34,14 +34,28 @@ export function formatNotificationDisplay(input: NotificationDisplayInput): {
   if (input.kind === "message_received") {
     return {
       title: `${actorName} sent you a message`,
-      body: input.body,
+      body: input.body?.trim() ? `"${input.body.trim()}"` : "Open Messages to reply while the conversation is fresh.",
     };
   }
 
   if (input.kind === "match_created") {
     return {
       title: `You matched with ${actorName}`,
-      body: "Say hi and start the conversation.",
+      body: "Open Messages and send the first note before the match goes cold.",
+    };
+  }
+
+  if (input.kind === "reply_nudge") {
+    return {
+      title: `${actorName} is waiting on your reply`,
+      body: "Jump back into the conversation while it is still warm.",
+    };
+  }
+
+  if (input.kind === "new_match_nudge") {
+    return {
+      title: `Your match with ${actorName} is still fresh`,
+      body: "Send the first message before the momentum drops.",
     };
   }
 

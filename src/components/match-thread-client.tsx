@@ -19,6 +19,7 @@ type Props = {
   matchId: string;
   currentUserId: string;
   matchName: string;
+  matchRole?: string | null;
   initialMessages: Message[];
   initialDraft?: string | null;
 };
@@ -34,6 +35,7 @@ export function MatchThreadClient({
   matchId,
   currentUserId,
   matchName,
+  matchRole = null,
   initialMessages,
   initialDraft = null,
 }: Props) {
@@ -51,11 +53,21 @@ export function MatchThreadClient({
   const [confirmAction, setConfirmAction] = useState<null | "report" | "block" | "unblock">(null);
   const [reportReason, setReportReason] = useState("abusive_or_spam");
   const blocked = Boolean(moderationNotice?.toLowerCase().includes("blocked"));
-  const defaultOpeners = [
-    `Hey ${matchName}, what are you building right now?`,
-    `Yo ${matchName}, down to trade ideas this week?`,
-    "Loved your vibe - want to connect on a quick collab call?",
-  ];
+  const defaultOpeners = useMemo(() => {
+    const role = (matchRole ?? "").toLowerCase();
+    if (role.includes("venue") || role.includes("promoter")) {
+      return [
+        `Hey ${matchName}, what kind of artists or nights are you booking right now?`,
+        `Your room looks like a strong fit - what usually helps someone stand out with you?`,
+        "What kind of local acts or event ideas are you most open to right now?",
+      ];
+    }
+    return [
+      `Hey ${matchName}, what are you building right now?`,
+      `Yo ${matchName}, down to trade ideas this week?`,
+      "Loved your vibe - want to connect on a quick collab call?",
+    ];
+  }, [matchName, matchRole]);
   const [quickOpeners, setQuickOpeners] = useState(defaultOpeners);
   const listRef = useRef<HTMLUListElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -390,9 +402,9 @@ export function MatchThreadClient({
         >
           {messages.length === 0 ? (
             <li className="flex flex-1 flex-col items-center justify-center px-4 py-12 text-center">
-              <p className="text-sm font-medium text-zinc-400">Say hello first</p>
+              <p className="text-sm font-medium text-zinc-400">Make the first move</p>
               <p className="mt-1 text-xs text-zinc-600">
-                Matches work best with a short, friendly opener.
+                Short, specific messages get replies faster than generic intros.
               </p>
             </li>
           ) : (
@@ -442,6 +454,9 @@ export function MatchThreadClient({
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
               Suggested openers
+            </p>
+            <p className="text-[11px] text-zinc-600">
+              Pick one and customize it so it sounds like you.
             </p>
             <button
               type="button"

@@ -60,7 +60,7 @@ async function maybeNotifyForSave(
     actorId,
     kind: "match_created",
     title: `You matched with ${actorName}`,
-    body: "Say hi and start the conversation.",
+    body: "Open Messages and send the first note before the match goes cold.",
     href: `/matches/${actorId}`,
     metadata: { actorId },
   });
@@ -69,7 +69,7 @@ async function maybeNotifyForSave(
     actorId: targetId,
     kind: "match_created",
     title: "It’s a match",
-    body: "You have a new mutual match waiting.",
+    body: "You have a new mutual match waiting. Start the chat while the energy is high.",
     href: `/matches/${targetId}`,
     metadata: { actorId: targetId },
   });
