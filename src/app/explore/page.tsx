@@ -19,7 +19,7 @@ function isGroup(s: string | undefined): s is DiscoverGroup | "" {
 export default async function ExplorePage({
   searchParams,
 }: {
-  searchParams: Promise<{ group?: string; notice?: string; maxKm?: string; sort?: string; q?: string }>;
+  searchParams: Promise<{ group?: string; notice?: string; maxKm?: string; sort?: string }>;
 }) {
   const params = await searchParams;
   const groupFilter = isGroup(params.group) ? params.group : "";
@@ -30,7 +30,6 @@ export default async function ExplorePage({
     sortRaw === "nearby" || sortRaw === "new" || sortRaw === "trending"
       ? (sortRaw as "nearby" | "new" | "trending")
       : "trending";
-  const lookingForQ = params.q ? decodeURIComponent(params.q) : "";
 
   let viewerId: string | null = null;
   let viewerRole: Role | null = null;
@@ -88,7 +87,6 @@ export default async function ExplorePage({
     viewerLookingFor,
     maxDistanceKm: maxKm,
     sort,
-    lookingForQuery: lookingForQ,
   });
   const peerFiltered =
     viewerRole === "venue"
@@ -145,10 +143,9 @@ export default async function ExplorePage({
           </p>
         ) : null}
         <DiscoverFilterBar
-          key={`${groupFilter || "all"}-${sort}-${lookingForQ}-${maxKm}`}
+          key={`${groupFilter || "all"}-${sort}-${maxKm}`}
           initialGroup={effectiveGroupFilter}
           initialSort={sort}
-          initialLookingFor={lookingForQ}
           initialKm={maxKm}
           allowVenueFilter={viewerRole !== "venue"}
         />

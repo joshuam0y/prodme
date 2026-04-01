@@ -7,13 +7,13 @@ import { isAdminEmail } from "@/lib/env";
 import { MobileNavLink } from "@/components/mobile-nav-link";
 
 const allNavLinks = [
-  { href: "/explore", label: "Discover", shortLabel: "D" },
-  { href: "/likes", label: "Likes", shortLabel: "L", authOnly: true },
-  { href: "/matches", label: "Messages", shortLabel: "M", authOnly: true },
-  { href: "/notifications", label: "Notifications", shortLabel: "N", authOnly: true },
-  { href: "/bundles", label: "Bundles", shortLabel: "B" },
-  { href: "/how-it-works", label: "How it works", shortLabel: "?" },
-  { href: "/onboarding", label: "Profile", shortLabel: "P", hideWhenProfileComplete: true },
+  { href: "/explore", label: "Discover" },
+  { href: "/likes", label: "Likes", authOnly: true },
+  { href: "/matches", label: "Messages", authOnly: true },
+  { href: "/notifications", label: "Notifications", authOnly: true },
+  { href: "/bundles", label: "Bundles" },
+  { href: "/how-it-works", label: "How it works" },
+  { href: "/onboarding", label: "Profile", hideWhenProfileComplete: true },
 ] as const;
 
 type Props = {
@@ -153,64 +153,55 @@ export function SiteHeader({
         </div>
       </header>
 
-      <aside className="hidden border-r border-white/10 bg-[var(--surface)]/85 md:sticky md:top-0 md:flex md:h-screen md:w-[88px] md:flex-col md:items-center md:justify-between md:px-3 md:py-5">
-        <div className="flex w-full flex-col items-center gap-4">
-          <Link href="/" className="inline-flex shrink-0" aria-label="prodLink home">
+      <aside className="hidden border-r border-white/10 bg-[var(--surface)]/92 md:sticky md:top-0 md:flex md:h-screen md:w-[228px] md:flex-col md:justify-between md:px-4 md:py-5">
+        <div className="flex w-full flex-col gap-5">
+          <Link href="/" className="inline-flex shrink-0 self-start" aria-label="prodLink home">
             <Image
               src="/prodlink-logo-v2.svg"
               alt="prodLink"
-              width={44}
-              height={44}
-              className="h-11 w-11 rounded-2xl border border-white/10 bg-zinc-950/50 p-2"
+              width={210}
+              height={55}
+              className="h-10 w-auto"
               priority
             />
           </Link>
-          <nav className="mt-4 flex w-full flex-col items-center gap-2">
-            {links.map(({ href, label, shortLabel }) => {
+          <nav className="flex w-full flex-col gap-1.5">
+            {links.map(({ href, label }) => {
               const badge = badgeForHref(href);
               return (
                 <Link
                   key={href}
                   href={href}
-                  className="group relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-zinc-950/35 text-sm font-semibold text-zinc-300 transition hover:border-amber-500/35 hover:bg-amber-500/10 hover:text-zinc-50"
-                  aria-label={label}
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-transparent px-3 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-white/10 hover:bg-white/5 hover:text-zinc-50"
                 >
-                  <span aria-hidden>{shortLabel}</span>
+                  <span>{label}</span>
                   {badge ? (
-                    <span className="absolute -right-1 -top-1 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-950">
+                    <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-950">
                       {badge}
                     </span>
-                  ) : null}
-                  <span className="pointer-events-none absolute left-[calc(100%+0.75rem)] top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-zinc-950/95 px-3 py-1.5 text-xs font-medium whitespace-nowrap text-zinc-100 opacity-0 shadow-xl transition group-hover:opacity-100">
-                    {label}
-                  </span>
+                  ) : <span className="h-5 w-5" aria-hidden />}
                 </Link>
               );
             })}
           </nav>
         </div>
 
-        <div className="flex w-full flex-col items-center gap-2">
+        <div className="flex w-full flex-col gap-2 border-t border-white/10 pt-4">
           {supabaseEnabled ? (
             user ? (
               <>
                 {admin ? (
                   <Link
                     href="/admin/moderation"
-                    className="group relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-zinc-950/35 text-sm font-semibold text-zinc-300 transition hover:border-amber-500/35 hover:bg-amber-500/10 hover:text-zinc-50"
-                    aria-label="Moderation"
+                    className="rounded-2xl border border-transparent px-3 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-white/10 hover:bg-white/5 hover:text-zinc-50"
                   >
-                    <span aria-hidden>Ad</span>
-                    <span className="pointer-events-none absolute left-[calc(100%+0.75rem)] top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-zinc-950/95 px-3 py-1.5 text-xs font-medium whitespace-nowrap text-zinc-100 opacity-0 shadow-xl transition group-hover:opacity-100">
-                      Moderation
-                    </span>
+                    Moderation
                   </Link>
                 ) : null}
                 {!showBuildProfileNav ? (
                   <Link
                     href="/profile"
-                    className="group relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-zinc-950/35 transition hover:border-amber-500/35 hover:bg-amber-500/10"
-                    aria-label="Profile"
+                    className="flex items-center gap-3 rounded-2xl border border-transparent px-3 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-white/10 hover:bg-white/5 hover:text-zinc-50"
                   >
                     <ProfileAvatar
                       name={user.email}
@@ -219,21 +210,15 @@ export function SiteHeader({
                       textClassName="text-[10px] font-semibold text-zinc-100"
                       ringClassName="border border-white/10 bg-zinc-800/60"
                     />
-                    <span className="pointer-events-none absolute left-[calc(100%+0.75rem)] top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-zinc-950/95 px-3 py-1.5 text-xs font-medium whitespace-nowrap text-zinc-100 opacity-0 shadow-xl transition group-hover:opacity-100">
-                      Profile
-                    </span>
+                    <span>Profile</span>
                   </Link>
                 ) : null}
-                <form action={signOut} className="relative">
+                <form action={signOut}>
                   <button
                     type="submit"
-                    className="group flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-zinc-950/35 text-sm font-semibold text-zinc-300 transition hover:border-amber-500/35 hover:bg-amber-500/10 hover:text-zinc-50"
-                    aria-label="Sign out"
+                    className="w-full rounded-2xl border border-white/10 bg-zinc-950/35 px-3 py-2.5 text-left text-sm font-medium text-zinc-300 transition hover:border-white/15 hover:bg-white/5 hover:text-zinc-50"
                   >
-                    <span aria-hidden>→</span>
-                    <span className="pointer-events-none absolute left-[calc(100%+0.75rem)] top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-zinc-950/95 px-3 py-1.5 text-xs font-medium whitespace-nowrap text-zinc-100 opacity-0 shadow-xl transition group-hover:opacity-100">
-                      Sign out
-                    </span>
+                    Sign out
                   </button>
                 </form>
               </>
@@ -241,23 +226,15 @@ export function SiteHeader({
               <>
                 <Link
                   href="/login"
-                  className="group relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-zinc-950/35 text-sm font-semibold text-zinc-300 transition hover:border-amber-500/35 hover:bg-amber-500/10 hover:text-zinc-50"
-                  aria-label="Sign in"
+                  className="rounded-2xl border border-transparent px-3 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-white/10 hover:bg-white/5 hover:text-zinc-50"
                 >
-                  <span aria-hidden>In</span>
-                  <span className="pointer-events-none absolute left-[calc(100%+0.75rem)] top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-zinc-950/95 px-3 py-1.5 text-xs font-medium whitespace-nowrap text-zinc-100 opacity-0 shadow-xl transition group-hover:opacity-100">
-                    Sign in
-                  </span>
+                  Sign in
                 </Link>
                 <Link
                   href="/signup"
-                  className="group relative flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/15 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/25"
-                  aria-label="Sign up"
+                  className="rounded-2xl border border-amber-500/30 bg-amber-500/15 px-3 py-2.5 text-sm font-medium text-amber-300 transition hover:bg-amber-500/25"
                 >
-                  <span aria-hidden>Up</span>
-                  <span className="pointer-events-none absolute left-[calc(100%+0.75rem)] top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-zinc-950/95 px-3 py-1.5 text-xs font-medium whitespace-nowrap text-zinc-100 opacity-0 shadow-xl transition group-hover:opacity-100">
-                    Sign up
-                  </span>
+                  Sign up
                 </Link>
               </>
             )

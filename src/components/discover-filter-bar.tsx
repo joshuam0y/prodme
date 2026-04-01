@@ -9,13 +9,11 @@ type DiscoverGroup = "" | "creatives" | "venues";
 export function DiscoverFilterBar({
   initialGroup,
   initialSort,
-  initialLookingFor,
   initialKm,
   allowVenueFilter,
 }: {
   initialGroup: DiscoverGroup;
   initialSort: Sort;
-  initialLookingFor: string;
   initialKm: number;
   allowVenueFilter: boolean;
 }) {
@@ -25,7 +23,6 @@ export function DiscoverFilterBar({
 
   const [group, setGroup] = useState<DiscoverGroup>(initialGroup);
   const [sort, setSort] = useState<Sort>(initialSort);
-  const [lookingFor, setLookingFor] = useState(initialLookingFor);
   const [km, setKm] = useState(initialKm);
 
   const debounceRef = useRef<number | null>(null);
@@ -41,7 +38,6 @@ export function DiscoverFilterBar({
   const activeCount =
     (group ? 1 : 0) +
     (sort !== "trending" ? 1 : 0) +
-    (lookingFor.trim() ? 1 : 0) +
     (km !== 50 ? 1 : 0);
 
   useEffect(() => {
@@ -51,13 +47,12 @@ export function DiscoverFilterBar({
       if (group) p.set("group", group);
       if (sort) p.set("sort", sort);
       p.set("maxKm", String(km));
-      if (lookingFor.trim()) p.set("q", lookingFor.trim());
       router.replace(`${pathname}?${p.toString()}`, { scroll: false });
     }, 240);
     return () => {
       if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);
     };
-  }, [baseParams, group, km, lookingFor, pathname, router, sort]);
+  }, [baseParams, group, km, pathname, router, sort]);
 
   return (
     <details className="mx-auto mt-6 max-w-3xl rounded-3xl border border-white/10 bg-zinc-900/45 text-left shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
@@ -120,7 +115,7 @@ export function DiscoverFilterBar({
           </div>
         </div>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="mt-4">
           <label className="block text-xs font-medium text-zinc-500">
             Sort
             <select
@@ -132,16 +127,6 @@ export function DiscoverFilterBar({
               <option value="trending">Trending</option>
               <option value="new">New</option>
             </select>
-          </label>
-
-          <label className="block text-xs font-medium text-zinc-500">
-            Looking for
-            <input
-              className="mt-1.5 w-full rounded-2xl border border-white/10 bg-zinc-950/40 px-3 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-600"
-              value={lookingFor}
-              onChange={(e) => setLookingFor(e.target.value)}
-              placeholder="e.g. engineer, venue, vocalist, collab"
-            />
           </label>
         </div>
       </div>
