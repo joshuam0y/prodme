@@ -138,7 +138,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
             : null;
   const heroSupport = isVenueProfile
     ? niche || goal
-    : lookingFor || goal;
+    : goal || niche;
   const heroChips = [
     profile.role?.trim() || null,
     profile.city?.trim() || null,
