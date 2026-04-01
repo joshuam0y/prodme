@@ -40,7 +40,6 @@ export async function getLiveProfileCards(
     viewerLookingFor?: string | null;
     maxDistanceKm?: number;
     sort?: "new" | "trending" | "nearby";
-    verifiedOnly?: boolean;
     lookingForQuery?: string;
   },
 ): Promise<ProfileCard[]> {
@@ -64,7 +63,7 @@ export async function getLiveProfileCards(
   let q = supabase
     .from("profiles")
     .select(
-      "id, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, latitude, longitude, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, latitude, longitude, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, updated_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .not("onboarding_completed_at", "is", null)
     .order("updated_at", { ascending: false })
@@ -164,7 +163,6 @@ export async function getLiveProfileCards(
     }
     const overlapRatio =
       viewerTokens.size > 0 ? Math.min(1, overlap / Math.max(3, viewerTokens.size)) : 0;
-    if (row.verified) score += 0.18;
     if ((row.looking_for ?? "").trim()) score += 0.08;
     if ((row.prompt_1_answer ?? "").trim()) score += 0.06;
     if ((row.prompt_2_answer ?? "").trim()) score += 0.06;
@@ -223,8 +221,6 @@ export async function getLiveProfileCards(
     if (semanticSimilarity >= 0.82) return "Semantic match";
     if (overlap >= 3) return "Strong fit";
     if (aiScore >= 80 && aiTags.length >= 3) return "AI-optimized";
-    if (row.verified && (row.looking_for ?? "").trim()) return "Verified and clear";
-    if (row.verified) return "Verified";
     if ((row.looking_for ?? "").trim()) return "Knows what they want";
     if (stats && stats.count >= 6 && stats.avg >= 4.3) return "Highly rated";
     if (stats && stats.count >= 3 && stats.avg >= 4.0) return "Trending";
@@ -272,9 +268,6 @@ export async function getLiveProfileCards(
     if (semanticSimilarity >= 0.75) {
       reasons.unshift("Semantically close to your overall profile");
     }
-    if (reasons.length === 0 && row.verified) {
-      reasons.push("Verified profile with clear intent");
-    }
     if (reasons.length === 0 && (row.looking_for ?? "").trim()) {
       reasons.push(`Looking for ${row.looking_for?.trim()}`);
     }
@@ -282,11 +275,9 @@ export async function getLiveProfileCards(
   };
 
   const desiredSort = opts?.sort ?? "trending";
-  const verifiedOnly = Boolean(opts?.verifiedOnly);
   const lookingQ = (opts?.lookingForQuery ?? "").trim().toLowerCase();
 
   const filtered = rankedRows.filter((row) => {
-    if (verifiedOnly && !row.verified) return false;
     if (lookingQ) {
       const hay = `${row.looking_for ?? ""} ${row.goal ?? ""} ${row.niche ?? ""}`.toLowerCase();
       if (!hay.includes(lookingQ)) return false;
@@ -356,7 +347,6 @@ export async function getLiveProfileCards(
       bio: niche,
       highlight: niche,
       accent: accentForRole(role),
-      verified: Boolean(row.verified),
       lookingFor: row.looking_for?.trim() ?? null,
       goal: row.goal?.trim() ?? null,
       prompt1Question: row.prompt_1_question?.trim() ?? null,

@@ -23,7 +23,6 @@ export type MobileDiscoverProfile = {
   bio: string;
   highlight: string;
   accent: string;
-  verified?: boolean;
   lookingFor?: string | null;
   goal?: string | null;
   prompt1Question?: string | null;
@@ -90,7 +89,6 @@ export type MobilePublicProfile = {
   neighborhood: string | null;
   niche: string | null;
   goal: string | null;
-  verified: boolean;
   lookingFor: string | null;
   prompt1Question: string | null;
   prompt1Answer: string | null;

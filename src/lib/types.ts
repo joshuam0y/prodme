@@ -23,8 +23,6 @@ export type ProfileCard = {
   highlight: string;
   /** CSS gradient or color for card header */
   accent: string;
-  /** Whether the profile is admin-verified. */
-  verified?: boolean;
   /** Text used for the "Looking for" filter. */
   lookingFor?: string | null;
   goal?: string | null;
@@ -74,7 +72,6 @@ export type DbProfile = {
   latitude?: number | null;
   longitude?: number | null;
   location_radius_km?: number | null;
-  verified?: boolean | null;
   looking_for?: string | null;
   prompt_1_question?: string | null;
   prompt_1_answer?: string | null;

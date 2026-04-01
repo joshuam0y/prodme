@@ -4,12 +4,6 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { getLiveProfileCards } from "@/lib/discover-profiles";
 import type { MobileApiResponse } from "@/lib/mobile-api/types";
 
-function parseBool(v: string | null): boolean {
-  if (!v) return false;
-  const s = v.toLowerCase().trim();
-  return s === "1" || s === "true" || s === "yes" || s === "on";
-}
-
 export async function GET(req: Request) {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ ok: false, error: "supabase_not_configured" } satisfies MobileApiResponse<never>, {
@@ -22,7 +16,6 @@ export async function GET(req: Request) {
 
   const sort = (sp.get("sort") ?? "trending") as "new" | "trending" | "nearby";
   const lookingForQuery = sp.get("q") ?? undefined;
-  const verifiedOnly = parseBool(sp.get("verified"));
   const maxKmRaw = sp.get("maxKm");
   const maxDistanceKm = maxKmRaw ? Math.max(0, Number(maxKmRaw)) : undefined;
 
@@ -47,7 +40,6 @@ export async function GET(req: Request) {
     viewerLng: Number.isFinite(viewerLng) ? viewerLng : null,
     maxDistanceKm: Number.isFinite(maxDistanceKm) ? maxDistanceKm : undefined,
     sort,
-    verifiedOnly,
     lookingForQuery: lookingForQuery?.trim() ? lookingForQuery : undefined,
   });
 

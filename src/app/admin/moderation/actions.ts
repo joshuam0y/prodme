@@ -49,12 +49,3 @@ export async function unblockProfile(blockerId: string, blockedId: string) {
   }
   revalidatePath("/admin/moderation");
 }
-
-export async function setProfileVerified(profileId: string, verified: boolean) {
-  const { supabase } = await requireAdmin();
-  const { error } = await supabase.from("profiles").update({ verified }).eq("id", profileId);
-  if (error) {
-    redirect("/admin/moderation?notice=Could%20not%20update%20verified%20status.");
-  }
-  revalidatePath("/admin/moderation");
-}

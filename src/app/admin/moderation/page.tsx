@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail, isSupabaseConfigured } from "@/lib/env";
-import { resolveReport, setProfileVerified, unblockProfile } from "./actions";
+import { resolveReport, unblockProfile } from "./actions";
 
 type ReportRow = {
   id: number;
@@ -83,7 +83,7 @@ export default async function ModerationAdminPage({
   const userLookup = query
     ? await supabase
         .from("profiles")
-        .select("id, display_name, role, city, verified, looking_for, updated_at")
+        .select("id, display_name, role, city, looking_for, updated_at")
         .or(`id.eq.${query},display_name.ilike.%${query.replace(/[%_,]/g, "")}%`)
         .order("updated_at", { ascending: false })
         .limit(20)
@@ -106,26 +106,6 @@ export default async function ModerationAdminPage({
   const blockRows = (blocks as BlockRow[] | null) ?? [];
   const blockKey = (a: string, b: string) => `${a}:${b}`;
   const activeBlocks = new Set(blockRows.map((b) => blockKey(b.blocker_id, b.blocked_id)));
-
-  const involvedProfileIds = new Set<string>();
-  for (const r of (reports as ReportRow[] | null) ?? []) {
-    involvedProfileIds.add(r.reported_user_id);
-    involvedProfileIds.add(r.reporter_id);
-  }
-  for (const b of blockRows) {
-    involvedProfileIds.add(b.blocked_id);
-    involvedProfileIds.add(b.blocker_id);
-  }
-
-  const { data: profilesForAdmin } = involvedProfileIds.size
-    ? await supabase.from("profiles").select("id, verified").in("id", [...involvedProfileIds])
-    : { data: [] };
-  const verifiedById = new Map(
-    ((profilesForAdmin as Array<{ id: string; verified: boolean }> | null) ?? []).map((p) => [
-      p.id,
-      p.verified,
-    ]),
-  );
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">
@@ -181,7 +161,6 @@ export default async function ModerationAdminPage({
               display_name: string | null;
               role: string | null;
               city: string | null;
-              verified: boolean | null;
               looking_for: string | null;
               updated_at: string | null;
             }> | null) ?? [])).length === 0 ? (
@@ -194,7 +173,6 @@ export default async function ModerationAdminPage({
                 display_name: string | null;
                 role: string | null;
                 city: string | null;
-                verified: boolean | null;
                 looking_for: string | null;
                 updated_at: string | null;
               }> | null) ?? [])).map((p) => (
@@ -204,7 +182,7 @@ export default async function ModerationAdminPage({
                       <p className="font-medium text-zinc-100">{p.display_name?.trim() || "Member"}</p>
                       <p className="text-zinc-500">{p.id}</p>
                       <p className="text-zinc-500">
-                        {[p.role, p.city, p.verified ? "Verified" : "Not verified"].filter(Boolean).join(" · ")}
+                        {[p.role, p.city].filter(Boolean).join(" · ")}
                       </p>
                       {p.looking_for?.trim() ? (
                         <p className="text-zinc-400">Looking for: {p.looking_for.trim()}</p>
@@ -217,23 +195,6 @@ export default async function ModerationAdminPage({
                       >
                         Public profile
                       </Link>
-                      <form
-                        action={async () => {
-                          "use server";
-                          await setProfileVerified(p.id, !Boolean(p.verified));
-                        }}
-                      >
-                        <button
-                          type="submit"
-                          className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
-                            p.verified
-                              ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-200"
-                              : "border-white/20 bg-white/5 text-zinc-200"
-                          }`}
-                        >
-                          {p.verified ? "Unverify" : "Verify"}
-                        </button>
-                      </form>
                     </div>
                   </div>
                 </li>
@@ -351,24 +312,6 @@ export default async function ModerationAdminPage({
                     ) : null}
                   </div>
                   <div className="flex gap-2">
-                      <form
-                        action={async () => {
-                          "use server";
-                          const next = !verifiedById.get(r.reported_user_id);
-                          await setProfileVerified(r.reported_user_id, next);
-                        }}
-                      >
-                        <button
-                          type="submit"
-                          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                            verifiedById.get(r.reported_user_id)
-                              ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/15"
-                              : "border-white/20 bg-white/5 text-zinc-200 hover:bg-white/10"
-                          }`}
-                        >
-                          {verifiedById.get(r.reported_user_id) ? "Verified" : "Not verified"}
-                        </button>
-                      </form>
                     {r.status === "open" ? (
                       <form
                         action={async () => {
@@ -450,24 +393,6 @@ export default async function ModerationAdminPage({
                       Unblock
                     </button>
                   </form>
-                          <form
-                            action={async () => {
-                              "use server";
-                              const next = !verifiedById.get(b.blocked_id);
-                              await setProfileVerified(b.blocked_id, next);
-                            }}
-                          >
-                            <button
-                              type="submit"
-                              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                                verifiedById.get(b.blocked_id)
-                                  ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/15"
-                                  : "border-white/20 bg-white/5 text-zinc-200 hover:bg-white/10"
-                              }`}
-                            >
-                              {verifiedById.get(b.blocked_id) ? "Verified" : "Not verified"}
-                            </button>
-                          </form>
                 </div>
               </li>
             ))

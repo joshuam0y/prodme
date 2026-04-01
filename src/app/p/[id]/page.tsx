@@ -82,7 +82,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   const { data: row, error } = await supabase
     .from("profiles")
     .select(
-      "id, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, verified, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .eq("id", id)
     .maybeSingle();
@@ -149,7 +149,6 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   const metaBits = [
     profile.role?.trim() || "Creator",
     locationLabel,
-    profile.verified ? "Verified" : null,
   ].filter((value): value is string => Boolean(value));
   const lookingForTitle = isVenueProfile ? "Booking fit" : "Looking for";
   const goalTitle = isVenueProfile ? "What they're building" : "Focus";
