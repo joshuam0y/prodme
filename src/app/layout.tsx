@@ -119,7 +119,7 @@ export default async function RootLayout({
             unreadNotifications={unreadNotifications}
             showBuildProfileNav={showBuildProfileNav}
           />
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-w-0 flex-1 flex-col pb-24 md:pb-0">
             <div className="flex flex-1 flex-col">{children}</div>
             <SiteFooter />
           </div>

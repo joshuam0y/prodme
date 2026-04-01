@@ -2,6 +2,7 @@ import type { User } from "@supabase/supabase-js";
 import Image from "next/image";
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
+import { MobileTabBar } from "@/components/mobile-tab-bar";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import { ShareAppButton } from "@/components/share-app-button";
 import { isAdminEmail } from "@/lib/env";
@@ -49,6 +50,14 @@ export function SiteHeader({
       return unreadNotifications > 9 ? "9+" : String(unreadNotifications);
     }
     return null;
+  };
+
+  const closeMobileMenu = (target: EventTarget | null) => {
+    if (!(target instanceof HTMLElement)) return;
+    const host = target.closest("details");
+    if (host instanceof HTMLDetailsElement) {
+      host.open = false;
+    }
   };
 
   return (
@@ -124,6 +133,7 @@ export function SiteHeader({
                         <form action={signOut}>
                           <button
                             type="submit"
+                            onClick={(e) => closeMobileMenu(e.currentTarget)}
                             className="w-full rounded-lg px-3 py-2 text-left text-sm text-zinc-300 transition hover:bg-white/5 hover:text-zinc-100"
                           >
                             Sign out
@@ -254,6 +264,14 @@ export function SiteHeader({
           ) : null}
         </div>
       </aside>
+      <MobileTabBar
+        signedIn={Boolean(user)}
+        profileAvatarUrl={profileAvatarUrl}
+        profileName={user?.email ?? null}
+        unreadMessages={unreadMessages}
+        unreadNotifications={unreadNotifications}
+        showBuildProfileNav={showBuildProfileNav}
+      />
     </>
   );
 }

@@ -30,7 +30,7 @@ export default async function SignupPage({
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-16 sm:px-6">
-      <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-8 shadow-xl">
+      <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-5 shadow-xl sm:p-8">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
           Create account
         </h1>
@@ -108,14 +108,14 @@ export default async function SignupPage({
           </button>
         </form>
 
-        <div className="mt-10 border-t border-white/10 pt-8">
+        <div className="mt-8 border-t border-white/10 pt-6 sm:mt-10 sm:pt-8">
           <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
             Didn&apos;t get a link or it expired?
           </p>
-          <p className="mt-1 text-xs text-zinc-600">
-            Enter your email and we&apos;ll send a fresh confirmation link if the account is waiting for confirmation.
+          <p className="mt-1 max-w-sm text-xs leading-relaxed text-zinc-600">
+            Enter your email and we&apos;ll send a fresh confirmation link if the account is still waiting for confirmation.
           </p>
-          <form action={resendSignupConfirmation} className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <form action={resendSignupConfirmation} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
             <input type="hidden" name="next" value={next} />
             <input
               name="email"
@@ -127,7 +127,7 @@ export default async function SignupPage({
             />
             <button
               type="submit"
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
+              className="w-full rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-white/10 sm:w-auto sm:shrink-0"
             >
               Resend confirmation
             </button>

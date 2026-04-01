@@ -484,7 +484,7 @@ export function MatchThreadClient({
       <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-zinc-950/50">
         <ul
           ref={listRef}
-          className="flex max-h-[min(52vh,420px)] flex-col gap-1 overflow-y-auto p-3 sm:max-h-[min(56vh,480px)]"
+          className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3"
         >
           {messages.length === 0 ? (
             <li className="flex flex-1 flex-col items-center justify-center px-4 py-12 text-center">
@@ -560,13 +560,15 @@ export function MatchThreadClient({
       ) : null}
       {!blocked && messages.length === 0 ? (
         <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-              Suggested openers
-            </p>
-            <p className="text-[11px] text-zinc-600">
-              Pick one and customize it so it sounds like you.
-            </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                Suggested openers
+              </p>
+              <p className="mt-1 text-[11px] text-zinc-600">
+                Pick one and customize it so it sounds like you.
+              </p>
+            </div>
             <button
               type="button"
               disabled={loadingOpeners}
@@ -833,7 +835,7 @@ export function MatchThreadClient({
           placeholder={`Message ${matchName}...`}
         />
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/5 px-2 pb-1 pt-2">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => setEmojiOpen((value) => !value)}
@@ -889,8 +891,8 @@ export function MatchThreadClient({
               {recording ? "Stop recording" : "Voice"}
             </button>
           </div>
-          <div className="flex items-center gap-2">
-            <p className="text-[11px] text-zinc-600">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            <p className="text-[11px] text-zinc-600 sm:text-right">
               {uploadingMedia ? "Uploading..." : "Enter sends, Shift+Enter adds a line."}
             </p>
             <button

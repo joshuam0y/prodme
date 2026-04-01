@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   recordDiscoverAction,
   removeDiscoverAction,
@@ -28,7 +29,7 @@ const roleLabel: Record<ProfileCard["role"], string> = {
   venue: "Venue",
 };
 
-const THRESHOLD_PX = 72;
+const THRESHOLD_PX = 56;
 const MAX_EXTRA = 5;
 
 function loadDismissedIds(key: string): Set<string> {
@@ -59,6 +60,7 @@ type SwipeDir = "left" | "right";
 
 export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) {
   const signedIn = Boolean(viewerId && viewerId.trim());
+  const router = useRouter();
 
   const dismissedKey = signedIn && viewerId ? `prodlink.discover.dismissedIds:${viewerId}` : "prodlink.discover.dismissedIds:anon";
 
@@ -288,11 +290,11 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
             if (!isUuid(dismissedId)) persistDismissedIds(dismissedKey, next);
             return next;
           });
-          window.location.reload();
+          router.refresh();
         }
       }, 220);
     },
-    [visibleProfiles, signedIn, dismissedKey, matchModal],
+    [visibleProfiles, signedIn, dismissedKey, matchModal, router],
   );
 
   const undoLastSwipe = useCallback(() => {
@@ -312,11 +314,11 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
           ? window.location.pathname + window.location.search
           : "/explore";
       void removeDiscoverAction(id, path)
-        .then(() => window.location.reload())
+        .then(() => router.refresh())
         .catch(() => {});
     }
     setLastSwipe(null);
-  }, [lastSwipe, dismissedKey, signedIn]);
+  }, [lastSwipe, dismissedKey, signedIn, router]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -420,7 +422,7 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
                 typeof window !== "undefined"
                   ? window.location.pathname + window.location.search
                   : "/explore";
-              void resetDiscoverSwipes(path).then(() => window.location.reload());
+              void resetDiscoverSwipes(path).then(() => router.refresh());
             }
           }}
           className="rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-zinc-950 transition-opacity hover:opacity-90"
@@ -451,7 +453,7 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
                 typeof window !== "undefined"
                   ? window.location.pathname + window.location.search
                   : "/explore";
-              void resetDiscoverSwipes(path).then(() => window.location.reload());
+              void resetDiscoverSwipes(path).then(() => router.refresh());
               return;
             }
 
@@ -619,7 +621,7 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerEnd}
         style={dragTransform}
-        className={`relative z-10 min-h-[560px] sm:min-h-[680px] touch-none overflow-hidden rounded-[30px] border border-white/10 bg-zinc-900/60 shadow-[0_30px_100px_rgba(0,0,0,0.3)] select-none ${
+        className={`relative z-10 min-h-[560px] sm:min-h-[680px] touch-pan-y overflow-hidden rounded-[30px] border border-white/10 bg-zinc-900/60 shadow-[0_30px_100px_rgba(0,0,0,0.3)] select-none ${
           dragging && !exitDir ? "cursor-grabbing" : "cursor-grab"
         } ${
           dragging && !exitDir

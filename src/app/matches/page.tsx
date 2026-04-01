@@ -256,61 +256,63 @@ export default async function MatchesPage({
           return (
             <li key={id}>
               <article className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] shadow-lg shadow-black/20">
-                <Link
-                  href={`/matches/${id}`}
-                  className="flex gap-3 p-4 transition hover:bg-white/[0.04]"
-                >
-                  <ProfileAvatar
-                    name={name}
-                    avatarUrl={p?.avatar_url}
-                    sizeClassName="h-14 w-14"
-                    textClassName="text-sm font-semibold text-amber-50"
-                    ringClassName="ring-2 ring-amber-500/20 bg-gradient-to-br from-amber-500/35 to-amber-700/25"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <span className="font-semibold text-zinc-50">{name}</span>
-                        {meta ? (
-                          <p className="mt-0.5 truncate text-xs text-zinc-500">{meta}</p>
-                        ) : null}
+                <div className="p-4">
+                  <Link
+                    href={`/matches/${id}`}
+                    className="flex gap-3 rounded-xl transition hover:bg-white/[0.04]"
+                  >
+                    <ProfileAvatar
+                      name={name}
+                      avatarUrl={p?.avatar_url}
+                      sizeClassName="h-14 w-14"
+                      textClassName="text-sm font-semibold text-amber-50"
+                      ringClassName="ring-2 ring-amber-500/20 bg-gradient-to-br from-amber-500/35 to-amber-700/25"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="font-semibold text-zinc-50">{name}</span>
+                          {meta ? (
+                            <p className="mt-0.5 truncate text-xs text-zinc-500">{meta}</p>
+                          ) : null}
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          {isNewMatch ? (
+                            <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
+                              New
+                            </span>
+                          ) : null}
+                          {unread > 0 ? (
+                            <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[10px] font-bold text-zinc-950">
+                              {unread > 9 ? "9+" : unread}
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
-                      <div className="flex shrink-0 flex-col items-end gap-1">
-                        {isNewMatch ? (
-                          <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
-                            New
-                          </span>
-                        ) : null}
-                        {unread > 0 ? (
-                          <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[10px] font-bold text-zinc-950">
-                            {unread > 9 ? "9+" : unread}
-                          </span>
-                        ) : null}
-                      </div>
+                      <p className="mt-2 line-clamp-2 text-sm text-zinc-400">
+                        {chat
+                          ? formatPreview(chat.body, chat.mine)
+                          : "New match waiting. Start the conversation while it is fresh."}
+                      </p>
+                      {yourTurn ? (
+                        <p className="mt-1.5 text-xs font-medium text-amber-400/95">Your turn</p>
+                      ) : null}
+                      {!isNewMatch && !yourTurn && unread === 0 ? (
+                        <p className="mt-1.5 text-xs text-zinc-600">Conversation warm</p>
+                      ) : null}
                     </div>
-                    <p className="mt-2 line-clamp-2 text-sm text-zinc-400">
-                      {chat
-                        ? formatPreview(chat.body, chat.mine)
-                        : "New match waiting. Start the conversation while it is fresh."}
-                    </p>
-                    {isNewMatch ? (
-                      <Link
-                        href={`/matches/${id}?draft=${encodeURIComponent(
-                          buildDefaultDraftOpener(name, p?.role),
-                        )}`}
-                        className="mt-1 inline-flex w-fit items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/15"
-                      >
-                        Start chat
-                      </Link>
-                    ) : null}
-                    {yourTurn ? (
-                      <p className="mt-1.5 text-xs font-medium text-amber-400/95">Your turn</p>
-                    ) : null}
-                    {!isNewMatch && !yourTurn && unread === 0 ? (
-                      <p className="mt-1.5 text-xs text-zinc-600">Conversation warm</p>
-                    ) : null}
-                  </div>
-                </Link>
+                  </Link>
+                  {isNewMatch ? (
+                    <Link
+                      href={`/matches/${id}?draft=${encodeURIComponent(
+                        buildDefaultDraftOpener(name, p?.role),
+                      )}`}
+                      className="mt-3 inline-flex w-fit items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/15"
+                    >
+                      Start chat
+                    </Link>
+                  ) : null}
+                </div>
                 <div className="flex items-center justify-between border-t border-white/5 px-4 py-2">
                   <Link
                     href={`/p/${id}`}
