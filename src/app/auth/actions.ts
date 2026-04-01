@@ -214,6 +214,9 @@ export type OnboardingPayload = {
   niche: string;
   goal: string;
   city?: string;
+  neighborhood?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   looking_for: string;
   prompt_1_question: string;
   prompt_1_answer: string;
@@ -278,6 +281,10 @@ export async function completeOnboarding(payload: OnboardingPayload) {
     (user.email?.split("@")[0] ?? "Member");
 
   const city = payload.city?.trim() ?? "";
+  const neighborhood = payload.neighborhood?.trim() ?? "";
+  const lat = payload.latitude;
+  const lng = payload.longitude;
+  const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
   const lookingFor = payload.looking_for.trim();
   const prompt1Question = normalizePromptValue(payload.prompt_1_question);
   const prompt1Answer = normalizePromptValue(payload.prompt_1_answer);
@@ -313,6 +320,9 @@ export async function completeOnboarding(payload: OnboardingPayload) {
     prompt_2_question: prompt2Question || null,
     prompt_2_answer: prompt2Answer || null,
     onboarding_completed_at: new Date().toISOString(),
+    neighborhood: neighborhood || null,
+    latitude: hasCoords ? lat : null,
+    longitude: hasCoords ? lng : null,
   };
 
   // If the DB hasn't run migration `005_profiles_city.sql` yet, `city` may

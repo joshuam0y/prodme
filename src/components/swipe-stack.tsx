@@ -680,38 +680,6 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           {star ? (
             <p className="text-sm leading-relaxed text-zinc-300">{current.bio}</p>
           ) : null}
-          {current.aiSummary ? (
-            <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-300/85">
-                AI read
-              </p>
-              <p className="mt-1 text-sm leading-relaxed text-zinc-200">
-                {current.aiSummary}
-              </p>
-              {current.aiTags?.length ? (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {current.aiTags.slice(0, 4).map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-zinc-300"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-              {current.matchWhy?.length ? (
-                <div className="mt-3 space-y-1">
-                  {current.matchWhy.map((reason) => (
-                    <p key={reason} className="text-xs text-zinc-300">
-                      {reason}
-                    </p>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
           {star && heroCover ? (
             <div className="space-y-2 rounded-xl border border-white/5 bg-white/[0.04] p-3 sm:p-4">
               <div className="flex items-start gap-3">

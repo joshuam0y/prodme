@@ -1,7 +1,7 @@
 "use client";
 
 import { completeOnboarding } from "@/app/auth/actions";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { getProfilePromptOptions } from "@/lib/profile-prompts";
 
 function isVenueRole(role?: string) {
@@ -58,10 +58,23 @@ type Props = {
   error?: string;
 };
 
+type SearchHit = {
+  lat: number;
+  lon: number;
+  label: string;
+  city?: string;
+  neighborhood?: string;
+};
+
 export function OnboardingForm({ error }: Props) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
+  const [searchQ, setSearchQ] = useState("");
+  const [searchHits, setSearchHits] = useState<SearchHit[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchDebounceRef = useRef<number | null>(null);
 
   const steps = stepsForRole(answers.role);
   const current = steps[step];
@@ -79,7 +92,7 @@ export function OnboardingForm({ error }: Props) {
     Boolean((answers.niche ?? "").trim()),
     Boolean(answers.goal),
     Boolean((answers.looking_for ?? "").trim()),
-    Boolean((answers.city ?? "").trim()),
+    Boolean((answers.city ?? "").trim() || (answers.neighborhood ?? "").trim()),
   ];
   const completeness = Math.round(
     (profileSignals.filter(Boolean).length / profileSignals.length) * 100,
@@ -104,6 +117,44 @@ export function OnboardingForm({ error }: Props) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [step]);
 
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current !== null) window.clearTimeout(searchDebounceRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (current.id !== "niche") {
+      setSearchOpen(false);
+      return;
+    }
+    const q = searchQ.trim();
+    if (q.length < 2) {
+      setSearchHits([]);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    if (searchDebounceRef.current !== null) window.clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch(`/api/location/search?q=${encodeURIComponent(q)}`);
+          const json = (await res.json()) as { ok: boolean; results?: SearchHit[] };
+          if (res.ok && json.ok && Array.isArray(json.results)) {
+            setSearchHits(json.results);
+          } else {
+            setSearchHits([]);
+          }
+        } catch {
+          setSearchHits([]);
+        } finally {
+          setSearchLoading(false);
+        }
+      })();
+    }, 380);
+  }, [current.id, searchQ]);
+
   const submit = () => {
     const role = answers.role;
     const niche = answers.niche;
@@ -118,6 +169,9 @@ export function OnboardingForm({ error }: Props) {
         niche: niche.trim(),
         goal,
         city: (answers.city ?? "").trim(),
+        neighborhood: (answers.neighborhood ?? "").trim(),
+        latitude: answers.latitude ? Number(answers.latitude) : null,
+        longitude: answers.longitude ? Number(answers.longitude) : null,
         looking_for: lookingFor,
         prompt_1_question: prompt1Question,
         prompt_1_answer: prompt1Answer,
@@ -140,7 +194,7 @@ export function OnboardingForm({ error }: Props) {
           Profile completeness: {completeness}%
         </p>
         <p className="mt-1 text-xs text-zinc-500">
-          Add your role, style, goal, and city to rank higher and get better matches.
+          Add your role, style, goal, and location to rank higher and get better matches.
         </p>
       </div>
 
@@ -208,22 +262,87 @@ export function OnboardingForm({ error }: Props) {
             />
             {current.id === "niche" ? (
               <div>
-              <label
-                htmlFor="city"
-                className="text-xs font-medium text-zinc-500"
-              >
-                City or region (optional)
-              </label>
-              <input
-                id="city"
-                name="city"
-                type="text"
-                autoComplete="address-level2"
-                placeholder="e.g. London, Atlanta, Berlin"
-                value={answers.city ?? ""}
-                onChange={(e) => setAnswer("city", e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
-              />
+                <label htmlFor="location_search" className="text-xs font-medium text-zinc-500">
+                  Location (optional)
+                </label>
+                <div className="relative">
+                  <input
+                    id="location_search"
+                    name="location_search"
+                    type="text"
+                    autoComplete="off"
+                    placeholder="Search neighborhood, city, venue, address..."
+                    value={searchQ}
+                    onChange={(e) => {
+                      setSearchQ(e.target.value);
+                      setSearchOpen(true);
+                    }}
+                    onFocus={() => setSearchOpen(true)}
+                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+                  />
+                  {searchOpen && (searchHits.length > 0 || searchLoading) ? (
+                    <ul className="absolute z-10 mt-1 max-h-52 w-full overflow-auto rounded-xl border border-white/10 bg-zinc-950 py-1 text-sm shadow-xl">
+                      {searchLoading ? (
+                        <li className="px-3 py-2 text-xs text-zinc-500">Searching...</li>
+                      ) : (
+                        searchHits.map((hit, i) => (
+                          <li key={`${hit.lat}-${hit.lon}-${i}`}>
+                            <button
+                              type="button"
+                              className="w-full px-3 py-2 text-left text-xs text-zinc-200 hover:bg-white/5"
+                              onClick={() => {
+                                setAnswer("city", hit.city ?? "");
+                                setAnswer("neighborhood", hit.neighborhood ?? "");
+                                setAnswer("latitude", String(hit.lat));
+                                setAnswer("longitude", String(hit.lon));
+                                setSearchQ(hit.label);
+                                setSearchHits([]);
+                                setSearchOpen(false);
+                              }}
+                            >
+                              {hit.label}
+                            </button>
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  ) : null}
+                </div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="city" className="text-xs font-medium text-zinc-500">
+                      City
+                    </label>
+                    <input
+                      id="city"
+                      name="city"
+                      type="text"
+                      autoComplete="address-level2"
+                      placeholder="e.g. Berlin"
+                      value={answers.city ?? ""}
+                      onChange={(e) => setAnswer("city", e.target.value)}
+                      className="mt-1.5 w-full rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="neighborhood" className="text-xs font-medium text-zinc-500">
+                      Neighborhood
+                    </label>
+                    <input
+                      id="neighborhood"
+                      name="neighborhood"
+                      type="text"
+                      autoComplete="address-level3"
+                      placeholder="e.g. Kreuzberg"
+                      value={answers.neighborhood ?? ""}
+                      onChange={(e) => setAnswer("neighborhood", e.target.value)}
+                      className="mt-1.5 w-full rounded-xl border border-white/10 bg-zinc-900/50 px-4 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30"
+                    />
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-zinc-500">
+                  Search a real place to auto-fill the same location fields used on your profile.
+                </p>
               </div>
             ) : null}
           </div>

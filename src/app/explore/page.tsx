@@ -112,14 +112,17 @@ export default async function ExplorePage({
     .filter((p) => typeof p.semanticScore === "number" && (p.semanticScore ?? 0) >= 0.72)
     .sort((a, b) => (b.semanticScore ?? 0) - (a.semanticScore ?? 0))
     .slice(0, 3);
+  const effectiveGroupFilter =
+    viewerRole === "venue" && groupFilter === "" ? "creatives" : groupFilter;
 
-  const filterLinks = FILTERS.filter(
-    (f) => !(viewerRole === "venue" && f.group === "venues"),
-  );
+  const filterLinks =
+    viewerRole === "venue"
+      ? FILTERS.filter((f) => f.group === "creatives")
+      : FILTERS;
   await trackServerEvent({
     event: "discover_opened",
-    path: `/explore${groupFilter ? `?group=${groupFilter}` : ""}`,
-    metadata: { groupFilter: groupFilter || "all" },
+    path: `/explore${effectiveGroupFilter ? `?group=${effectiveGroupFilter}` : ""}`,
+    metadata: { groupFilter: effectiveGroupFilter || "all" },
   });
 
   return (
@@ -172,7 +175,9 @@ export default async function ExplorePage({
             {filterLinks.map(({ group, label }) => {
               const href = group ? `/explore?group=${group}` : "/explore";
               const linkActive =
-                group === "" ? groupFilter === "" : groupFilter === group;
+                group === ""
+                  ? effectiveGroupFilter === ""
+                  : effectiveGroupFilter === group;
               return (
                 <Link
                   key={group || "all"}
