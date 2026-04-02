@@ -52,14 +52,6 @@ export function SiteHeader({
     return null;
   };
 
-  const closeMobileMenu = (target: EventTarget | null) => {
-    if (!(target instanceof HTMLElement)) return;
-    const host = target.closest("details");
-    if (host instanceof HTMLDetailsElement) {
-      host.open = false;
-    }
-  };
-
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[var(--surface)]/80 backdrop-blur-md md:hidden">
@@ -133,7 +125,6 @@ export function SiteHeader({
                         <form action={signOut}>
                           <button
                             type="submit"
-                            onClick={(e) => closeMobileMenu(e.currentTarget)}
                             className="w-full rounded-lg px-3 py-2 text-left text-sm text-zinc-300 transition hover:bg-white/5 hover:text-zinc-100"
                           >
                             Sign out
