@@ -45,7 +45,8 @@ export default async function LikesPage({
 
   const likesYouIds = [...incomingIds].filter((id) => !matches.has(id));
   const youLikedIds = [...outgoingIds].filter((id) => !matches.has(id));
-  const allIds = [...new Set([...likesYouIds, ...youLikedIds])];
+  const matchIds = [...matches].sort((a, b) => a.localeCompare(b));
+  const allIds = [...new Set([...likesYouIds, ...youLikedIds, ...matchIds])];
 
   type MiniProfile = {
     id: string;
@@ -93,13 +94,61 @@ export default async function LikesPage({
         </p>
       ) : null}
 
+      {matchIds.length > 0 ? (
+        <section className="mt-10">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400/90">
+            Mutual matches
+          </h2>
+          <p className="mt-2 text-sm text-zinc-500">
+            You liked each other — open a thread in{" "}
+            <Link href="/matches" className="font-medium text-amber-400/90 underline-offset-2 hover:underline">
+              Messages
+            </Link>
+            .
+          </p>
+          <ul className="mt-4 space-y-2">
+            {matchIds.map((id) => {
+              const p = byId.get(id);
+              const name = p?.display_name?.trim() || "Member";
+              return (
+                <li key={`match-${id}`}>
+                  <Link
+                    href={`/matches/${id}`}
+                    className="flex items-center gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 transition hover:border-emerald-500/40 hover:bg-emerald-500/15"
+                  >
+                    <ProfileAvatar
+                      name={name}
+                      avatarUrl={p?.avatar_url}
+                      sizeClassName="h-14 w-14"
+                      textClassName="text-sm font-semibold text-emerald-50"
+                      ringClassName="ring-2 ring-emerald-500/35 bg-gradient-to-br from-emerald-500/30 to-teal-600/20"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <span className="font-semibold text-zinc-50">{name}</span>
+                      <p className="mt-1 text-xs text-emerald-100/80">
+                        {p
+                          ? `${roleLabel(p.role)}${p.city?.trim() ? ` · ${p.city.trim()}` : ""}`
+                          : "Say hi while the match is fresh."}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-sm font-medium text-emerald-200">Open chat →</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
+
       <section className="mt-10">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-400/90">
           Likes you
         </h2>
         {likesYouIds.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-8 text-center text-sm text-zinc-500">
-            No one new yet. Keep swiping on Discover.
+            {matchIds.length > 0
+              ? "No new likes to respond to — you already liked these people back. Use Mutual matches or Messages to chat."
+              : "No one new yet. Keep swiping on Discover."}
           </p>
         ) : (
           <ul className="mt-4 space-y-2">
@@ -177,7 +226,11 @@ export default async function LikesPage({
           You liked
         </h2>
         {youLikedIds.length === 0 ? (
-          <p className="mt-4 text-sm text-zinc-500">No outgoing likes yet.</p>
+          <p className="mt-4 text-sm text-zinc-500">
+            {matchIds.length > 0
+              ? "Everyone you’ve recently liked either matched with you (see Mutual matches) or hasn’t swiped yet."
+              : "No outgoing likes yet."}
+          </p>
         ) : (
           <ul className="mt-4 space-y-2">
             {youLikedIds.map((id) => {
