@@ -1,12 +1,15 @@
+"use client";
+
 import type { User } from "@supabase/supabase-js";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { signOut } from "@/app/auth/actions";
 import { MobileTabBar } from "@/components/mobile-tab-bar";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import { ShareAppButton } from "@/components/share-app-button";
-import { isAdminEmail } from "@/lib/env";
 import { MobileNavLink } from "@/components/mobile-nav-link";
+import type { MobileApiResponse, MobileUnreadCounts } from "@/lib/mobile-api/types";
 
 const allNavLinks = [
   { href: "/explore", label: "Discover" },
@@ -20,6 +23,7 @@ const allNavLinks = [
 
 type Props = {
   user: User | null;
+  isAdmin?: boolean;
   profileAvatarUrl?: string | null;
   supabaseEnabled: boolean;
   unreadMessages?: number;
@@ -30,13 +34,68 @@ type Props = {
 
 export function SiteHeader({
   user,
+  isAdmin = false,
   profileAvatarUrl = null,
   supabaseEnabled,
   unreadMessages = 0,
   unreadNotifications = 0,
   showBuildProfileNav = true,
 }: Props) {
-  const admin = isAdminEmail(user?.email);
+  const [counts, setCounts] = useState({
+    unreadMessages,
+    unreadNotifications,
+  });
+
+  useEffect(() => {
+    setCounts({ unreadMessages, unreadNotifications });
+  }, [unreadMessages, unreadNotifications]);
+
+  useEffect(() => {
+    if (!supabaseEnabled || !user) return;
+
+    let isActive = true;
+
+    const refreshCounts = async () => {
+      try {
+        const res = await fetch("/api/mobile/me/counts", {
+          method: "GET",
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const payload = (await res.json()) as MobileApiResponse<MobileUnreadCounts>;
+        if (!isActive || !payload.ok) return;
+        setCounts({
+          unreadMessages: payload.data.unreadMessages,
+          unreadNotifications: payload.data.unreadNotifications,
+        });
+      } catch {
+        // Keep the last known counts when the refresh fails.
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void refreshCounts();
+      }
+    };
+
+    void refreshCounts();
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void refreshCounts();
+      }
+    }, 15000);
+    window.addEventListener("focus", refreshCounts);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshCounts);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [supabaseEnabled, user]);
+
   const links = (showBuildProfileNav
     ? allNavLinks
     : allNavLinks.filter(
@@ -45,9 +104,11 @@ export function SiteHeader({
   ).filter((l) => !("authOnly" in l && l.authOnly) || Boolean(user));
 
   const badgeForHref = (href: string) => {
-    if (href === "/matches" && unreadMessages > 0) return unreadMessages > 9 ? "9+" : String(unreadMessages);
-    if (href === "/notifications" && unreadNotifications > 0) {
-      return unreadNotifications > 9 ? "9+" : String(unreadNotifications);
+    if (href === "/matches" && counts.unreadMessages > 0) {
+      return counts.unreadMessages > 9 ? "9+" : String(counts.unreadMessages);
+    }
+    if (href === "/notifications" && counts.unreadNotifications > 0) {
+      return counts.unreadNotifications > 9 ? "9+" : String(counts.unreadNotifications);
     }
     return null;
   };
@@ -97,7 +158,7 @@ export function SiteHeader({
                   {supabaseEnabled ? (
                     user ? (
                       <>
-                        {admin ? (
+                        {isAdmin ? (
                           <MobileNavLink
                             href="/admin/moderation"
                             className="rounded-lg px-3 py-2 text-sm text-zinc-300 transition-colors hover:bg-white/5 hover:text-zinc-100"
@@ -204,7 +265,7 @@ export function SiteHeader({
           {supabaseEnabled ? (
             user ? (
               <>
-                {admin ? (
+                {isAdmin ? (
                   <Link
                     href="/admin/moderation"
                     className="rounded-2xl border border-transparent px-3 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-white/10 hover:bg-white/5 hover:text-zinc-50"
@@ -259,8 +320,8 @@ export function SiteHeader({
         signedIn={Boolean(user)}
         profileAvatarUrl={profileAvatarUrl}
         profileName={user?.email ?? null}
-        unreadMessages={unreadMessages}
-        unreadNotifications={unreadNotifications}
+        unreadMessages={counts.unreadMessages}
+        unreadNotifications={counts.unreadNotifications}
         showBuildProfileNav={showBuildProfileNav}
       />
     </>

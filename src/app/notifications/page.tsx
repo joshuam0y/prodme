@@ -8,6 +8,7 @@ import {
   formatNotificationDisplay,
   markAllNotificationsRead,
 } from "@/lib/notifications";
+import { NotificationsAutoRefresh } from "@/components/notifications-auto-refresh";
 import { NotificationsList } from "@/components/notifications-list";
 
 export const metadata: Metadata = {
@@ -122,6 +123,7 @@ export default async function NotificationsPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:px-6">
+      <NotificationsAutoRefresh />
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">Notifications</h1>

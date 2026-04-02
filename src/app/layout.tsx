@@ -5,7 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { RefreshToHome } from "@/components/refresh-to-home";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { isSupabaseConfigured } from "@/lib/env";
+import { isAdminEmail, isSupabaseConfigured } from "@/lib/env";
 import { getSiteUrl } from "@/lib/site-url";
 import { isProfileQuestionnaireComplete } from "@/lib/profile-completion";
 import { createClient } from "@/lib/supabase/server";
@@ -61,6 +61,7 @@ export default async function RootLayout({
   let showBuildProfileNav = true;
   let unreadMessages = 0;
   let unreadNotifications = 0;
+  let isAdmin = false;
   const supabaseEnabled = isSupabaseConfigured();
 
   if (supabaseEnabled) {
@@ -69,6 +70,7 @@ export default async function RootLayout({
       const { data } = await supabase.auth.getUser();
       user = data.user;
       if (user) {
+        isAdmin = isAdminEmail(user.email);
         const { data: profileRow } = await supabase
           .from("profiles")
           .select("onboarding_completed_at, niche, role, avatar_url")
@@ -100,6 +102,7 @@ export default async function RootLayout({
       profileAvatarUrl = null;
       unreadMessages = 0;
       unreadNotifications = 0;
+      isAdmin = false;
     }
   }
 
@@ -113,6 +116,7 @@ export default async function RootLayout({
         <div className="flex min-h-full flex-1 flex-col md:flex-row">
           <SiteHeader
             user={user}
+            isAdmin={isAdmin}
             profileAvatarUrl={profileAvatarUrl}
             supabaseEnabled={supabaseEnabled}
             unreadMessages={unreadMessages}
