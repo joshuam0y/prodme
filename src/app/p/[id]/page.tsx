@@ -4,8 +4,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { discoverAccentGradientForRole, inferProfileRole } from "@/lib/discover-profiles";
 import { beatsFromProfileRow } from "@/lib/profile-beats";
 import { isVenueProfileRole } from "@/lib/profile-prompts";
+import { roleLabel as profileRoleLabel } from "@/lib/role-label";
 import { isUuid } from "@/lib/uuid";
 import type { DbProfile } from "@/lib/types";
 import { formatDisplayDate } from "@/lib/format-date";
@@ -13,20 +15,34 @@ import { ProfileAvatarModal, ProfileGallery, ProfileGalleryModal } from "./galle
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ gallery?: string; avatar?: string }> };
 
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 function InfoSection({
   title,
   children,
   compact = false,
   accent = false,
+  stacked = false,
 }: {
   title: string;
   children: React.ReactNode;
   compact?: boolean;
   accent?: boolean;
+  /** When true, omit default top margin (parent uses gap). */
+  stacked?: boolean;
 }) {
   return (
     <section
-      className={`${compact ? "mt-4" : "mt-6"} rounded-2xl border border-white/10 bg-zinc-900/40 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.18)] backdrop-blur-sm`}
+      className={`${stacked ? "mt-0" : compact ? "mt-4" : "mt-6"} rounded-2xl border border-white/10 bg-zinc-900/40 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.18)] backdrop-blur-sm`}
     >
       <h2
         className={`text-xs font-medium uppercase tracking-wider ${
@@ -82,7 +98,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   const { data: row, error } = await supabase
     .from("profiles")
     .select(
-      "id, created_at, updated_at, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, created_at, updated_at, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, latitude, longitude, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .eq("id", id)
     .maybeSingle();
@@ -113,65 +129,65 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   const lookingFor = profile.looking_for?.trim() || null;
   const goal = profile.goal?.trim() || null;
   const niche = profile.niche?.trim() || null;
-  const heroUsesPrompt1 = Boolean(prompt1Question && prompt1Answer);
-  const heroIntro = isVenueProfile
-    ? lookingFor || prompt1Answer || goal || niche || null
-    : prompt1Answer || lookingFor || goal || niche || null;
-  const heroEyebrow = isVenueProfile
-    ? lookingFor
-      ? "Booking fit"
-      : prompt1Question
-        ? "Room personality"
-        : goal
-          ? "Current focus"
-          : niche
-            ? "Venue vibe"
-            : null
-    : prompt1Question
-      ? "Featured answer"
-      : lookingFor
-        ? "Looking for"
-        : goal
-          ? "Current focus"
-          : niche
-            ? "About"
-            : null;
-  const heroSupport = isVenueProfile
-    ? niche || goal
-    : goal || niche;
-  const heroChips = [
-    profile.role?.trim() || null,
-    profile.city?.trim() || null,
-    isVenueProfile ? goal : niche,
-  ].filter((value): value is string => Boolean(value));
-  const locationLabel = profile.neighborhood?.trim() || profile.city?.trim() || null;
-  const metaBits = [
-    profile.role?.trim() || "Creator",
-    locationLabel,
-  ].filter((value): value is string => Boolean(value));
+  /** Same semantics as discover cards: pill uses goal, else niche (`getLiveProfileCards` → `focus`). */
+  const focusLabel = goal || niche || null;
+  const discoverRole = inferProfileRole(profile.role);
+  const discoverCityLabel = profile.neighborhood?.trim() || profile.city?.trim() || null;
+  let distanceKm: number | undefined;
+  if (
+    viewer?.id &&
+    viewer.id !== id &&
+    typeof profile.latitude === "number" &&
+    typeof profile.longitude === "number"
+  ) {
+    const { data: viewerLoc } = await supabase
+      .from("profiles")
+      .select("latitude, longitude")
+      .eq("id", viewer.id)
+      .maybeSingle();
+    const vLat = viewerLoc?.latitude;
+    const vLng = viewerLoc?.longitude;
+    if (typeof vLat === "number" && typeof vLng === "number") {
+      distanceKm = haversineKm(vLat, vLng, profile.latitude, profile.longitude);
+    }
+  }
+  const metaLine = [
+    profileRoleLabel(profile.role),
+    discoverCityLabel,
+    distanceKm !== undefined ? `${Math.round(distanceKm)} km away` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  /** Discover shows raw niche as the subtitle under the header when a star beat exists. */
+  const discoverBioLine = starBeat && niche ? niche : null;
+  const showNicheSection = Boolean(niche) && !(starBeat && niche);
   const lookingForTitle = isVenueProfile ? "Booking fit" : "Looking for";
-  const goalTitle = isVenueProfile ? "What they're building" : "Focus";
+  const goalTitle = isVenueProfile ? "What they're building" : "Current focus";
   const nicheTitle = isVenueProfile ? "Venue vibe" : "Sound";
   const promptLeadTitle = isVenueProfile ? "Room Q&A" : "Featured prompt";
   const promptFollowTitle = isVenueProfile ? "More from the room" : "More personality";
   const galleryTitle = isVenueProfile ? "Venue gallery" : "Gallery";
   const highlightTitle = isVenueProfile ? "Photo highlight" : starBeat?.audioUrl ? "Featured track" : "Featured photo";
   const collectionTitle = isVenueProfile ? "More photos" : anyExtraAudio ? "More tracks" : "More photos";
-  const lookingForSection = lookingFor ? <InfoSection title={lookingForTitle}>{lookingFor}</InfoSection> : null;
-  const prompt1Section = prompt1Question && prompt1Answer && !heroUsesPrompt1 ? (
-    <InfoSection title={promptLeadTitle} accent>
+  const lookingForSection = lookingFor ? (
+    <InfoSection title={lookingForTitle} stacked>
+      {lookingFor}
+    </InfoSection>
+  ) : null;
+  const prompt1Section = prompt1Question && prompt1Answer ? (
+    <InfoSection title={promptLeadTitle} accent stacked>
       <h3 className="text-sm font-semibold text-zinc-100">{prompt1Question}</h3>
       <p className="mt-2">{prompt1Answer}</p>
     </InfoSection>
   ) : null;
   const prompt2Section = prompt2Question && prompt2Answer ? (
-    <InfoSection title={promptFollowTitle} compact>
+    <InfoSection title={promptFollowTitle} compact stacked>
       <h3 className="text-sm font-semibold text-zinc-100">{prompt2Question}</h3>
       <p className="mt-2">{prompt2Answer}</p>
     </InfoSection>
   ) : null;
   const goalSection = goal ? (
-    <section className="mt-8">
+    <section>
       <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">
         {goalTitle}
       </h2>
@@ -180,8 +196,8 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
       </p>
     </section>
   ) : null;
-  const nicheSection = niche ? (
-    <section className="mt-6">
+  const nicheSection = showNicheSection ? (
+    <section>
       <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">
         {nicheTitle}
       </h2>
@@ -190,6 +206,24 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
       </p>
     </section>
   ) : null;
+  const memberDetailsSection = (
+    <InfoSection title="Member details" compact>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <p className="text-xs uppercase tracking-wider text-zinc-500">Signed up</p>
+          <p className="mt-1 text-sm text-zinc-100">
+            {formatDisplayDate(profile.created_at ?? profile.onboarding_completed_at)}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-wider text-zinc-500">Last seen</p>
+          <p className="mt-1 text-sm text-zinc-100">
+            {formatDisplayDate(profile.updated_at ?? profile.onboarding_completed_at)}
+          </p>
+        </div>
+      </div>
+    </InfoSection>
+  );
   const galleryItems = [
     ...(profile.avatar_url?.trim() ? [{ url: profile.avatar_url.trim(), label: `${name} profile photo` }] : []),
     ...(starBeat?.coverUrl ? [{ url: starBeat.coverUrl, label: starBeat.title }] : []),
@@ -207,16 +241,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
       ) : null}
       <div className="relative mb-8 overflow-hidden rounded-[28px] border border-white/10 bg-zinc-900/40 shadow-[0_20px_80px_rgba(0,0,0,0.28)]">
         <div
-          className={`h-32 bg-gradient-to-br ${
-            profile.role?.toLowerCase().includes("producer")
-              ? "from-violet-600 to-fuchsia-600"
-              : profile.role?.toLowerCase().includes("dj")
-                ? "from-amber-500 to-orange-600"
-                : profile.role?.toLowerCase().includes("venue") ||
-                    profile.role?.toLowerCase().includes("promoter")
-                  ? "from-slate-600 to-zinc-700"
-                  : "from-emerald-600 to-teal-600"
-          } opacity-90`}
+          className={`h-32 bg-gradient-to-br ${discoverAccentGradientForRole(discoverRole)} opacity-90`}
           aria-hidden
         />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.14),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_30%)]" />
@@ -241,103 +266,24 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
       ) : null}
 
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
-          {name}
-        </h1>
-        <p className="text-sm text-zinc-400">
-          {metaBits.join(" · ")}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">{name}</h1>
+          {focusLabel ? (
+            <span className="shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-zinc-200 sm:text-xs">
+              {focusLabel}
+            </span>
+          ) : null}
+        </div>
+        <p className="text-sm text-zinc-300 sm:text-base">{metaLine}</p>
+        {discoverBioLine ? (
+          <p className="mt-2 max-w-2xl text-base leading-relaxed text-zinc-200">{discoverBioLine}</p>
+        ) : null}
         {isOwn ? (
           <p className="mt-3 inline-flex max-w-fit rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200/90">
             Your public profile view
           </p>
         ) : null}
       </div>
-
-      {heroIntro ? (
-        <section className="mt-6 rounded-[28px] border border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-transparent p-6 shadow-[0_14px_50px_rgba(245,158,11,0.08)]">
-          {heroEyebrow ? (
-            <p className="text-xs font-medium uppercase tracking-wider text-amber-300/90">
-              {heroEyebrow}
-            </p>
-          ) : null}
-          {heroUsesPrompt1 && prompt1Question ? (
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-50">
-              {prompt1Question}
-            </h2>
-          ) : null}
-          <p className="mt-2 text-xl leading-relaxed text-zinc-100 sm:text-[1.4rem]">
-            {heroIntro}
-          </p>
-          {heroSupport && heroSupport !== heroIntro ? (
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-300">
-              {heroSupport}
-            </p>
-          ) : null}
-          {heroChips.length > 0 ? (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {heroChips.map((chip) => (
-                <span
-                  key={chip}
-                  className="rounded-full border border-amber-500/20 bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-zinc-200"
-                >
-                  {chip}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      {isVenueProfile ? (
-        <>
-          <InfoSection title="Member details">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <p className="text-xs uppercase tracking-wider text-zinc-500">Signed up</p>
-                <p className="mt-1 text-sm text-zinc-100">
-                  {formatDisplayDate(profile.created_at ?? profile.onboarding_completed_at)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wider text-zinc-500">Last seen</p>
-                <p className="mt-1 text-sm text-zinc-100">
-                  {formatDisplayDate(profile.updated_at ?? profile.onboarding_completed_at)}
-                </p>
-              </div>
-            </div>
-          </InfoSection>
-          {lookingForSection}
-          {goalSection}
-          {nicheSection}
-          {prompt1Section}
-          {prompt2Section}
-        </>
-      ) : (
-        <>
-          <InfoSection title="Member details">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <p className="text-xs uppercase tracking-wider text-zinc-500">Signed up</p>
-                <p className="mt-1 text-sm text-zinc-100">
-                  {formatDisplayDate(profile.created_at ?? profile.onboarding_completed_at)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wider text-zinc-500">Last seen</p>
-                <p className="mt-1 text-sm text-zinc-100">
-                  {formatDisplayDate(profile.updated_at ?? profile.onboarding_completed_at)}
-                </p>
-              </div>
-            </div>
-          </InfoSection>
-          {prompt1Section}
-          {prompt2Section}
-          {lookingForSection}
-          {goalSection}
-          {nicheSection}
-        </>
-      )}
 
       {starBeat ? (
         isVenueProfile ? (
@@ -436,6 +382,18 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
           </ul>
         </section>
       ) : null}
+
+      {(lookingForSection || prompt1Section || prompt2Section || goalSection || nicheSection) ? (
+        <div className="mt-8 flex flex-col gap-6">
+          {lookingForSection}
+          {prompt1Section}
+          {prompt2Section}
+          {goalSection}
+          {nicheSection}
+        </div>
+      ) : null}
+
+      <div className="mt-10">{memberDetailsSection}</div>
 
       <ProfileGallery profileId={id} items={galleryItems} title={galleryTitle} />
 

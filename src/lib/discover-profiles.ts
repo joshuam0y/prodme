@@ -14,7 +14,8 @@ export function inferProfileRole(raw: string | null): Role {
   return "artist";
 }
 
-function accentForRole(r: Role): string {
+/** Tailwind gradient classes for the discover card header (shared with `/p/[id]`). */
+export function discoverAccentGradientForRole(r: Role): string {
   const m: Record<Role, string> = {
     producer: "from-amber-400 via-orange-500 to-amber-600",
     artist: "from-zinc-100 via-amber-300 to-orange-500",
@@ -348,7 +349,7 @@ export async function getLiveProfileCards(
       niche: focus,
       bio: niche,
       highlight: niche,
-      accent: accentForRole(role),
+      accent: discoverAccentGradientForRole(role),
       lookingFor: row.looking_for?.trim() ?? null,
       goal: row.goal?.trim() ?? null,
       prompt1Question: row.prompt_1_question?.trim() ?? null,

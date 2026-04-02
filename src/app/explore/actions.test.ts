@@ -127,7 +127,7 @@ describe("setDiscoverAction", () => {
       actorId: "viewer-1",
       kind: "match_created",
       title: "You matched with DJ Nova",
-      body: "Say hi and start the conversation.",
+      body: "Open Messages and send the first note before the match goes cold.",
       href: "/matches/viewer-1",
       metadata: { actorId: "viewer-1" },
     });
@@ -136,7 +136,7 @@ describe("setDiscoverAction", () => {
       actorId: "22222222-2222-2222-2222-222222222222",
       kind: "match_created",
       title: "It’s a match",
-      body: "You have a new mutual match waiting.",
+      body: "You have a new mutual match waiting. Start the chat while the energy is high.",
       href: "/matches/22222222-2222-2222-2222-222222222222",
       metadata: { actorId: "22222222-2222-2222-2222-222222222222" },
     });
