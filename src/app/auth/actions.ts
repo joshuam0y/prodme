@@ -28,9 +28,14 @@ export async function signIn(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const next = safeNext(String(formData.get("next") ?? ""));
+  let redirectPath = next;
+
   try {
     const supabase = await createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       await trackServerEvent({
@@ -38,32 +43,30 @@ export async function signIn(formData: FormData) {
         path: "/login",
         metadata: { reason: "supabase_error" },
       });
-      redirect(
-        `/login?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`,
-      );
+      redirectPath = `/login?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`;
+    } else if (!user) {
+      redirectPath = `/login?error=${encodeURIComponent("We couldn't finish signing you in. Please try again.")}&next=${encodeURIComponent(next)}`;
+    } else {
+      // Keep the first post-login hop minimal and predictable. If the profile
+      // is missing or incomplete, send the user to onboarding immediately instead
+      // of bouncing through a more data-heavy page.
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("onboarding_completed_at, niche, role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!isProfileQuestionnaireComplete(profileRow)) {
+        redirectPath = "/onboarding";
+      }
+
+      await trackServerEvent({ event: "auth_signin_success", path: "/login" });
     }
-
-    let destination = next;
-
-    // Keep the first post-login hop minimal and predictable. If the profile
-    // is missing or incomplete, send the user to onboarding immediately instead
-    // of bouncing through a more data-heavy page.
-    const { data: profileRow } = await supabase
-      .from("profiles")
-      .select("onboarding_completed_at, niche, role")
-      .maybeSingle();
-
-    if (!isProfileQuestionnaireComplete(profileRow)) {
-      destination = "/onboarding";
-    }
-
-    await trackServerEvent({ event: "auth_signin_success", path: "/login" });
-    redirect(destination);
   } catch {
-    redirect(
-      `/login?error=${encodeURIComponent("We couldn't finish signing you in. Please try again.")}&next=${encodeURIComponent(next)}`,
-    );
+    redirectPath = `/login?error=${encodeURIComponent("We couldn't finish signing you in. Please try again.")}&next=${encodeURIComponent(next)}`;
   }
+
+  redirect(redirectPath);
 }
 
 export async function signUp(formData: FormData) {
