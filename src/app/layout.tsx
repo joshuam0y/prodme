@@ -110,7 +110,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[var(--background)]">
         <RefreshToHome />
-        <div className="flex min-h-full flex-1 md:flex-row">
+        <div className="flex min-h-full flex-1 flex-col md:flex-row">
           <SiteHeader
             user={user}
             profileAvatarUrl={profileAvatarUrl}
