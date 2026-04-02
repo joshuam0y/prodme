@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isAiProfileCoachConfigured, isSupabaseConfigured } from "@/lib/env";
 import { getSiteOrigin } from "@/lib/site-url";
 import { trackServerEvent } from "@/lib/analytics";
+import { isProfileQuestionnaireComplete } from "@/lib/profile-completion";
 import { redirect } from "next/navigation";
 import {
   hasDuplicatePromptQuestions,
