@@ -27,23 +27,42 @@ export async function signIn(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const next = safeNext(String(formData.get("next") ?? ""));
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      await trackServerEvent({
+        event: "auth_signin_failed",
+        path: "/login",
+        metadata: { reason: "supabase_error" },
+      });
+      redirect(
+        `/login?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`,
+      );
+    }
 
-  if (error) {
-    await trackServerEvent({
-      event: "auth_signin_failed",
-      path: "/login",
-      metadata: { reason: "supabase_error" },
-    });
+    let destination = next;
+
+    // Keep the first post-login hop minimal and predictable. If the profile
+    // is missing or incomplete, send the user to onboarding immediately instead
+    // of bouncing through a more data-heavy page.
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select("onboarding_completed_at, niche, role")
+      .maybeSingle();
+
+    if (!isProfileQuestionnaireComplete(profileRow)) {
+      destination = "/onboarding";
+    }
+
+    await trackServerEvent({ event: "auth_signin_success", path: "/login" });
+    redirect(destination);
+  } catch {
     redirect(
-      `/login?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`,
+      `/login?error=${encodeURIComponent("We couldn't finish signing you in. Please try again.")}&next=${encodeURIComponent(next)}`,
     );
   }
-
-  await trackServerEvent({ event: "auth_signin_success", path: "/login" });
-  redirect(next);
 }
 
 export async function signUp(formData: FormData) {
