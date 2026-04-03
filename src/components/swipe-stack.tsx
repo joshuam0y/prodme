@@ -708,53 +708,57 @@ export function SwipeStack({ profiles, viewerId }: Props) {
             </div>
           )
         ) : (
-          <div
-            className={`h-32 bg-gradient-to-br ${current.accent} opacity-95 sm:h-40`}
-            aria-hidden
-          />
+          <div className="relative h-32 overflow-hidden sm:h-40" aria-hidden>
+            <div className={`absolute inset-0 bg-gradient-to-br ${current.accent} opacity-95`} />
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/70 to-zinc-950/20" />
+          </div>
         )}
         <div className="space-y-4 px-5 pb-6 pt-0 sm:px-7 sm:pb-8 sm:pt-0">
-          <div className="-mt-11 flex items-start justify-between gap-3 sm:-mt-12">
-            <div className="flex min-w-0 items-start gap-3">
-              <ProfileAvatar
-                name={current.displayName}
-                avatarUrl={current.avatarUrl}
-                sizeClassName="h-14 w-14 sm:h-16 sm:w-16"
-                textClassName="text-sm font-semibold text-zinc-100"
-                ringClassName="border-2 border-zinc-950 bg-zinc-800/60 shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
-              />
-              <div className="min-w-0">
-                <h2 className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-[2rem]">
-                  {current.displayName}
-                </h2>
-                <p className="mt-1 text-sm text-zinc-300 sm:text-base">
-                  {roleLabel[current.role]} · {current.city}
-                  {typeof current.distanceKm === "number" ? ` · ${Math.round(current.distanceKm)} km away` : ""}
-                </p>
-                <div className="mt-1 flex flex-wrap gap-1.5">
-                  {current.likedYou ? (
-                    <span className="inline-flex rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-200">
-                      Liked you
-                    </span>
-                  ) : null}
-                  {current.rankReason ? (
-                    <span className="inline-flex rounded-full border border-amber-500/35 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-200">
-                      {current.rankReason}
-                    </span>
-                  ) : null}
+          <div className="-mx-5 -mt-9 rounded-t-[26px] border border-b-0 border-white/10 bg-zinc-950 px-5 pb-4 pt-6 shadow-[0_-16px_48px_rgba(0,0,0,0.55)] sm:-mx-7 sm:-mt-11 sm:rounded-t-[28px] sm:px-7 sm:pb-5 sm:pt-7">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="shrink-0 -mt-[3.25rem] sm:-mt-[3.75rem]">
+                  <ProfileAvatar
+                    name={current.displayName}
+                    avatarUrl={current.avatarUrl}
+                    sizeClassName="h-14 w-14 sm:h-16 sm:w-16"
+                    textClassName="text-sm font-semibold text-zinc-100"
+                    ringClassName="border-2 border-zinc-950 bg-zinc-800/60 shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                  />
+                </div>
+                <div className="min-w-0 pt-0.5">
+                  <h2 className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-[2rem]">
+                    {current.displayName}
+                  </h2>
+                  <p className="mt-1 text-sm text-zinc-300 sm:text-base">
+                    {roleLabel[current.role]} · {current.city}
+                    {typeof current.distanceKm === "number" ? ` · ${Math.round(current.distanceKm)} km away` : ""}
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {current.likedYou ? (
+                      <span className="inline-flex rounded-full border border-emerald-500/40 bg-emerald-950/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-100">
+                        Liked you
+                      </span>
+                    ) : null}
+                    {current.rankReason ? (
+                      <span className="inline-flex rounded-full border border-amber-500/45 bg-amber-950/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-100">
+                        {current.rankReason}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex flex-col items-end gap-1.5">
-              <span className="rounded-full border border-white/10 bg-zinc-950/80 px-3 py-1 text-[11px] text-zinc-200 sm:text-xs">
-                {current.niche}
-              </span>
-              <Link
-                href={`/p/${current.id}`}
-                className="text-[11px] font-medium text-amber-400/95 underline-offset-4 hover:underline"
-              >
-                Full profile
-              </Link>
+              <div className="flex flex-col items-end gap-1.5">
+                <span className="max-w-[11rem] rounded-full border border-white/15 bg-zinc-900 px-3 py-1 text-right text-[11px] leading-snug text-zinc-100 sm:max-w-[13rem] sm:text-xs">
+                  {current.niche}
+                </span>
+                <Link
+                  href={`/p/${current.id}`}
+                  className="text-[11px] font-semibold text-amber-300 underline-offset-4 hover:text-amber-200 hover:underline"
+                >
+                  Full profile
+                </Link>
+              </div>
             </div>
           </div>
           {current.matchWhy?.length ? (
