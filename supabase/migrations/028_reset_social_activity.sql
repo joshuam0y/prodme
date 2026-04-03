@@ -2,8 +2,8 @@
 -- Keeps: auth users, profiles, profile embeddings, blocks, billing, analytics events.
 -- Apply via Supabase SQL editor or `supabase db push` only when you intend to wipe this data.
 
-truncate table public.match_message_reports restart identity;
-truncate table public.match_messages restart identity;
+-- Reports reference match_messages; cascade clears both in one shot.
+truncate table public.match_messages restart identity cascade;
 truncate table public.notifications restart identity;
 truncate table public.discover_swipes;
 truncate table public.interested_pipeline;

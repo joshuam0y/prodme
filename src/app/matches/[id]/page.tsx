@@ -4,6 +4,7 @@ import { MatchThreadClient } from "@/components/match-thread-client";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { computePeerLastActivityMs, getPeerActivityDisplay } from "@/lib/format-date";
 import { isUuid } from "@/lib/uuid";
 
 type Props = {
@@ -42,17 +43,10 @@ export default async function MatchConversationPage({ params, searchParams }: Pr
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url, role, city, niche, looking_for")
+    .select("id, display_name, avatar_url, role, city, niche, looking_for, updated_at")
     .eq("id", id)
     .maybeSingle();
   if (!profile) notFound();
-
-  await supabase
-    .from("match_messages")
-    .update({ read_at: new Date().toISOString() })
-    .eq("sender_id", id)
-    .eq("recipient_id", user.id)
-    .is("read_at", null);
 
   const { data: rows } = await supabase
     .from("match_messages")
@@ -63,7 +57,28 @@ export default async function MatchConversationPage({ params, searchParams }: Pr
     .order("created_at", { ascending: true })
     .limit(250);
 
+  await supabase
+    .from("match_messages")
+    .update({ read_at: new Date().toISOString() })
+    .eq("sender_id", id)
+    .eq("recipient_id", user.id)
+    .is("read_at", null);
+
   const name = profile.display_name?.trim() || "Match";
+  const threadForActivity = (rows ?? []).map((m) => ({
+    sender_id: m.sender_id as string,
+    recipient_id: m.recipient_id as string,
+    created_at: m.created_at as string,
+    read_at: (m.read_at as string | null) ?? null,
+  }));
+  const peerActivityMs = computePeerLastActivityMs({
+    profileUpdatedAtIso: profile.updated_at ?? null,
+    messages: threadForActivity,
+    peerId: id,
+    selfId: user.id,
+  });
+  const peerActivity =
+    peerActivityMs > 0 ? getPeerActivityDisplay(new Date(peerActivityMs).toISOString()) : { text: "", recent: false };
   const notice = sp.notice ? decodeURIComponent(sp.notice) : null;
   const draft = sp.draft ? decodeURIComponent(sp.draft) : null;
   let blockedNotice: string | null = null;
@@ -117,6 +132,15 @@ export default async function MatchConversationPage({ params, searchParams }: Pr
               <p className="truncate text-xs text-zinc-500">
                 {[profile.role?.trim(), profile.city?.trim(), profile.niche?.trim()].filter(Boolean).join(" · ") || "Tap for full profile"}
               </p>
+              {peerActivity.text ? (
+                <p
+                  className={`truncate text-[11px] ${
+                    peerActivity.recent ? "text-emerald-400/85" : "text-zinc-500"
+                  }`}
+                >
+                  {peerActivity.text}
+                </p>
+              ) : null}
             </div>
           </Link>
         </div>

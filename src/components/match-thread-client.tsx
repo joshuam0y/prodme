@@ -115,6 +115,10 @@ export function MatchThreadClient({
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const isRefreshingRef = useRef(false);
   const firstMessage = messages.length === 0;
+  const lastOutgoing = useMemo(
+    () => [...messages].reverse().find((m) => m.sender_id === currentUserId && !m.pending) ?? null,
+    [messages, currentUserId],
+  );
 
   const mergeMessages = useCallback((incoming: Message[]) => {
     setMessages((prev) => {
@@ -546,6 +550,17 @@ export function MatchThreadClient({
             <li className="pl-2 text-xs text-zinc-500">{matchName} is typing...</li>
           ) : null}
         </ul>
+        {lastOutgoing ? (
+          <div className="border-t border-white/5 px-3 py-2 text-right">
+            <p
+              className={`text-[11px] font-medium ${
+                lastOutgoing.read_at ? "text-emerald-400/85" : "text-zinc-500"
+              }`}
+            >
+              {lastOutgoing.read_at ? "Seen" : "Delivered"}
+            </p>
+          </div>
+        ) : null}
       </div>
 
       {error ? (

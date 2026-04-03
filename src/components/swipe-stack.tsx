@@ -405,12 +405,12 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
     return (
       <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-10 text-center">
         <p className="text-lg font-medium text-zinc-200">
-          No profiles to show yet.
+          You&apos;ve seen everybody for now.
         </p>
         <p className="max-w-sm text-sm text-zinc-500">
           {activeSummary
             ? `Nothing matches your current setup: ${activeSummary}.`
-            : "You may have already swiped everything that matches your current setup."}
+            : "Check back soon or adjust filters to surface a new set of profiles."}
         </p>
         <button
           type="button"

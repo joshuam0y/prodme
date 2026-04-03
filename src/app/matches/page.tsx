@@ -8,6 +8,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { trackServerEvent } from "@/lib/analytics";
 import { buildDefaultDraftOpener } from "@/lib/match-openers";
 import { roleLabel } from "@/lib/role-label";
+import { computePeerLastActivityMs, getPeerActivityDisplay } from "@/lib/format-date";
 
 export const metadata: Metadata = {
   title: "Messages",
@@ -65,7 +66,7 @@ export default async function MatchesPage({
       ? (
           await supabase
             .from("match_messages")
-            .select("id, recipient_id, body, created_at, read_at")
+            .select("id, sender_id, recipient_id, body, created_at, read_at")
             .eq("sender_id", user.id)
             .in("recipient_id", matchIds)
         ).data ?? []
@@ -75,7 +76,7 @@ export default async function MatchesPage({
       ? (
           await supabase
             .from("match_messages")
-            .select("id, sender_id, body, created_at, read_at")
+            .select("id, sender_id, recipient_id, body, created_at, read_at")
             .eq("recipient_id", user.id)
             .in("sender_id", matchIds)
         ).data ?? []
@@ -159,7 +160,7 @@ export default async function MatchesPage({
 
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url, role, city, niche")
+    .select("id, display_name, avatar_url, role, city, niche, updated_at")
     .in("id", matchIds);
   type MiniProfile = {
     id: string;
@@ -168,10 +169,32 @@ export default async function MatchesPage({
     role: string | null;
     city: string | null;
     niche: string | null;
+    updated_at: string | null;
   };
   const byId = new Map(
     (profiles as MiniProfile[] | null | undefined ?? []).map((p) => [p.id, p]),
   );
+
+  const activityForPeer = (peerId: string) => {
+    const p = byId.get(peerId);
+    const threadMessages = [
+      ...mySentToMatches.filter((m) => m.recipient_id === peerId),
+      ...recvFromMatches.filter((m) => m.sender_id === peerId),
+    ].map((m) => ({
+      sender_id: m.sender_id as string,
+      recipient_id: m.recipient_id as string,
+      created_at: m.created_at as string,
+      read_at: (m.read_at as string | null) ?? null,
+    }));
+    const ms = computePeerLastActivityMs({
+      profileUpdatedAtIso: p?.updated_at ?? null,
+      messages: threadMessages,
+      peerId,
+      selfId: user.id,
+    });
+    if (ms <= 0) return { text: "", recent: false };
+    return getPeerActivityDisplay(new Date(ms).toISOString());
+  };
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 pb-12 pt-8 sm:px-6">
@@ -252,6 +275,7 @@ export default async function MatchesPage({
           ]
             .filter(Boolean)
             .join(" · ");
+          const activity = activityForPeer(id);
 
           return (
             <li key={id}>
@@ -274,6 +298,15 @@ export default async function MatchesPage({
                           <span className="font-semibold text-zinc-50">{name}</span>
                           {meta ? (
                             <p className="mt-0.5 truncate text-xs text-zinc-500">{meta}</p>
+                          ) : null}
+                          {activity.text ? (
+                            <p
+                              className={`mt-0.5 truncate text-[11px] ${
+                                activity.recent ? "text-emerald-400/85" : "text-zinc-500"
+                              }`}
+                            >
+                              {activity.text}
+                            </p>
                           ) : null}
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-1">
