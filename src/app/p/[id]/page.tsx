@@ -98,7 +98,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   const { data: row, error } = await supabase
     .from("profiles")
     .select(
-      "id, created_at, updated_at, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, latitude, longitude, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, created_at, last_seen_at, updated_at, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, latitude, longitude, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
     )
     .eq("id", id)
     .maybeSingle();
@@ -218,7 +218,9 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
         <div>
           <p className="text-xs uppercase tracking-wider text-zinc-500">Last seen</p>
           <p className="mt-1 text-sm text-zinc-100">
-            {formatDisplayDate(profile.updated_at ?? profile.onboarding_completed_at)}
+            {formatDisplayDate(
+              profile.last_seen_at ?? profile.updated_at ?? profile.onboarding_completed_at,
+            )}
           </p>
         </div>
       </div>

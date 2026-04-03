@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { User } from "@supabase/supabase-js";
 import { Analytics } from "@vercel/analytics/next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { LastSeenHeartbeat } from "@/components/last-seen-heartbeat";
 import { RefreshToHome } from "@/components/refresh-to-home";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -113,6 +114,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[var(--background)]">
         <RefreshToHome />
+        <LastSeenHeartbeat />
         <div className="flex min-h-full flex-1 flex-col md:flex-row">
           <SiteHeader
             user={user}

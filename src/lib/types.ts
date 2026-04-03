@@ -81,6 +81,8 @@ export type DbProfile = {
   prompt_2_question?: string | null;
   prompt_2_answer?: string | null;
   onboarding_completed_at: string | null;
+  /** App open / heartbeat; distinct from profile edit `updated_at`. */
+  last_seen_at?: string | null;
   updated_at?: string | null;
   star_beat_title?: string | null;
   star_beat_audio_url?: string | null;
