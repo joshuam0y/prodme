@@ -18,7 +18,6 @@ import { profileInitials } from "@/lib/match-ui";
 type Props = {
   profiles: ProfileCard[];
   viewerId?: string | null;
-  activeSummary?: string | null;
 };
 
 const roleLabel: Record<ProfileCard["role"], string> = {
@@ -58,7 +57,7 @@ function isInteractivePointerTarget(target: EventTarget | null): boolean {
 type PlayingMeta = { id: string; title: string; coverUrl: string };
 type SwipeDir = "left" | "right";
 
-export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) {
+export function SwipeStack({ profiles, viewerId }: Props) {
   const signedIn = Boolean(viewerId && viewerId.trim());
   const router = useRouter();
 
@@ -94,6 +93,30 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
 
   const current = visibleProfiles[0];
   const done = profiles.length > 0 && !current;
+  const showCatchUp = profiles.length === 0 || done;
+  const [catchUpToast, setCatchUpToast] = useState(false);
+
+  useEffect(() => {
+    if (!showCatchUp) {
+      setCatchUpToast(false);
+      return;
+    }
+    setCatchUpToast(true);
+    const timer = window.setTimeout(() => setCatchUpToast(false), 5200);
+    return () => window.clearTimeout(timer);
+  }, [showCatchUp, profiles.length, done]);
+
+  const runStartOver = useCallback(() => {
+    setDismissed(new Set());
+    persistDismissedIds(dismissedKey, new Set());
+    if (signedIn) {
+      const path =
+        typeof window !== "undefined"
+          ? window.location.pathname + window.location.search
+          : "/explore";
+      void resetDiscoverSwipes(path).then(() => router.refresh());
+    }
+  }, [dismissedKey, router, signedIn]);
 
   const lightboxPhotos = useMemo(() => {
     if (!current) return [] as string[];
@@ -401,69 +424,38 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
     setDrag({ x: 0, y: 0 });
   };
 
-  if (profiles.length === 0) {
+  if (showCatchUp) {
     return (
-      <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-10 text-center">
-        <p className="text-lg font-medium text-zinc-200">
-          You&apos;ve seen everybody for now.
-        </p>
-        <p className="max-w-sm text-sm text-zinc-500">
-          {activeSummary
-            ? `Nothing matches your current setup: ${activeSummary}.`
-            : "Check back soon or adjust filters to surface a new set of profiles."}
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            setDismissed(new Set());
-            persistDismissedIds(dismissedKey, new Set());
-            if (signedIn) {
-              const path =
-                typeof window !== "undefined"
-                  ? window.location.pathname + window.location.search
-                  : "/explore";
-              void resetDiscoverSwipes(path).then(() => router.refresh());
-            }
-          }}
-          className="rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-zinc-950 transition-opacity hover:opacity-90"
-        >
-          Start over
-        </button>
-      </div>
-    );
-  }
-
-  if (done) {
-    return (
-      <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-8 py-16 text-center">
-        <p className="text-lg font-medium text-zinc-200">
-          You&apos;re caught up for now.
-        </p>
-        <p className="max-w-sm text-sm text-zinc-500">
-          More creators and venues will land here as prodLink grows. Refresh later, widen your radius,
-          or switch the feed view to surface a different pocket of profiles.
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            if (signedIn) {
-              setDismissed(new Set());
-              persistDismissedIds(dismissedKey, new Set());
-              const path =
-                typeof window !== "undefined"
-                  ? window.location.pathname + window.location.search
-                  : "/explore";
-              void resetDiscoverSwipes(path).then(() => router.refresh());
-              return;
-            }
-
-            setDismissed(new Set());
-            persistDismissedIds(dismissedKey, new Set());
-          }}
-          className="rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-zinc-950 transition-opacity hover:opacity-90 disabled:opacity-40"
-        >
-          Start over
-        </button>
+      <div className="relative mx-auto w-full max-w-2xl">
+        {catchUpToast ? (
+          <div
+            role="status"
+            className="fixed bottom-[max(5.5rem,env(safe-area-inset-bottom))] left-1/2 z-50 w-[min(92vw,420px)] -translate-x-1/2 rounded-2xl border border-amber-500/25 bg-zinc-950/95 px-4 py-3 text-center shadow-2xl backdrop-blur md:bottom-8"
+          >
+            <p className="text-sm font-medium text-zinc-100">You&apos;re caught up for now.</p>
+            <p className="mt-1 text-xs text-zinc-500">
+              More profiles will appear as people join. Use filters to widen radius or change sort.
+            </p>
+            <button
+              type="button"
+              onClick={() => runStartOver()}
+              className="mt-3 w-full rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:opacity-90"
+            >
+              Start over
+            </button>
+          </div>
+        ) : null}
+        <div className="flex min-h-[min(360px,50vh)] flex-col items-center justify-center px-4">
+          {!catchUpToast ? (
+            <button
+              type="button"
+              onClick={() => runStartOver()}
+              className="rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
+            >
+              Start over
+            </button>
+          ) : null}
+        </div>
       </div>
     );
   }
@@ -683,11 +675,18 @@ export function SwipeStack({ profiles, viewerId, activeSummary = null }: Props) 
                   {roleLabel[current.role]} · {current.city}
                   {typeof current.distanceKm === "number" ? ` · ${Math.round(current.distanceKm)} km away` : ""}
                 </p>
-                {current.rankReason ? (
-                  <p className="mt-1 inline-flex rounded-full border border-amber-500/35 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-200">
-                    {current.rankReason}
-                  </p>
-                ) : null}
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {current.likedYou ? (
+                    <span className="inline-flex rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-200">
+                      Liked you
+                    </span>
+                  ) : null}
+                  {current.rankReason ? (
+                    <span className="inline-flex rounded-full border border-amber-500/35 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-200">
+                      {current.rankReason}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </div>
             <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] sm:text-xs text-zinc-200">

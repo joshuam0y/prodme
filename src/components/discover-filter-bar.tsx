@@ -38,7 +38,7 @@ export function DiscoverFilterBar({
 
   const activeCount =
     (group ? 1 : 0) +
-    (sort !== "trending" ? 1 : 0) +
+    (sort !== "new" ? 1 : 0) +
     (km !== 50 ? 1 : 0);
 
   useEffect(() => {

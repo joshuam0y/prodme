@@ -277,7 +277,7 @@ export async function getLiveProfileCards(
     return reasons.slice(0, 3);
   };
 
-  const desiredSort = opts?.sort ?? "trending";
+  const desiredSort = opts?.sort ?? "new";
   const lookingQ = (opts?.lookingForQuery ?? "").trim().toLowerCase();
 
   const filtered = rankedRows.filter((row) => {

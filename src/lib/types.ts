@@ -42,6 +42,8 @@ export type ProfileCard = {
   semanticScore?: number;
   /** Distance from viewer in km when viewer location is set. */
   distanceKm?: number;
+  /** They saved you on Discover; surfaced first in the stack. */
+  likedYou?: boolean;
 };
 
 export type BeatBundle = {

@@ -29,7 +29,7 @@ export default async function ExplorePage({
   const sort =
     sortRaw === "nearby" || sortRaw === "new" || sortRaw === "trending"
       ? (sortRaw as "nearby" | "new" | "trending")
-      : "trending";
+      : "new";
 
   let viewerId: string | null = null;
   let viewerRole: Role | null = null;
@@ -38,6 +38,7 @@ export default async function ExplorePage({
   let viewerLookingFor: string | null = null;
   let viewerLat: number | null = null;
   let viewerLng: number | null = null;
+  let likedYouIds = new Set<string>();
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
     const {
@@ -71,11 +72,17 @@ export default async function ExplorePage({
       .select("id", { count: "exact", head: true })
       .not("onboarding_completed_at", "is", null);
     void count;
+    const { data: likedRows } = await supabase
+      .from("discover_swipes")
+      .select("viewer_id")
+      .eq("target_id", viewerId)
+      .eq("action", "save");
+    likedYouIds = new Set((likedRows ?? []).map((r) => r.viewer_id as string));
   }
 
   // Venues can only see creatives. If they request "Venues" filter, send them back.
   if (viewerRole === "venue" && groupFilter === "venues") {
-    redirect("/explore?group=creatives");
+    redirect("/explore?group=creatives&sort=new");
   }
 
   const live = await getLiveProfileCards(viewerId, viewerId, {
@@ -92,12 +99,24 @@ export default async function ExplorePage({
     viewerRole === "venue"
       ? live.filter((p) => p.role !== "venue")
       : live;
-  const profiles =
+  const profilesFiltered =
     groupFilter === "creatives"
       ? peerFiltered.filter((p) => p.role !== "venue")
       : groupFilter === "venues"
         ? peerFiltered.filter((p) => p.role === "venue")
         : peerFiltered;
+  const profiles = [...profilesFiltered]
+    .map((p, index) => ({ p, index }))
+    .sort((a, b) => {
+      const aL = likedYouIds.has(a.p.id);
+      const bL = likedYouIds.has(b.p.id);
+      if (aL !== bL) return aL ? -1 : 1;
+      return a.index - b.index;
+    })
+    .map(({ p }) => ({
+      ...p,
+      likedYou: likedYouIds.has(p.id),
+    }));
   const recommendedProfiles = [...profiles]
     .filter((p) => typeof p.semanticScore === "number" && (p.semanticScore ?? 0) >= 0.72)
     .sort((a, b) => (b.semanticScore ?? 0) - (a.semanticScore ?? 0))
@@ -110,7 +129,7 @@ export default async function ExplorePage({
       : effectiveGroupFilter === "venues"
         ? "showing venues"
         : null,
-    sort !== "trending" ? `sorted by ${sort}` : null,
+    sort !== "new" ? `sorted by ${sort}` : null,
     maxKm !== 50 ? `within ${maxKm} km` : null,
   ]
     .filter(Boolean)
@@ -225,7 +244,6 @@ export default async function ExplorePage({
         key={`${groupFilter || "all"}-${viewerRole ?? "?"}`}
         profiles={profiles}
         viewerId={viewerId}
-        activeSummary={activeSummary || null}
       />
     </main>
   );
