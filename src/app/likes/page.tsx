@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { setDiscoverAction } from "@/app/explore/actions";
 import { ProfileAvatar } from "@/components/profile-avatar";
+import { UnlikeYouLikedButton } from "@/components/unlike-you-liked-button";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import { roleLabel } from "@/lib/role-label";
@@ -232,37 +233,45 @@ export default async function LikesPage({
               : "No outgoing likes yet."}
           </p>
         ) : (
-          <ul className="mt-4 space-y-2">
+          <>
+            <p className="mt-2 text-xs text-zinc-500">
+              Unlike removes your like so they can show up in Discover again.
+            </p>
+            <ul className="mt-4 space-y-2">
             {youLikedIds.map((id) => {
               const p = byId.get(id);
               const name = p?.display_name?.trim() || "Member";
               return (
                 <li key={id}>
-                  <Link
-                    href={`/p/${id}`}
-                    className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] p-3 transition hover:border-white/15 hover:bg-white/[0.05]"
-                  >
-                    <ProfileAvatar
-                      name={name}
-                      avatarUrl={p?.avatar_url}
-                      sizeClassName="h-11 w-11"
-                      textClassName="text-xs font-semibold text-zinc-200"
-                      ringClassName="bg-zinc-700/50"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <span className="font-medium text-zinc-200">{name}</span>
-                      <p className="text-xs text-zinc-500">
-                        {p ? "We’ll notify you if they like you back." : "Like is saved."}
-                      </p>
-                    </div>
-                    <span className="text-zinc-600" aria-hidden>
-                      →
-                    </span>
-                  </Link>
+                  <div className="flex items-stretch gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-2 pl-3 transition hover:border-white/15 hover:bg-white/[0.05]">
+                    <Link
+                      href={`/p/${id}`}
+                      className="flex min-w-0 flex-1 items-center gap-3 py-1 pr-1"
+                    >
+                      <ProfileAvatar
+                        name={name}
+                        avatarUrl={p?.avatar_url}
+                        sizeClassName="h-11 w-11"
+                        textClassName="text-xs font-semibold text-zinc-200"
+                        ringClassName="bg-zinc-700/50"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <span className="font-medium text-zinc-200">{name}</span>
+                        <p className="text-xs text-zinc-500">
+                          {p ? "We’ll notify you if they like you back." : "Like is saved."}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-zinc-600" aria-hidden>
+                        →
+                      </span>
+                    </Link>
+                    <UnlikeYouLikedButton targetId={id} viewerId={user.id} />
+                  </div>
                 </li>
               );
             })}
           </ul>
+          </>
         )}
       </section>
     </main>

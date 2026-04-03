@@ -224,6 +224,12 @@ export async function removeDiscoverAction(
     return { ok: false };
   }
 
+  await trackServerEvent({
+    event: "discover_remove_swipe",
+    path: pathToRevalidate,
+    metadata: { targetId },
+  });
+
   const { error: pipelineErr } = await supabase
     .from("interested_pipeline")
     .delete()
@@ -242,6 +248,7 @@ export async function removeDiscoverAction(
     // Optional table in progressive rollouts.
   }
 
+  revalidatePath("/explore");
   revalidatePath(pathToRevalidate);
   return { ok: true };
 }
