@@ -16,7 +16,7 @@ const steps = [
   },
   {
     title: "Move while momentum is high",
-    body: "Save the people you want to keep, message your matches quickly, and use notifications to stay on top of conversations before they cool off.",
+    body: "Save the people you want to keep, message your matches quickly, and use notifications to stay on top of conversations.",
   },
 ];
 
@@ -77,13 +77,13 @@ export default function HowItWorksPage() {
           <h2 className="text-lg font-semibold text-zinc-100">Best way to use discover</h2>
           <ul className="mt-4 space-y-3 text-sm leading-relaxed text-zinc-400">
             <li>Lead with the main card first. Only open filters when you need to narrow the feed.</li>
-            <li>Music profiles should feel immediate. Open a card, hear the sound, then decide fast.</li>
+            <li>Open a card, hear the sound, then decide fast.</li>
             <li>Open the full profile when someone looks promising so you can read their prompts and goals before messaging.</li>
           </ul>
         </article>
 
         <article className="rounded-3xl border border-white/10 bg-zinc-900/35 p-6">
-          <h2 className="text-lg font-semibold text-zinc-100">Who it is for</h2>
+          <h2 className="text-lg font-semibold text-zinc-100">Who can we help?</h2>
           <ul className="mt-4 space-y-3 text-sm leading-relaxed text-zinc-400">
             {roles.map((role) => (
               <li key={role}>{role}</li>

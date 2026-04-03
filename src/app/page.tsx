@@ -35,65 +35,85 @@ export default async function Home({
         </div>
       ) : null}
 
-      <section className="relative overflow-hidden border-b border-white/10 px-4 pb-20 pt-16 sm:px-6 sm:pt-24">
+      <section className="relative overflow-hidden border-b border-white/10 px-4 pb-12 pt-12 sm:px-6 sm:pb-14 sm:pt-16">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(245,158,11,0.18),transparent)]"
           aria-hidden
         />
-        <div className="relative mx-auto max-w-3xl text-center">
-          <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-amber-500/90">
-            Explore first · FREE TO USE
-          </p>
-          <h1 className="text-balance text-4xl font-semibold tracking-tight text-zinc-50 sm:text-5xl">
-            Discover and connect with{" "}
-            <span className="text-amber-400">music collaborators</span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-xl text-pretty text-lg leading-relaxed text-zinc-400">
-            Build a profile, share your sound, and find artists, producers, DJs,
-            engineers, and venues that match your style and goals.
-          </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-            <Link
-              href="/explore"
-              className="inline-flex h-12 min-w-[200px] items-center justify-center rounded-full bg-amber-500 px-8 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
-            >
-              Start discovering
-            </Link>
-            <Link
-              href="/how-it-works"
-              className="inline-flex h-12 min-w-[200px] items-center justify-center rounded-full border border-white/15 bg-white/5 px-8 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
-            >
-              See how it works
-            </Link>
+        <div className="relative mx-auto max-w-6xl">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-amber-500/90">
+              Explore first · FREE TO USE
+            </p>
+            <h1 className="text-balance text-4xl font-semibold tracking-tight text-zinc-50 sm:text-5xl">
+              Discover and connect with{" "}
+              <span className="text-amber-400">music collaborators</span>
+            </h1>
+            <p className="mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
+              Build a profile, share your sound, and find artists, producers, DJs,
+              engineers, and venues that match your style and goals.
+            </p>
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+              <Link
+                href="/explore"
+                className="inline-flex h-12 min-w-[200px] items-center justify-center rounded-full bg-amber-500 px-8 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
+              >
+                Start discovering
+              </Link>
+              <Link
+                href="/how-it-works"
+                className="inline-flex h-12 min-w-[200px] items-center justify-center rounded-full border border-white/15 bg-white/5 px-8 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
+              >
+                See how it works
+              </Link>
+            </div>
+          </div>
+
+          <div className="mx-auto mt-10 flex max-w-2xl flex-wrap items-center justify-center gap-2 text-xs text-zinc-500">
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-zinc-400">
+              By role
+            </span>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-zinc-400">
+              By taste
+            </span>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-zinc-400">
+              Audio samples
+            </span>
+          </div>
+
+          <div className="mt-10 grid gap-4 sm:grid-cols-3 sm:gap-5">
+            {[
+              {
+                title: "Two-way discovery",
+                body: "Artists get the chance to meet both producers and venues.",
+              },
+              {
+                title: "Style-based system",
+                body: "Profiles are built on taste and role, for the best possible matches.",
+              },
+              {
+                title: "Samples and previews",
+                body: "Profiles can showcase audio samples and cover visuals so people can hear the fit before they reach out.",
+              },
+            ].map((item, i) => (
+              <div
+                key={item.title}
+                className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/70 to-zinc-950/40 p-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]"
+              >
+                <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-amber-500/80 via-amber-400/40 to-transparent" />
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-500/85">
+                  {String(i + 1).padStart(2, "0")}
+                </p>
+                <h2 className="mt-3 font-semibold leading-snug text-zinc-100">
+                  {item.title}
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-500">
+                  {item.body}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
-      </section>
-
-      <section className="mx-auto grid max-w-5xl gap-10 px-4 py-16 sm:grid-cols-3 sm:px-6">
-        {[
-          {
-            title: "Two-way discovery",
-            body: "Artists meet producers and venues—everyone has a reason to show real work, not just a link in bio.",
-          },
-          {
-            title: "Style, not noise",
-            body: "Profiles are built around taste and role—so matches feel intentional, not random.",
-          },
-          {
-            title: "Bundles & previews",
-            body: "Producers package beats; artists and venues browse and preview before they commit.",
-          },
-        ].map((item) => (
-          <div
-            key={item.title}
-            className="rounded-2xl border border-white/10 bg-zinc-900/40 p-6"
-          >
-            <h2 className="font-semibold text-zinc-100">{item.title}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-zinc-500">
-              {item.body}
-            </p>
-          </div>
-        ))}
       </section>
     </main>
   );

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SwipeStack } from "@/components/swipe-stack";
@@ -142,31 +143,36 @@ export default async function ExplorePage({
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
-          Discover
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-500">
-          {viewerId ? (
-            <>
-              Swipe through active prodLink profiles, open any card for the full profile, and keep the momentum going.
-              {viewerRole === "venue" ? " Your feed stays focused on creatives." : null}
-            </>
-          ) : (
-            <>
-              Add Supabase in{" "}
-              <code className="text-zinc-400">.env.local</code>, then{" "}
-              <Link
-                href="/signup?next=/explore"
-                className="text-amber-400/95 underline-offset-2 hover:underline"
-              >
-                sign up
-              </Link>{" "}
-              for Discover, Likes, and Messages.
-            </>
-          )}
-        </p>
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <div className="mb-5 sm:mb-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
+              Discover
+            </h1>
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-zinc-500">
+              {viewerId ? (
+                <>
+                  Swipe through active prodLink profiles, open any card for the full profile, and keep
+                  the momentum going.
+                  {viewerRole === "venue" ? " Your feed stays focused on creatives." : null}
+                </>
+              ) : (
+                <>
+                  Add Supabase in{" "}
+                  <code className="text-zinc-400">.env.local</code>, then{" "}
+                  <Link
+                    href="/signup?next=/explore"
+                    className="text-amber-400/95 underline-offset-2 hover:underline"
+                  >
+                    sign up
+                  </Link>{" "}
+                  for Discover, Likes, and Messages.
+                </>
+              )}
+            </p>
+          </div>
+        </div>
         {notice ? (
           <p className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-100">
             {notice}
@@ -180,22 +186,22 @@ export default async function ExplorePage({
           allowVenueFilter={viewerRole !== "venue"}
         />
         {activeSummary ? (
-          <p className="mt-4 text-xs uppercase tracking-[0.18em] text-zinc-500">
+          <p className="mt-3 text-xs uppercase tracking-[0.18em] text-zinc-500">
             Active: <span className="text-zinc-300">{activeSummary}</span>
           </p>
         ) : null}
       </div>
 
       {recommendedProfiles.length > 0 ? (
-        <section className="mb-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 sm:p-5">
+        <section className="mb-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 sm:p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-zinc-100">Recommended for you</h2>
-              <p className="mt-1 text-sm text-zinc-500">
+              <p className="mt-0.5 text-xs text-zinc-500 sm:text-sm">
                 Closest semantic matches based on your full profile.
               </p>
             </div>
-            <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200 ring-1 ring-emerald-500/30">
+            <span className="shrink-0 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200 ring-1 ring-emerald-500/30">
               AI
             </span>
           </div>
@@ -204,16 +210,44 @@ export default async function ExplorePage({
               <Link
                 key={`recommended-${profile.id}`}
                 href={`/p/${profile.id}`}
-                className="rounded-xl border border-white/10 bg-zinc-950/40 p-4 transition hover:border-white/20 hover:bg-white/[0.03]"
+                className="flex gap-3 rounded-xl border border-white/10 bg-zinc-950/40 p-3 transition hover:border-white/20 hover:bg-white/[0.03] sm:p-4"
               >
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-800 ring-1 ring-white/10">
+                  {profile.starBeat?.coverUrl?.trim() ? (
+                    <Image
+                      src={profile.starBeat.coverUrl}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                      unoptimized={profile.starBeat.coverUrl.includes("picsum.photos")}
+                    />
+                  ) : profile.avatarUrl?.trim() ? (
+                    <Image
+                      src={profile.avatarUrl}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                      unoptimized={profile.avatarUrl.includes("picsum.photos")}
+                    />
+                  ) : (
+                    <div
+                      className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${profile.accent} text-[10px] font-semibold text-white/90`}
+                    >
+                      {roleLabel(profile.role).slice(0, 2)}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate font-medium text-zinc-100">{profile.displayName}</p>
-                    <p className="mt-1 text-xs text-zinc-500">
+                    <p className="mt-0.5 text-xs text-zinc-500">
                       {roleLabel(profile.role)} · {profile.city}
                     </p>
                   </div>
-                  <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
+                  <span className="shrink-0 rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
                     {Math.round((profile.semanticScore ?? 0) * 100)}%
                   </span>
                 </div>
@@ -234,6 +268,7 @@ export default async function ExplorePage({
                     ))}
                   </div>
                 ) : null}
+                </div>
               </Link>
             ))}
           </div>

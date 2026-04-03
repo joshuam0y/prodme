@@ -476,6 +476,9 @@ export function SwipeStack({ profiles, viewerId }: Props) {
   const nextProfile = visibleProfiles[1];
   const isPhotoOnlyStar = !isVenueProfile && Boolean(star) && !star?.audioUrl;
   const heroCover = playingMeta?.coverUrl ?? star?.coverUrl;
+  const bannerCoverUrl = heroCover?.trim() ? heroCover : null;
+  const showBannerCover = Boolean(bannerCoverUrl);
+  const extraMatchWhy = current.matchWhy?.slice(2) ?? [];
   const playingStar = Boolean(star && playingMeta?.id === star.id);
   const showHint = dragging && !exitDir;
   const absX = Math.abs(drag.x);
@@ -616,7 +619,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerEnd}
         style={dragTransform}
-        className={`relative z-10 min-h-[560px] sm:min-h-[680px] touch-pan-y overflow-hidden rounded-[30px] border border-white/10 bg-zinc-900/60 shadow-[0_30px_100px_rgba(0,0,0,0.3)] select-none ${
+        className={`relative z-10 min-h-[500px] sm:min-h-[580px] touch-pan-y overflow-hidden rounded-[30px] border border-white/10 bg-zinc-900/60 shadow-[0_30px_100px_rgba(0,0,0,0.3)] select-none ${
           dragging && !exitDir ? "cursor-grabbing" : "cursor-grab"
         } ${
           dragging && !exitDir
@@ -630,6 +633,14 @@ export function SwipeStack({ profiles, viewerId }: Props) {
               : ""
         }`}
       >
+        <div
+          className="pointer-events-none absolute -left-10 -top-12 h-44 w-44 rounded-full bg-amber-500/15 blur-3xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-12 -right-8 h-40 w-40 rounded-full bg-fuchsia-500/10 blur-3xl"
+          aria-hidden
+        />
         {hintAction ? (
           <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center">
             <span className="rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-100">
@@ -656,19 +667,61 @@ export function SwipeStack({ profiles, viewerId }: Props) {
             </span>
           </div>
         ) : null}
-        <div
-          className={`h-40 bg-gradient-to-br ${current.accent} opacity-95 sm:h-48`}
-          aria-hidden
-        />
-        <div className="space-y-5 px-5 pb-7 pt-2 sm:px-7 sm:pb-9 sm:pt-3">
-          <div className="flex items-start justify-between gap-3">
+        {showBannerCover && bannerCoverUrl ? (
+          isVenueProfile || isPhotoOnlyStar ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openLightbox(bannerCoverUrl);
+              }}
+              className="relative h-40 w-full overflow-hidden text-left sm:h-48"
+              aria-label="Open featured photo"
+            >
+              <Image
+                src={bannerCoverUrl}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="(max-width: 640px) 100vw, 672px"
+                unoptimized={bannerCoverUrl.includes("picsum.photos")}
+              />
+              <div
+                className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/55 to-zinc-950/15"
+                aria-hidden
+              />
+            </button>
+          ) : (
+            <div className="relative h-40 overflow-hidden sm:h-48">
+              <Image
+                src={bannerCoverUrl}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="(max-width: 640px) 100vw, 672px"
+                unoptimized={bannerCoverUrl.includes("picsum.photos")}
+              />
+              <div
+                className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/55 to-zinc-950/15"
+                aria-hidden
+              />
+            </div>
+          )
+        ) : (
+          <div
+            className={`h-32 bg-gradient-to-br ${current.accent} opacity-95 sm:h-40`}
+            aria-hidden
+          />
+        )}
+        <div className="space-y-4 px-5 pb-6 pt-0 sm:px-7 sm:pb-8 sm:pt-0">
+          <div className="-mt-11 flex items-start justify-between gap-3 sm:-mt-12">
             <div className="flex min-w-0 items-start gap-3">
               <ProfileAvatar
                 name={current.displayName}
                 avatarUrl={current.avatarUrl}
-                sizeClassName="h-14 w-14"
+                sizeClassName="h-14 w-14 sm:h-16 sm:w-16"
                 textClassName="text-sm font-semibold text-zinc-100"
-                ringClassName="border border-white/10 bg-zinc-800/60"
+                ringClassName="border-2 border-zinc-950 bg-zinc-800/60 shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
               />
               <div className="min-w-0">
                 <h2 className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-[2rem]">
@@ -692,48 +745,74 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                 </div>
               </div>
             </div>
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] sm:text-xs text-zinc-200">
-              {current.niche}
-            </span>
+            <div className="flex flex-col items-end gap-1.5">
+              <span className="rounded-full border border-white/10 bg-zinc-950/80 px-3 py-1 text-[11px] text-zinc-200 sm:text-xs">
+                {current.niche}
+              </span>
+              <Link
+                href={`/p/${current.id}`}
+                className="text-[11px] font-medium text-amber-400/95 underline-offset-4 hover:underline"
+              >
+                Full profile
+              </Link>
+            </div>
           </div>
+          {current.matchWhy?.length ? (
+            <div className="flex flex-wrap gap-2">
+              {current.matchWhy.slice(0, 2).map((reason) => (
+                <span
+                  key={`hero-${reason}`}
+                  className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-medium text-amber-100"
+                >
+                  {reason}
+                </span>
+              ))}
+            </div>
+          ) : null}
           {star ? (
             <p className="max-w-2xl text-base leading-relaxed text-zinc-200">{current.bio}</p>
           ) : null}
           {star && heroCover ? (
             <div className="space-y-3 rounded-[26px] border border-white/5 bg-white/[0.05] p-4 sm:p-5">
-              <div className="flex flex-col items-start gap-4 sm:flex-row">
-                {isVenueProfile || isPhotoOnlyStar ? (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openLightbox(heroCover);
-                    }}
-                    className="relative h-40 w-full shrink-0 overflow-hidden rounded-2xl bg-zinc-800 ring-1 ring-white/10 hover:ring-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/40 sm:h-36 sm:w-36"
-                    aria-label="Open featured photo"
-                  >
-                    <Image
-                      src={heroCover}
-                      alt=""
-                      width={220}
-                      height={220}
-                      className="h-full w-full object-cover"
-                      unoptimized
-                    />
-                  </button>
-                ) : (
-                  <div className="relative h-40 w-full shrink-0 overflow-hidden rounded-2xl bg-zinc-800 ring-1 ring-white/10 sm:h-36 sm:w-36">
-                    <Image
-                      src={heroCover}
-                      alt=""
-                      width={220}
-                      height={220}
-                      className="h-full w-full object-cover"
-                      unoptimized
-                    />
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
+              <div
+                className={`flex flex-col items-start gap-4 ${showBannerCover ? "" : "sm:flex-row"}`}
+              >
+                {!showBannerCover ? (
+                  <>
+                    {isVenueProfile || isPhotoOnlyStar ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openLightbox(heroCover);
+                        }}
+                        className="relative h-40 w-full shrink-0 overflow-hidden rounded-2xl bg-zinc-800 ring-1 ring-white/10 hover:ring-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/40 sm:h-36 sm:w-36"
+                        aria-label="Open featured photo"
+                      >
+                        <Image
+                          src={heroCover}
+                          alt=""
+                          width={220}
+                          height={220}
+                          className="h-full w-full object-cover"
+                          unoptimized
+                        />
+                      </button>
+                    ) : (
+                      <div className="relative h-40 w-full shrink-0 overflow-hidden rounded-2xl bg-zinc-800 ring-1 ring-white/10 sm:h-36 sm:w-36">
+                        <Image
+                          src={heroCover}
+                          alt=""
+                          width={220}
+                          height={220}
+                          className="h-full w-full object-cover"
+                          unoptimized
+                        />
+                      </div>
+                    )}
+                  </>
+                ) : null}
+                <div className="min-w-0 w-full flex-1">
                   <p
                     className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${
                       playingStar ? "text-amber-500/90" : "text-zinc-400"
@@ -759,7 +838,9 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                   </p>
                   {isVenueProfile || isPhotoOnlyStar ? (
                     <p className="mt-2 text-[11px] uppercase tracking-[0.2em] text-amber-300/85">
-                      Tap photo to expand
+                      {showBannerCover
+                        ? "More photos below — tap to expand."
+                        : "Tap photo to expand"}
                     </p>
                   ) : null}
                   <div className="mt-3 flex flex-wrap items-center gap-2.5">
@@ -893,7 +974,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
               ) : null}
             </div>
           ) : null}
-          {current.lookingFor || current.matchWhy?.length ? (
+          {current.lookingFor || extraMatchWhy.length ? (
             <div className="rounded-2xl border border-white/5 bg-white/[0.035] p-4">
               {current.lookingFor ? (
                 <div>
@@ -905,13 +986,13 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                   </p>
                 </div>
               ) : null}
-              {current.matchWhy?.length ? (
+              {extraMatchWhy.length ? (
                 <div className={current.lookingFor ? "mt-4" : ""}>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
                     Why this could fit
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {current.matchWhy.slice(0, 3).map((reason) => (
+                    {extraMatchWhy.map((reason) => (
                       <span
                         key={reason}
                         className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs text-zinc-300"
@@ -974,22 +1055,53 @@ export function SwipeStack({ profiles, viewerId }: Props) {
       </div>
 
       {nextProfile ? (
-        <div className="pointer-events-none mt-2 rounded-xl border border-white/10 bg-zinc-900/45 px-3 py-2">
-          <p className="text-[10px] uppercase tracking-wider text-zinc-500">Up next</p>
-          <p className="mt-0.5 truncate text-sm font-medium text-zinc-300">
-            {nextProfile.displayName} · {roleLabel[nextProfile.role]}
-          </p>
+        <div className="pointer-events-none mt-2 flex items-center gap-3 rounded-xl border border-white/10 bg-zinc-900/45 px-3 py-2.5">
+          {nextProfile.starBeat?.coverUrl?.trim() ? (
+            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10">
+              <Image
+                src={nextProfile.starBeat.coverUrl}
+                alt=""
+                width={44}
+                height={44}
+                className="h-full w-full object-cover"
+                unoptimized={nextProfile.starBeat.coverUrl.includes("picsum.photos")}
+              />
+            </div>
+          ) : nextProfile.avatarUrl?.trim() ? (
+            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10">
+              <Image
+                src={nextProfile.avatarUrl}
+                alt=""
+                width={44}
+                height={44}
+                className="h-full w-full object-cover"
+                unoptimized={nextProfile.avatarUrl.includes("picsum.photos")}
+              />
+            </div>
+          ) : (
+            <div
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${nextProfile.accent} text-[10px] font-bold text-white/90 ring-1 ring-white/10`}
+            >
+              {profileInitials(nextProfile.displayName).slice(0, 2)}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] uppercase tracking-wider text-zinc-500">Up next</p>
+            <p className="truncate text-sm font-medium text-zinc-300">
+              {nextProfile.displayName} · {roleLabel[nextProfile.role]}
+            </p>
+          </div>
         </div>
       ) : null}
 
-      <div className="mt-6 flex flex-col gap-4">
-        <div className="rounded-2xl border border-white/10 bg-zinc-900/45 px-4 py-3 text-center">
+      <div className="mt-5 flex flex-col gap-3 sm:mt-6">
+        <div className="rounded-xl border border-white/10 bg-zinc-900/45 px-4 py-2.5 sm:flex sm:items-center sm:justify-between sm:gap-4 sm:text-left">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
             Quick actions
           </p>
-          <p className="mt-1 text-sm text-zinc-400">
-            This card is the profile. Lead with the photo or clip, skim the key sections, then save
-            or pass without leaving discover.
+          <p className="mt-1 text-xs leading-relaxed text-zinc-400 sm:mt-0 sm:max-w-[70%]">
+            Lead with the clip or photo, skim prompts, then save or pass—stay in Discover the whole
+            time.
           </p>
         </div>
         <div className="flex justify-center gap-4">
