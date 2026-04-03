@@ -114,7 +114,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[var(--background)]">
         <RefreshToHome />
-        <LastSeenHeartbeat />
+        <LastSeenHeartbeat enabled={supabaseEnabled && Boolean(user)} />
         <div className="flex min-h-full flex-1 flex-col md:flex-row">
           <SiteHeader
             user={user}
