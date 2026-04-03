@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { trackServerEvent } from "@/lib/analytics";
+import { isSupabaseConfigured } from "@/lib/env";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function Home({
   searchParams,
@@ -8,6 +11,17 @@ export default async function Home({
 }) {
   const params = await searchParams;
   const showSupabaseHint = params.error === "supabase";
+
+  if (isSupabaseConfigured()) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      redirect("/explore");
+    }
+  }
+
   await trackServerEvent({ event: "landing_opened", path: "/" });
 
   return (

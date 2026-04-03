@@ -103,6 +103,9 @@ export function SiteHeader({
       )
   ).filter((l) => !("authOnly" in l && l.authOnly) || Boolean(user));
 
+  /** Landing `/` is for signed-out users only; signed-in users go to Discover. */
+  const brandHref = user && supabaseEnabled ? "/explore" : "/";
+
   const badgeForHref = (href: string) => {
     if (href === "/matches" && counts.unreadMessages > 0) {
       return counts.unreadMessages > 9 ? "9+" : String(counts.unreadMessages);
@@ -118,7 +121,7 @@ export function SiteHeader({
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[var(--surface)]/80 backdrop-blur-md md:hidden">
         <div className="mx-auto max-w-5xl px-3 py-2 sm:flex sm:h-14 sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:py-0">
           <div className="flex items-center justify-between gap-3">
-            <Link href="/" className="inline-flex shrink-0" aria-label="prodLink home">
+            <Link href={brandHref} className="inline-flex shrink-0" aria-label="prodLink home">
               <Image
                 src="/prodlink-logo-v2.svg"
                 alt="prodLink"
@@ -225,7 +228,7 @@ export function SiteHeader({
 
       <aside className="hidden border-r border-white/10 bg-[var(--surface)]/92 md:sticky md:top-0 md:flex md:h-screen md:w-[228px] md:flex-col md:justify-between md:px-4 md:py-5">
         <div className="flex w-full flex-col gap-5">
-          <Link href="/" className="inline-flex shrink-0 self-start" aria-label="prodLink home">
+          <Link href={brandHref} className="inline-flex shrink-0 self-start" aria-label="prodLink home">
             <Image
               src="/prodlink-logo-v2.svg"
               alt="prodLink"
