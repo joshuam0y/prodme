@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ProdlinkLogo } from "@/components/prodlink-logo";
 import { trackServerEvent } from "@/lib/analytics";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
@@ -42,6 +43,13 @@ export default async function Home({
         />
         <div className="relative mx-auto max-w-6xl">
           <div className="mx-auto max-w-3xl text-center">
+            <div className="mb-8 flex justify-center">
+              <ProdlinkLogo
+                className="items-end justify-center"
+                iconClassName="h-12 w-[72px] shrink-0 sm:h-14 sm:w-[84px]"
+                textClassName="text-3xl font-bold leading-none tracking-tight sm:text-4xl"
+              />
+            </div>
             <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-amber-500/90">
               Explore first · FREE TO USE
             </p>
