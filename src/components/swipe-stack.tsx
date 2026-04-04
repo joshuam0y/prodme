@@ -421,7 +421,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           role="status"
           aria-live="polite"
         >
-          <div className="w-full rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-900/80 to-zinc-950/90 px-8 py-10 text-center shadow-[0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-sm sm:px-10 sm:py-12">
+          <div className="w-full rounded-3xl border border-zinc-300/80 bg-gradient-to-b from-zinc-100/95 to-zinc-50/90 px-8 py-10 text-center shadow-[0_0_0_1px_rgba(0,0,0,0.04)] backdrop-blur-sm dark:border-white/10 dark:from-zinc-900/80 dark:to-zinc-950/90 dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04)] sm:px-10 sm:py-12">
             <div
               className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-amber-500/12 ring-1 ring-amber-500/35"
               aria-hidden
@@ -443,10 +443,10 @@ export function SwipeStack({ profiles, viewerId }: Props) {
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-500/90">
               All clear
             </p>
-            <h2 className="mt-3 text-pretty text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl">
+            <h2 className="mt-3 text-pretty text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-2xl">
               You&apos;re caught up for now
             </h2>
-            <p className="mt-3 text-pretty text-sm leading-relaxed text-zinc-400">
+            <p className="mt-3 text-pretty text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
               More profiles will show up as people join prodLink. Open filters to widen your radius or
               try a different sort—then swipe again when you&apos;re ready.
             </p>
@@ -503,20 +503,20 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           aria-modal="true"
           aria-label="It's a match"
         >
-          <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-zinc-950/95 p-6 shadow-2xl">
-            <p className="text-center text-xs font-semibold uppercase tracking-[0.25em] text-amber-400/90">
+          <div className="w-full max-w-sm rounded-3xl border border-zinc-300/80 bg-[#faf7f3] p-6 shadow-2xl dark:border-white/10 dark:bg-zinc-950/95">
+            <p className="text-center text-xs font-semibold uppercase tracking-[0.25em] text-amber-800 dark:text-amber-400/90">
               It&apos;s a match
             </p>
             <div className="mt-5 flex items-center justify-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/20 text-sm font-bold text-amber-200 ring-1 ring-amber-500/30">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/25 text-sm font-bold text-amber-950 ring-1 ring-amber-600/30 dark:bg-amber-500/20 dark:text-amber-200 dark:ring-amber-500/30">
                 You
               </div>
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-sm font-bold text-emerald-200 ring-1 ring-emerald-500/25">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20 text-sm font-bold text-emerald-900 ring-1 ring-emerald-600/25 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-500/25">
                 {matchModal.initials}
               </div>
             </div>
-            <p className="mt-4 text-center text-sm text-zinc-300">
-              You and <span className="font-semibold text-zinc-100">{matchModal.name}</span> liked each other.
+            <p className="mt-4 text-center text-sm text-zinc-700 dark:text-zinc-300">
+              You and <span className="font-semibold text-zinc-900 dark:text-zinc-100">{matchModal.name}</span> liked each other.
             </p>
             <div className="mt-6 grid gap-2">
               <Link
@@ -530,7 +530,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
               <button
                 type="button"
                 onClick={() => setMatchModal(null)}
-                className="inline-flex h-11 items-center justify-center rounded-full border border-white/15 bg-white/5 px-5 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-300/90 bg-white px-5 text-sm font-medium text-zinc-800 transition hover:bg-zinc-100 dark:border-white/15 dark:bg-white/5 dark:text-zinc-200 dark:hover:bg-white/10"
               >
                 Keep swiping
               </button>
@@ -619,7 +619,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerEnd}
         style={dragTransform}
-        className={`relative z-10 min-h-[420px] sm:min-h-[500px] touch-pan-y overflow-hidden rounded-[30px] border border-white/10 bg-zinc-900/60 shadow-[0_30px_100px_rgba(0,0,0,0.3)] select-none ${
+        className={`relative z-10 min-h-[420px] sm:min-h-[500px] touch-pan-y overflow-hidden rounded-[30px] border border-zinc-300/80 bg-[#f2efe9] text-zinc-900 shadow-[0_24px_70px_rgba(0,0,0,0.1)] select-none dark:border-white/10 dark:bg-zinc-900/60 dark:text-zinc-50 dark:shadow-[0_30px_100px_rgba(0,0,0,0.3)] ${
           dragging && !exitDir ? "cursor-grabbing" : "cursor-grab"
         } ${
           dragging && !exitDir
@@ -687,7 +687,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                 unoptimized={bannerCoverUrl.includes("picsum.photos")}
               />
               <div
-                className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/55 to-zinc-950/15"
+                className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent"
                 aria-hidden
               />
             </button>
@@ -702,7 +702,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                 unoptimized={bannerCoverUrl.includes("picsum.photos")}
               />
               <div
-                className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/55 to-zinc-950/15"
+                className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent"
                 aria-hidden
               />
             </div>
@@ -710,11 +710,11 @@ export function SwipeStack({ profiles, viewerId }: Props) {
         ) : (
           <div className="relative h-[4.5rem] overflow-hidden sm:h-24" aria-hidden>
             <div className={`absolute inset-0 bg-gradient-to-br ${current.accent} opacity-95`} />
-            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/70 to-zinc-950/20" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />
           </div>
         )}
         <div className="space-y-5 px-5 pb-6 pt-0 sm:px-7 sm:pb-8 sm:pt-0">
-          <div className="-mx-5 -mt-6 rounded-t-[26px] border border-b-0 border-white/10 bg-zinc-950 px-5 pb-4 pt-7 shadow-[0_-12px_36px_rgba(0,0,0,0.5)] sm:-mx-7 sm:-mt-7 sm:rounded-t-[28px] sm:px-7 sm:pb-5 sm:pt-8">
+          <div className="-mx-5 -mt-6 rounded-t-[26px] border border-b-0 border-zinc-300/80 bg-[#faf7f3] px-5 pb-4 pt-7 shadow-[0_-8px_28px_rgba(0,0,0,0.06)] dark:border-white/10 dark:bg-zinc-950 dark:shadow-[0_-12px_36px_rgba(0,0,0,0.5)] sm:-mx-7 sm:-mt-7 sm:rounded-t-[28px] sm:px-7 sm:pb-5 sm:pt-8">
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-start gap-3">
                 <div className="shrink-0 -mt-[2.5rem] sm:-mt-[3rem]">
@@ -723,25 +723,25 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                     avatarUrl={current.avatarUrl}
                     sizeClassName="h-14 w-14 sm:h-16 sm:w-16"
                     textClassName="text-sm font-semibold text-zinc-100"
-                    ringClassName="border-2 border-zinc-950 bg-zinc-800/60 shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+                    ringClassName="border-2 border-white bg-zinc-700/80 shadow-[0_12px_40px_rgba(0,0,0,0.2)] dark:border-zinc-950 dark:bg-zinc-800/60 dark:shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
                   />
                 </div>
                 <div className="min-w-0 pt-0.5">
-                  <h2 className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-[2rem]">
+                  <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-[2rem]">
                     {current.displayName}
                   </h2>
-                  <p className="mt-1 text-sm text-zinc-300 sm:text-base">
+                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300 sm:text-base">
                     {roleLabel[current.role]} · {current.city}
                     {typeof current.distanceKm === "number" ? ` · ${Math.round(current.distanceKm)} km away` : ""}
                   </p>
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {current.likedYou ? (
-                      <span className="inline-flex rounded-full border border-emerald-500/40 bg-emerald-950/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-100">
+                      <span className="inline-flex rounded-full border border-emerald-600/35 bg-emerald-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-950/50 dark:text-emerald-100">
                         Liked you
                       </span>
                     ) : null}
                     {current.rankReason ? (
-                      <span className="inline-flex rounded-full border border-amber-500/45 bg-amber-950/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-100">
+                      <span className="inline-flex rounded-full border border-amber-700/35 bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-950 dark:border-amber-500/45 dark:bg-amber-950/40 dark:text-amber-100">
                         {current.rankReason}
                       </span>
                     ) : null}
@@ -749,12 +749,12 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1.5">
-                <span className="max-w-[11rem] rounded-full border border-white/15 bg-zinc-900 px-3 py-1 text-right text-[11px] leading-snug text-zinc-100 sm:max-w-[13rem] sm:text-xs">
+                <span className="max-w-[11rem] rounded-full border border-zinc-300/90 bg-zinc-200/90 px-3 py-1 text-right text-[11px] leading-snug text-zinc-800 dark:border-white/15 dark:bg-zinc-900 dark:text-zinc-100 sm:max-w-[13rem] sm:text-xs">
                   {current.niche}
                 </span>
                 <Link
                   href={`/p/${current.id}`}
-                  className="text-[11px] font-semibold text-amber-300 underline-offset-4 hover:text-amber-200 hover:underline"
+                  className="text-[11px] font-semibold text-amber-800 underline-offset-4 hover:text-amber-950 hover:underline dark:text-amber-300 dark:hover:text-amber-200"
                 >
                   Full profile
                 </Link>
@@ -766,7 +766,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
               {current.matchWhy.slice(0, 2).map((reason) => (
                 <span
                   key={`hero-${reason}`}
-                  className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-medium text-amber-100"
+                  className="rounded-full border border-amber-600/30 bg-amber-100 px-3 py-1 text-[11px] font-medium text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100"
                 >
                   {reason}
                 </span>
@@ -774,10 +774,10 @@ export function SwipeStack({ profiles, viewerId }: Props) {
             </div>
           ) : null}
           {star ? (
-            <p className="max-w-2xl text-base leading-relaxed text-zinc-200">{current.bio}</p>
+            <p className="max-w-2xl text-base leading-relaxed text-zinc-800 dark:text-zinc-200">{current.bio}</p>
           ) : null}
           {star && heroCover ? (
-            <div className="space-y-3 rounded-[26px] border border-white/5 bg-white/[0.05] p-4 sm:p-5">
+            <div className="space-y-3 rounded-[26px] border border-zinc-200/90 bg-white/80 p-4 dark:border-white/5 dark:bg-white/[0.05] sm:p-5">
               <div
                 className={`flex flex-col items-start gap-4 ${showBannerCover ? "" : "sm:flex-row"}`}
               >
@@ -819,7 +819,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                 <div className="min-w-0 w-full flex-1">
                   <p
                     className={`text-[11px] font-semibold uppercase tracking-[0.24em] ${
-                      playingStar ? "text-amber-500/90" : "text-zinc-400"
+                      playingStar ? "text-amber-700 dark:text-amber-500/90" : "text-zinc-600 dark:text-zinc-400"
                     }`}
                   >
                     {isVenueProfile
@@ -830,10 +830,10 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                           ? "Now playing"
                           : "Featured audio"}
                   </p>
-                  <p className="mt-1 truncate text-xl font-semibold text-zinc-100">
+                  <p className="mt-1 truncate text-xl font-semibold text-zinc-900 dark:text-zinc-100">
                     {isVenueProfile ? star.title : playingMeta?.title ?? star.title}
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
                     {isVenueProfile
                       ? "Lead with the room. Open photos to see the space and keep swiping if the vibe fits."
                       : isPhotoOnlyStar
@@ -841,7 +841,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                         : "Hear the clip first, then read the profile below if the sound feels right."}
                   </p>
                   {isVenueProfile || isPhotoOnlyStar ? (
-                    <p className="mt-2 text-[11px] uppercase tracking-[0.2em] text-amber-300/85">
+                    <p className="mt-2 text-[11px] uppercase tracking-[0.2em] text-amber-800/90 dark:text-amber-300/85">
                       {showBannerCover
                         ? "More photos below — tap to expand."
                         : "Tap photo to expand"}
@@ -856,7 +856,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                             e.stopPropagation();
                             toggleMainPlay();
                           }}
-                          className="rounded-full bg-amber-500/20 px-4 py-1.5 text-xs font-medium text-amber-300 ring-1 ring-amber-500/35 transition hover:bg-amber-500/30"
+                          className="rounded-full bg-amber-500/25 px-4 py-1.5 text-xs font-medium text-amber-950 ring-1 ring-amber-600/35 transition hover:bg-amber-500/35 dark:bg-amber-500/20 dark:text-amber-300 dark:ring-amber-500/35 dark:hover:bg-amber-500/30"
                         >
                           {audioReady ? "Pause" : "Play"}
                         </button>
@@ -867,7 +867,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                               e.stopPropagation();
                               playBeat(star);
                             }}
-                            className="rounded-full border border-white/15 px-4 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-white/5"
+                            className="rounded-full border border-zinc-300/90 px-4 py-1.5 text-xs font-medium text-zinc-800 transition hover:bg-zinc-200/80 dark:border-white/15 dark:text-zinc-300 dark:hover:bg-white/5"
                           >
                             Play star track
                           </button>
@@ -880,7 +880,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
 
               {extras.length > 0 ? (
                 <div>
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-600 dark:text-zinc-500">
                     {isVenueProfile ? "More photos" : "More beats"}
                   </p>
                   <ul className="flex flex-wrap gap-2">
@@ -979,27 +979,27 @@ export function SwipeStack({ profiles, viewerId }: Props) {
             </div>
           ) : null}
           {current.lookingFor || extraMatchWhy.length ? (
-            <div className="rounded-2xl border border-white/5 bg-white/[0.035] p-4">
+            <div className="rounded-2xl border border-zinc-200/90 bg-zinc-50/95 p-4 dark:border-white/5 dark:bg-white/[0.035]">
               {current.lookingFor ? (
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-600 dark:text-zinc-500">
                     Looking for
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-800 dark:text-zinc-300">
                     {current.lookingFor}
                   </p>
                 </div>
               ) : null}
               {extraMatchWhy.length ? (
                 <div className={current.lookingFor ? "mt-4" : ""}>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-600 dark:text-zinc-500">
                     Why this could fit
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {extraMatchWhy.map((reason) => (
                       <span
                         key={reason}
-                        className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs text-zinc-300"
+                        className="rounded-full border border-zinc-300/80 bg-white px-3 py-1 text-xs text-zinc-800 dark:border-white/10 dark:bg-white/[0.05] dark:text-zinc-300"
                       >
                         {reason}
                       </span>
@@ -1010,47 +1010,47 @@ export function SwipeStack({ profiles, viewerId }: Props) {
             </div>
           ) : null}
           {current.prompt1Question && current.prompt1Answer ? (
-            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+            <div className="rounded-2xl border border-zinc-200/90 bg-zinc-50/95 p-4 dark:border-white/5 dark:bg-white/[0.03]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-600 dark:text-zinc-500">
                 Featured prompt
               </p>
-              <p className="mt-2 text-sm font-medium text-zinc-100">
+              <p className="mt-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
                 {current.prompt1Question}
               </p>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+              <p className="mt-2 text-sm leading-relaxed text-zinc-800 dark:text-zinc-300">
                 {current.prompt1Answer}
               </p>
             </div>
           ) : null}
           {current.prompt2Question && current.prompt2Answer ? (
-            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+            <div className="rounded-2xl border border-zinc-200/90 bg-zinc-50/95 p-4 dark:border-white/5 dark:bg-white/[0.03]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-600 dark:text-zinc-500">
                 More from their profile
               </p>
-              <p className="mt-2 text-sm font-medium text-zinc-100">
+              <p className="mt-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
                 {current.prompt2Question}
               </p>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+              <p className="mt-2 text-sm leading-relaxed text-zinc-800 dark:text-zinc-300">
                 {current.prompt2Answer}
               </p>
             </div>
           ) : null}
           {current.goal ? (
-            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+            <div className="rounded-2xl border border-zinc-200/90 bg-zinc-50/95 p-4 dark:border-white/5 dark:bg-white/[0.03]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-600 dark:text-zinc-500">
                 Current focus
               </p>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+              <p className="mt-2 text-sm leading-relaxed text-zinc-800 dark:text-zinc-300">
                 {current.goal}
               </p>
             </div>
           ) : null}
           {!star || !heroCover ? (
-            <div className="rounded-xl border border-white/5 bg-white/[0.04] px-4 py-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+            <div className="rounded-xl border border-zinc-200/90 bg-zinc-50/95 px-4 py-3 dark:border-white/5 dark:bg-white/[0.04]">
+              <p className="text-xs font-medium uppercase tracking-wider text-zinc-600 dark:text-zinc-500">
                 Profile note
               </p>
-              <p className="mt-1 text-sm text-zinc-200">
+              <p className="mt-1 text-sm text-zinc-800 dark:text-zinc-200">
                 {current.bio || current.highlight}
               </p>
             </div>
@@ -1059,7 +1059,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
       </div>
 
       {nextProfile ? (
-        <div className="pointer-events-none mt-2 flex items-center gap-3 rounded-xl border border-white/10 bg-zinc-900/45 px-3 py-2.5">
+        <div className="pointer-events-none mt-2 flex items-center gap-3 rounded-xl border border-zinc-300/80 bg-zinc-100/95 px-3 py-2.5 dark:border-white/10 dark:bg-zinc-900/45">
           {nextProfile.starBeat?.coverUrl?.trim() ? (
             <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10">
               <Image
@@ -1090,8 +1090,8 @@ export function SwipeStack({ profiles, viewerId }: Props) {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] uppercase tracking-wider text-zinc-500">Up next</p>
-            <p className="truncate text-sm font-medium text-zinc-300">
+            <p className="text-[10px] uppercase tracking-wider text-zinc-600 dark:text-zinc-500">Up next</p>
+            <p className="truncate text-sm font-medium text-zinc-800 dark:text-zinc-300">
               {nextProfile.displayName} · {roleLabel[nextProfile.role]}
             </p>
           </div>
@@ -1099,11 +1099,11 @@ export function SwipeStack({ profiles, viewerId }: Props) {
       ) : null}
 
       <div className="mt-5 flex flex-col gap-3 sm:mt-6">
-        <div className="rounded-xl border border-white/10 bg-zinc-900/45 px-4 py-2.5 sm:flex sm:items-center sm:justify-between sm:gap-4 sm:text-left">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+        <div className="rounded-xl border border-zinc-300/80 bg-zinc-100/95 px-4 py-2.5 sm:flex sm:items-center sm:justify-between sm:gap-4 sm:text-left dark:border-white/10 dark:bg-zinc-900/45">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-600 dark:text-zinc-500">
             Quick actions
           </p>
-          <p className="mt-1 text-xs leading-relaxed text-zinc-400 sm:mt-0 sm:max-w-[70%]">
+          <p className="mt-1 text-xs leading-relaxed text-zinc-700 dark:text-zinc-400 sm:mt-0 sm:max-w-[70%]">
             Lead with the clip or photo, skim prompts, then save or pass—stay in Discover the whole
             time.
           </p>
@@ -1112,7 +1112,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           <button
             type="button"
             onClick={() => advance("left")}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-zinc-800/80 text-zinc-300 transition hover:bg-zinc-700 sm:h-14 sm:w-14 motion-reduce:transition-none"
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-zinc-400/80 bg-zinc-200/90 text-zinc-800 transition hover:bg-zinc-300 dark:border-white/15 dark:bg-zinc-800/80 dark:text-zinc-300 dark:hover:bg-zinc-700 sm:h-14 sm:w-14 motion-reduce:transition-none"
             aria-label="Pass"
           >
             ✕
@@ -1120,7 +1120,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           <button
             type="button"
             onClick={() => advance("right")}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-zinc-800/80 text-zinc-300 transition hover:bg-zinc-700 sm:h-14 sm:w-14 motion-reduce:transition-none"
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-zinc-400/80 bg-zinc-200/90 text-zinc-800 transition hover:bg-zinc-300 dark:border-white/15 dark:bg-zinc-800/80 dark:text-zinc-300 dark:hover:bg-zinc-700 sm:h-14 sm:w-14 motion-reduce:transition-none"
             aria-label="Save for later"
           >
             ★
@@ -1130,7 +1130,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
           type="button"
           onClick={undoLastSwipe}
           disabled={!lastSwipe}
-          className="w-full rounded-xl border border-white/15 bg-white/5 py-2 text-xs font-medium text-zinc-300 transition hover:bg-white/10 disabled:opacity-40 motion-reduce:transition-none"
+          className="w-full rounded-xl border border-zinc-300/80 bg-white py-2 text-xs font-medium text-zinc-800 transition hover:bg-zinc-100 disabled:opacity-40 dark:border-white/15 dark:bg-white/5 dark:text-zinc-300 dark:hover:bg-white/10 motion-reduce:transition-none"
         >
           Undo last swipe (Z)
         </button>
