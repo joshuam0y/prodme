@@ -12,7 +12,7 @@ export function SiteFooter() {
             prodLink
           </span>
           <span className="mx-1.5 text-zinc-700">·</span>
-          network &amp; discovery for artists, producers, DJs &amp; venues
+          beta · nearby discovery for artists, producers, DJs &amp; venues
         </p>
         <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:justify-end">
           <Link href="/explore" className={linkClass}>

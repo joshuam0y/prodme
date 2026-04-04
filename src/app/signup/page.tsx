@@ -35,7 +35,9 @@ export default async function SignupPage({
           Create account
         </h1>
         <p className="mt-2 text-sm text-zinc-500">
-          Free to join. Payments stay off while we explore the network.
+          Free to join while we&apos;re in beta—early users get perks as big features ship
+          (audio on cards, verification, in-app sales, labels, and more). In-app checkout is
+          on the way; off-platform deals are your own risk until then.
         </p>
 
         {notice ? (

@@ -3,20 +3,22 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "How it works",
+  description:
+    "How prodLink works: nearby discovery, profile audio, matches. Roadmap: ~15s card previews, ID + linked SoundCloud, Stripe Connect / Plaid, labels role, dual roles, tighter proximity.",
 };
 
 const steps = [
   {
     title: "Build a real profile",
-    body: "Pick your role, describe your sound or room, and add prompts that make it easy for the right people to start the conversation.",
+    body: "Pick your role, describe your sound or room, add location so people nearby can find you, and use prompts that make it easy to start the right conversation.",
   },
   {
-    title: "Discover with less noise",
-    body: "Use filters only when you need them, swipe through active profiles, and open full profiles when someone looks like a real fit.",
+    title: "Discover nearby, with less noise",
+    body: "Swipe through active profiles, tune distance when you need it (more granular miles and neighborhood-style filters are on the roadmap), and open full profiles when someone looks like a real fit—not another anonymous global feed.",
   },
   {
     title: "Move while momentum is high",
-    body: "Save the people you want to keep, message your matches quickly, and use notifications to stay on top of conversations.",
+    body: "Save people you want to keep, message your matches quickly, and use notifications so conversations don&apos;t go cold.",
   },
 ];
 
@@ -25,6 +27,7 @@ const roles = [
   "Producers and engineers can lead with their taste, sessions, and what kind of artists they help best.",
   "DJs can highlight their energy, rooms, and the scenes they fit.",
   "Venues and promoters can stay focused on talent discovery and booking fit.",
+  "Record labels (planned): a dedicated path for genre-agnostic track pitching—not locked to one house or scene.",
 ];
 
 export default function HowItWorksPage() {
@@ -32,14 +35,15 @@ export default function HowItWorksPage() {
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6">
       <section className="rounded-[32px] border border-white/10 bg-zinc-900/45 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-300/90">
-          How prodLink works
+          How prodLink works · beta
         </p>
         <h1 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight text-zinc-50 sm:text-4xl">
-          Built to help collaborators in music find the right fit faster.
+          Find collaborators near you—not just another follower count.
         </h1>
         <p className="mt-4 max-w-2xl text-sm leading-relaxed text-zinc-400 sm:text-base">
-          prodLink works best when profiles feel specific, discover stays focused, and people
-          message while the energy is still there.
+          Emerging artists, producers, and DJs use prodLink to meet real people in their
+          scene. Profiles stay specific, discover stays local when you want it, and
+          audio helps you hear the fit before you DM.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
@@ -90,6 +94,43 @@ export default function HowItWorksPage() {
             ))}
           </ul>
         </article>
+      </section>
+
+      <section className="mt-8 rounded-3xl border border-white/10 bg-zinc-900/35 p-6 sm:p-8">
+        <h2 className="text-lg font-semibold text-zinc-100">Beta, safety, and what&apos;s next</h2>
+        <div className="mt-4 space-y-4 text-sm leading-relaxed text-zinc-400">
+          <p>
+            prodLink is in <strong className="font-medium text-zinc-300">beta</strong>
+            —we&apos;re shipping with early users and adjusting fast. Early supporters get{" "}
+            <strong className="font-medium text-zinc-300">beta perks</strong> as major
+            features go live. If something feels off, use{" "}
+            <Link href="/help" className="font-medium text-amber-400/95 underline-offset-2 hover:underline">
+              Help
+            </Link>{" "}
+            to reach us.
+          </p>
+          <p>
+            We&apos;re serious about{" "}
+            <strong className="font-medium text-zinc-300">real people and safer connections</strong>
+            . On the roadmap: government ID and face verification, linked SoundCloud (or
+            similar), short playable clips on cards (often around 15 seconds), and{" "}
+            <strong className="font-medium text-zinc-300">dual roles</strong> (e.g. producer
+            and DJ) from one profile. Until those ship, treat off-platform payments and
+            deals as <strong className="font-medium text-zinc-300">your own risk</strong>.
+          </p>
+          <p>
+            <strong className="font-medium text-zinc-300">In-app beat and bundle sales</strong>{" "}
+            are planned via <strong className="font-medium text-zinc-300">Stripe Connect</strong>
+            {" "}and/or <strong className="font-medium text-zinc-300">Plaid</strong>-style
+            flows so checkout stays credible and in-app. We&apos;ll share updates as they
+            ship.
+          </p>
+          <p>
+            On <strong className="font-medium text-zinc-300">pricing</strong>, we&apos;re
+            aiming for fair access—not a steep monthly gate like some creator platforms.
+            Specifics will come with paid features.
+          </p>
+        </div>
       </section>
     </main>
   );

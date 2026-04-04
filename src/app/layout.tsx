@@ -26,7 +26,7 @@ const geistMono = Geist_Mono({
 });
 
 const description =
-  "A bridge between artists, producers, DJs, and venues. Build your profile, discover by style, explore bundles — payments later.";
+  "Beta: genre-agnostic discovery for emerging artists, producers, DJs, and venues—collaborators nearby, not another global feed. Roadmap: ~15s card audio, ID + SoundCloud verification, Stripe Connect / Plaid checkout, label pitching, dual roles, tighter proximity. Fair pricing—not a steep monthly gate.";
 
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
