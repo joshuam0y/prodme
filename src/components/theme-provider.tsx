@@ -16,23 +16,17 @@ type Ctx = {
 const ThemeContext = createContext<Ctx | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeChoice>("system");
+  const [theme, setThemeState] = useState<ThemeChoice>("dark");
 
   useEffect(() => {
-    setThemeState(parseThemeChoice(localStorage.getItem(THEME_STORAGE_KEY)));
+    const parsed = parseThemeChoice(localStorage.getItem(THEME_STORAGE_KEY));
+    setThemeState(parsed);
+    localStorage.setItem(THEME_STORAGE_KEY, parsed);
   }, []);
 
   useEffect(() => {
     applyThemeChoice(theme);
     localStorage.setItem(THEME_STORAGE_KEY, theme);
-  }, [theme]);
-
-  useEffect(() => {
-    if (theme !== "system") return;
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => applyThemeChoice("system");
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
   }, [theme]);
 
   useEffect(() => {
