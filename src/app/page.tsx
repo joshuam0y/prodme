@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { trackServerEvent } from "@/lib/analytics";
@@ -43,16 +42,6 @@ export default async function Home({
         />
         <div className="relative mx-auto max-w-6xl">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-8 flex justify-center px-2">
-              <Image
-                src="/prodlink-logo-v2.svg"
-                alt="prodLink"
-                width={420}
-                height={110}
-                className="h-auto w-full max-w-[340px] sm:max-w-[420px]"
-                priority
-              />
-            </div>
             <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-amber-500/90">
               Explore first · FREE TO USE
             </p>
