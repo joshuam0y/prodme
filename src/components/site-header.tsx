@@ -1,6 +1,7 @@
 "use client";
 
 import type { User } from "@supabase/supabase-js";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { signOut } from "@/app/auth/actions";
@@ -8,7 +9,6 @@ import { MobileTabBar } from "@/components/mobile-tab-bar";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import { ShareAppButton } from "@/components/share-app-button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ProdlinkLogo } from "@/components/prodlink-logo";
 import { MobileNavLink } from "@/components/mobile-nav-link";
 import type { MobileApiResponse, MobileUnreadCounts } from "@/lib/mobile-api/types";
 
@@ -124,7 +124,14 @@ export function SiteHeader({
         <div className="mx-auto max-w-5xl px-3 py-2 sm:flex sm:h-14 sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:py-0">
           <div className="flex items-center justify-between gap-3">
             <Link href={brandHref} className="inline-flex shrink-0" aria-label="prodLink home">
-              <ProdlinkLogo />
+              <Image
+                src="/prodlink-logo-v2.svg"
+                alt="prodLink"
+                width={210}
+                height={55}
+                className="h-8 w-auto"
+                priority
+              />
             </Link>
 
             <details className="group relative">
@@ -225,7 +232,14 @@ export function SiteHeader({
       <aside className="hidden border-r border-white/10 bg-[var(--surface)]/92 md:sticky md:top-0 md:flex md:h-screen md:w-[228px] md:flex-col md:justify-between md:px-4 md:py-5">
         <div className="flex w-full flex-col gap-5">
           <Link href={brandHref} className="inline-flex shrink-0 self-start" aria-label="prodLink home">
-            <ProdlinkLogo />
+            <Image
+              src="/prodlink-logo-v2.svg"
+              alt="prodLink"
+              width={210}
+              height={55}
+              className="h-10 w-auto"
+              priority
+            />
           </Link>
           <nav className="flex w-full flex-col gap-1.5">
             {links.map(({ href, label }) => {
