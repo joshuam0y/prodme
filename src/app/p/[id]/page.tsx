@@ -11,6 +11,8 @@ import { roleLabel as profileRoleLabel } from "@/lib/role-label";
 import { isUuid } from "@/lib/uuid";
 import type { DbProfile } from "@/lib/types";
 import { formatDisplayDate } from "@/lib/format-date";
+import { isPublicFieldVisible } from "@/lib/public-visibility";
+import { parseSocialLinks } from "@/lib/social-links";
 import { ProfileAvatarModal, ProfileGallery, ProfileGalleryModal } from "./gallery";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ gallery?: string; avatar?: string }> };
@@ -98,7 +100,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   const { data: row, error } = await supabase
     .from("profiles")
     .select(
-      "id, created_at, last_seen_at, updated_at, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, latitude, longitude, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats",
+      "id, created_at, last_seen_at, updated_at, display_name, avatar_url, ai_summary, ai_tags, ai_profile_score, role, niche, goal, city, neighborhood, latitude, longitude, looking_for, prompt_1_question, prompt_1_answer, prompt_2_question, prompt_2_answer, onboarding_completed_at, star_beat_title, star_beat_audio_url, star_beat_cover_url, extra_beats, public_visibility, social_links",
     )
     .eq("id", id)
     .maybeSingle();
@@ -108,8 +110,17 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   }
 
   const profile = row as DbProfile;
+  const visibility = profile.public_visibility;
   const isOwn = viewer?.id === id;
   const name = profile.display_name?.trim() || "Member";
+  const showMemberDetails = isOwn || isPublicFieldVisible("member_details", visibility);
+  const showLocation = isOwn || isPublicFieldVisible("location", visibility);
+  const showGoal = isOwn || isPublicFieldVisible("goal", visibility);
+  const showLookingFor = isOwn || isPublicFieldVisible("looking_for", visibility);
+  const showPrompts = isOwn || isPublicFieldVisible("prompts", visibility);
+  const showNichePublic = isOwn || isPublicFieldVisible("niche", visibility);
+  const showBeats = isOwn || isPublicFieldVisible("beats", visibility);
+  const socialLinks = parseSocialLinks(profile.social_links);
   const { starBeat, extraBeats } = beatsFromProfileRow({
     id: profile.id,
     star_beat_title: profile.star_beat_title ?? null,
@@ -122,19 +133,24 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   const anyExtraAudio = Boolean(extraBeats?.some((b) => Boolean(b.audioUrl)));
   const galleryOpen = sp.gallery === "1";
   const avatarOpen = sp.avatar === "1";
-  const prompt1Question = profile.prompt_1_question?.trim() || null;
-  const prompt1Answer = profile.prompt_1_answer?.trim() || null;
-  const prompt2Question = profile.prompt_2_question?.trim() || null;
-  const prompt2Answer = profile.prompt_2_answer?.trim() || null;
-  const lookingFor = profile.looking_for?.trim() || null;
-  const goal = profile.goal?.trim() || null;
-  const niche = profile.niche?.trim() || null;
+  const prompt1Question =
+    showPrompts && profile.prompt_1_question?.trim() ? profile.prompt_1_question.trim() : null;
+  const prompt1Answer =
+    showPrompts && profile.prompt_1_answer?.trim() ? profile.prompt_1_answer.trim() : null;
+  const prompt2Question =
+    showPrompts && profile.prompt_2_question?.trim() ? profile.prompt_2_question.trim() : null;
+  const prompt2Answer =
+    showPrompts && profile.prompt_2_answer?.trim() ? profile.prompt_2_answer.trim() : null;
+  const lookingFor = showLookingFor ? profile.looking_for?.trim() || null : null;
+  const goal = showGoal ? profile.goal?.trim() || null : null;
+  const niche = showNichePublic ? profile.niche?.trim() || null : null;
   /** Same semantics as discover cards: pill uses goal, else niche (`getLiveProfileCards` → `focus`). */
   const focusLabel = goal || niche || null;
   const discoverRole = inferProfileRole(profile.role);
   const discoverCityLabel = profile.neighborhood?.trim() || profile.city?.trim() || null;
   let distanceKm: number | undefined;
   if (
+    showLocation &&
     viewer?.id &&
     viewer.id !== id &&
     typeof profile.latitude === "number" &&
@@ -153,14 +169,14 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   }
   const metaLine = [
     profileRoleLabel(profile.role),
-    discoverCityLabel,
-    distanceKm !== undefined ? `${Math.round(distanceKm)} km away` : null,
+    showLocation ? discoverCityLabel : null,
+    showLocation && distanceKm !== undefined ? `${Math.round(distanceKm)} km away` : null,
   ]
     .filter(Boolean)
     .join(" · ");
   /** Discover shows raw niche as the subtitle under the header when a star beat exists. */
-  const discoverBioLine = starBeat && niche ? niche : null;
-  const showNicheSection = Boolean(niche) && !(starBeat && niche);
+  const discoverBioLine = showBeats && starBeat && niche ? niche : null;
+  const showNicheSection = Boolean(niche) && showNichePublic && !(showBeats && starBeat && niche);
   const lookingForTitle = isVenueProfile ? "Booking fit" : "Looking for";
   const goalTitle = isVenueProfile ? "What they're building" : "Current focus";
   const nicheTitle = isVenueProfile ? "Venue vibe" : "Sound";
@@ -206,7 +222,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
       </p>
     </section>
   ) : null;
-  const memberDetailsSection = (
+  const memberDetailsSection = showMemberDetails ? (
     <InfoSection title="Member details" compact>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
@@ -225,11 +241,13 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
         </div>
       </div>
     </InfoSection>
-  );
+  ) : null;
   const galleryItems = [
     ...(profile.avatar_url?.trim() ? [{ url: profile.avatar_url.trim(), label: `${name} profile photo` }] : []),
-    ...(starBeat?.coverUrl ? [{ url: starBeat.coverUrl, label: starBeat.title }] : []),
-    ...((extraBeats ?? []).filter((b) => Boolean(b.coverUrl)).map((b) => ({ url: b.coverUrl, label: b.title }))),
+    ...(showBeats && starBeat?.coverUrl ? [{ url: starBeat.coverUrl, label: starBeat.title }] : []),
+    ...(showBeats
+      ? (extraBeats ?? []).filter((b) => Boolean(b.coverUrl)).map((b) => ({ url: b.coverUrl, label: b.title }))
+      : []),
   ];
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10 sm:px-6">
@@ -280,6 +298,22 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
         {discoverBioLine ? (
           <p className="mt-2 max-w-2xl text-base leading-relaxed text-zinc-200">{discoverBioLine}</p>
         ) : null}
+        {socialLinks.length > 0 ? (
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {socialLinks.map((s) => (
+              <li key={s.url}>
+                <a
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-amber-300/95 transition hover:border-amber-500/35 hover:bg-amber-500/10"
+                >
+                  {s.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {isOwn ? (
           <p className="mt-3 inline-flex max-w-fit rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200/90">
             Your public profile view
@@ -287,7 +321,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
         ) : null}
       </div>
 
-      {starBeat ? (
+      {showBeats && starBeat ? (
         isVenueProfile ? (
           <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
             <h2 className="text-xs font-medium uppercase tracking-wider text-amber-500/90">
@@ -346,7 +380,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
         )
       ) : null}
 
-      {extraBeats?.length ? (
+      {showBeats && extraBeats?.length ? (
         <section className="mt-6">
           <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-500">
             {collectionTitle}
@@ -395,7 +429,7 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
         </div>
       ) : null}
 
-      <div className="mt-10">{memberDetailsSection}</div>
+      {memberDetailsSection ? <div className="mt-10">{memberDetailsSection}</div> : null}
 
       <ProfileGallery profileId={id} items={galleryItems} title={galleryTitle} />
 

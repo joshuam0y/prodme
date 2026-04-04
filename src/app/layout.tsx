@@ -2,14 +2,17 @@ import type { Metadata } from "next";
 import type { User } from "@supabase/supabase-js";
 import { Analytics } from "@vercel/analytics/next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import { LastSeenHeartbeat } from "@/components/last-seen-heartbeat";
 import { RefreshToHome } from "@/components/refresh-to-home";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { ThemeProvider } from "@/components/theme-provider";
 import { isAdminEmail, isSupabaseConfigured } from "@/lib/env";
 import { getSiteUrl } from "@/lib/site-url";
 import { isProfileQuestionnaireComplete } from "@/lib/profile-completion";
 import { createClient } from "@/lib/supabase/server";
+import { themeBootstrapScript } from "@/lib/theme-storage";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -110,27 +113,35 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[var(--background)]">
-        <RefreshToHome />
-        <LastSeenHeartbeat enabled={supabaseEnabled && Boolean(user)} />
-        <div className="flex min-h-full flex-1 flex-col md:flex-row">
-          <SiteHeader
-            user={user}
-            isAdmin={isAdmin}
-            profileAvatarUrl={profileAvatarUrl}
-            supabaseEnabled={supabaseEnabled}
-            unreadMessages={unreadMessages}
-            unreadNotifications={unreadNotifications}
-            showBuildProfileNav={showBuildProfileNav}
-          />
-          <div className="flex min-w-0 flex-1 flex-col pb-24 md:pb-0">
-            <div className="flex flex-1 flex-col">{children}</div>
-            <SiteFooter />
+      <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)]">
+        <Script
+          id="prodlink-theme"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeBootstrapScript }}
+        />
+        <ThemeProvider>
+          <RefreshToHome />
+          <LastSeenHeartbeat enabled={supabaseEnabled && Boolean(user)} />
+          <div className="flex min-h-full flex-1 flex-col md:flex-row">
+            <SiteHeader
+              user={user}
+              isAdmin={isAdmin}
+              profileAvatarUrl={profileAvatarUrl}
+              supabaseEnabled={supabaseEnabled}
+              unreadMessages={unreadMessages}
+              unreadNotifications={unreadNotifications}
+              showBuildProfileNav={showBuildProfileNav}
+            />
+            <div className="flex min-w-0 flex-1 flex-col pb-24 md:pb-0">
+              <div className="flex flex-1 flex-col">{children}</div>
+              <SiteFooter />
+            </div>
           </div>
-        </div>
-        <Analytics />
+          <Analytics />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -65,7 +65,7 @@ export function MobileTabBar({
     : [
         { href: "/explore", label: "Discover", icon: "⌂" },
         { href: "/bundles", label: "Bundles", icon: "▣" },
-        { href: "/how-it-works", label: "How it works", icon: "?" },
+        { href: "/help", label: "Help", icon: "?" },
         { href: "/login", label: "Sign in", icon: "→" },
       ];
 

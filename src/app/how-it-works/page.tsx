@@ -35,7 +35,7 @@ export default function HowItWorksPage() {
           How prodLink works
         </p>
         <h1 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight text-zinc-50 sm:text-4xl">
-          Built to help music people find the right fit faster.
+          Built to help collaborators in music find the right fit faster.
         </h1>
         <p className="mt-4 max-w-2xl text-sm leading-relaxed text-zinc-400 sm:text-base">
           prodLink works best when profiles feel specific, discover stays focused, and people

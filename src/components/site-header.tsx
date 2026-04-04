@@ -8,6 +8,7 @@ import { signOut } from "@/app/auth/actions";
 import { MobileTabBar } from "@/components/mobile-tab-bar";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import { ShareAppButton } from "@/components/share-app-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { MobileNavLink } from "@/components/mobile-nav-link";
 import type { MobileApiResponse, MobileUnreadCounts } from "@/lib/mobile-api/types";
 
@@ -18,6 +19,7 @@ const allNavLinks = [
   { href: "/notifications", label: "Notifications", authOnly: true },
   { href: "/bundles", label: "Bundles" },
   { href: "/how-it-works", label: "How it works" },
+  { href: "/help", label: "Help" },
   { href: "/onboarding", label: "Profile", hideWhenProfileComplete: true },
 ] as const;
 
@@ -213,7 +215,8 @@ export function SiteHeader({
                     )
                   ) : null}
                 </nav>
-                <div className="mt-1.5 border-t border-white/10 pt-1.5">
+                <div className="mt-1.5 space-y-2 border-t border-white/10 pt-1.5">
+                  <ThemeToggle className="px-1" />
                   <ShareAppButton
                     className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-sm text-zinc-300 transition hover:bg-white/8 hover:text-zinc-100"
                     idleLabel="Share ProdLink"
@@ -260,6 +263,7 @@ export function SiteHeader({
         </div>
 
         <div className="flex w-full flex-col gap-2 border-t border-white/10 pt-4">
+          <ThemeToggle />
           <ShareAppButton
             className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left text-sm font-medium text-zinc-300 transition hover:border-white/15 hover:bg-white/7 hover:text-zinc-50"
             idleLabel="Invite friends"

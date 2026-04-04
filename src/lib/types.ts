@@ -89,4 +89,8 @@ export type DbProfile = {
   star_beat_cover_url?: string | null;
   /** JSON array of `{ title, audio_url, cover_url }` — max 5 enforced in app */
   extra_beats?: unknown;
+  /** Optional per-section visibility on `/p/[id]`; see `public-visibility.ts`. */
+  public_visibility?: unknown;
+  /** JSON array of `{ label, url }` — max 6, HTTPS URLs. */
+  social_links?: unknown;
 };

@@ -30,3 +30,8 @@ export function isAdminEmail(email: string | null | undefined): boolean {
   if (!normalized) return false;
   return getAdminEmails().includes(normalized);
 }
+
+/** Shown on Help center; set in production (e.g. support@yourdomain.com). */
+export function getSupportEmail(): string {
+  return process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() ?? "";
+}

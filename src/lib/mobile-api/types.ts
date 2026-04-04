@@ -81,6 +81,11 @@ export type MobileUnreadCounts = {
   unreadNotifications: number;
 };
 
+export type MobileSocialLink = {
+  label: string;
+  url: string;
+};
+
 export type MobilePublicProfile = {
   id: string;
   displayName: string;
@@ -97,6 +102,7 @@ export type MobilePublicProfile = {
   onboardingCompletedAt: string | null;
   starBeat?: BeatPreview;
   extraBeats?: BeatPreview[];
+  socialLinks: MobileSocialLink[];
 };
 
 export type MobileUpdateBasicsInput = {

@@ -12,6 +12,8 @@ import type { ProfileCoachInput, ProfileCoachSuggestion } from "@/lib/ai/types";
 import { createClient } from "@/lib/supabase/server";
 import { isAiProfileCoachConfigured, isSupabaseConfigured } from "@/lib/env";
 import type { DbExtraBeat } from "@/lib/profile-beats";
+import type { PublicVisibilityKey } from "@/lib/public-visibility";
+import { validateSocialLinksForSave, type SocialLink } from "@/lib/social-links";
 import {
   hasAnyCompletePrompt,
   hasDuplicatePromptQuestions,
@@ -126,6 +128,60 @@ function isHttps(u: string): boolean {
   } catch {
     return false;
   }
+}
+
+const PUBLIC_VISIBILITY_KEYS: PublicVisibilityKey[] = [
+  "member_details",
+  "location",
+  "goal",
+  "looking_for",
+  "prompts",
+  "niche",
+  "beats",
+];
+
+export type UpdateProfilePrivacySocialPayload = {
+  visibility: Partial<Record<PublicVisibilityKey, boolean>>;
+  social_links: SocialLink[];
+};
+
+export async function updateProfilePrivacySocial(
+  payload: UpdateProfilePrivacySocialPayload,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: "Supabase is not configured." };
+  }
+
+  const validated = validateSocialLinksForSave(payload.social_links);
+  if (!validated.ok) return validated;
+
+  const visibility: Record<string, boolean> = {};
+  for (const key of PUBLIC_VISIBILITY_KEYS) {
+    const v = payload.visibility[key];
+    visibility[key] = v !== false;
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sign in to update privacy settings." };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      public_visibility: visibility,
+      social_links: payload.social_links,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/profile");
+  revalidatePath("/explore");
+  revalidatePath(`/p/${user.id}`);
+  return { ok: true };
 }
 
 export async function updateProfileBeats(
