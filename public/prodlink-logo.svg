@@ -1,39 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 110" role="img" aria-labelledby="title desc">
-  <title id="title">prodLink</title>
-  <desc id="desc">prodLink wordmark with orange and blue equalizer bars</desc>
-  <defs>
-    <linearGradient id="barsBlue" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#2a446f" />
-      <stop offset="100%" stop-color="#1d2f50" />
-    </linearGradient>
-  </defs>
-
-  <!-- Wordmark -->
-  <text
-    x="16"
-    y="62"
-    font-family="Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
-    font-size="62"
-    font-weight="700"
-    letter-spacing="-1.2"
-    fill="#d7dde8"
-  >
-    prod<tspan dx="-3" fill="#ff7a1a">Link</tspan>
-  </text>
-
-  <!-- Equalizer bars -->
-  <g transform="translate(20,78)">
-    <rect x="0" y="6" width="6" height="16" rx="2" fill="#ff7a1a" />
-    <rect x="14" y="0" width="6" height="28" rx="2" fill="#ff7a1a" />
-    <rect x="28" y="4" width="6" height="20" rx="2" fill="#ff7a1a" />
-    <rect x="42" y="8" width="6" height="14" rx="2" fill="#ff7a1a" />
-    <rect x="56" y="2" width="6" height="24" rx="2" fill="#ff7a1a" />
-    <rect x="70" y="10" width="6" height="12" rx="2" fill="#ff7a1a" />
-    <rect x="92" y="12" width="6" height="10" rx="2" fill="url(#barsBlue)" />
-    <rect x="106" y="6" width="6" height="16" rx="2" fill="url(#barsBlue)" />
-    <rect x="120" y="2" width="6" height="22" rx="2" fill="url(#barsBlue)" />
-    <rect x="134" y="8" width="6" height="14" rx="2" fill="url(#barsBlue)" />
-    <rect x="148" y="10" width="6" height="12" rx="2" fill="url(#barsBlue)" />
-    <rect x="162" y="14" width="6" height="8" rx="2" fill="url(#barsBlue)" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 44" role="img" aria-labelledby="logoTitle">
+  <title id="logoTitle">prodLink</title>
+  <g fill="#ea580c" aria-hidden="true">
+    <rect x="0" y="14" width="5" height="22" rx="2.5" />
+    <rect x="11" y="4" width="5" height="36" rx="2.5" />
+    <rect x="22" y="10" width="5" height="28" rx="2.5" />
+    <rect x="33" y="18" width="5" height="16" rx="2.5" />
+    <rect x="44" y="6" width="5" height="34" rx="2.5" />
   </g>
+  <text
+    x="58"
+    y="31"
+    font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, sans-serif"
+    font-size="24"
+    font-weight="700"
+    letter-spacing="-0.03em"
+  >
+    <tspan fill="#64748b">prod</tspan><tspan fill="#ea580c">Link</tspan>
+  </text>
 </svg>
