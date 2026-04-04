@@ -619,7 +619,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerEnd}
         style={dragTransform}
-        className={`relative z-10 min-h-[500px] sm:min-h-[580px] touch-pan-y overflow-hidden rounded-[30px] border border-white/10 bg-zinc-900/60 shadow-[0_30px_100px_rgba(0,0,0,0.3)] select-none ${
+        className={`relative z-10 min-h-[420px] sm:min-h-[500px] touch-pan-y overflow-hidden rounded-[30px] border border-white/10 bg-zinc-900/60 shadow-[0_30px_100px_rgba(0,0,0,0.3)] select-none ${
           dragging && !exitDir ? "cursor-grabbing" : "cursor-grab"
         } ${
           dragging && !exitDir
@@ -675,7 +675,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
                 e.stopPropagation();
                 openLightbox(bannerCoverUrl);
               }}
-              className="relative h-40 w-full overflow-hidden text-left sm:h-48"
+              className="relative h-32 w-full overflow-hidden text-left sm:h-40"
               aria-label="Open featured photo"
             >
               <Image
@@ -692,7 +692,7 @@ export function SwipeStack({ profiles, viewerId }: Props) {
               />
             </button>
           ) : (
-            <div className="relative h-40 overflow-hidden sm:h-48">
+            <div className="relative h-32 overflow-hidden sm:h-40">
               <Image
                 src={bannerCoverUrl}
                 alt=""
@@ -708,16 +708,16 @@ export function SwipeStack({ profiles, viewerId }: Props) {
             </div>
           )
         ) : (
-          <div className="relative h-32 overflow-hidden sm:h-40" aria-hidden>
+          <div className="relative h-[4.5rem] overflow-hidden sm:h-24" aria-hidden>
             <div className={`absolute inset-0 bg-gradient-to-br ${current.accent} opacity-95`} />
             <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/70 to-zinc-950/20" />
           </div>
         )}
-        <div className="space-y-4 px-5 pb-6 pt-0 sm:px-7 sm:pb-8 sm:pt-0">
-          <div className="-mx-5 -mt-9 rounded-t-[26px] border border-b-0 border-white/10 bg-zinc-950 px-5 pb-4 pt-6 shadow-[0_-16px_48px_rgba(0,0,0,0.55)] sm:-mx-7 sm:-mt-11 sm:rounded-t-[28px] sm:px-7 sm:pb-5 sm:pt-7">
+        <div className="space-y-5 px-5 pb-6 pt-0 sm:px-7 sm:pb-8 sm:pt-0">
+          <div className="-mx-5 -mt-6 rounded-t-[26px] border border-b-0 border-white/10 bg-zinc-950 px-5 pb-4 pt-7 shadow-[0_-12px_36px_rgba(0,0,0,0.5)] sm:-mx-7 sm:-mt-7 sm:rounded-t-[28px] sm:px-7 sm:pb-5 sm:pt-8">
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-start gap-3">
-                <div className="shrink-0 -mt-[3.25rem] sm:-mt-[3.75rem]">
+                <div className="shrink-0 -mt-[2.5rem] sm:-mt-[3rem]">
                   <ProfileAvatar
                     name={current.displayName}
                     avatarUrl={current.avatarUrl}
