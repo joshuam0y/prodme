@@ -2,10 +2,11 @@
 @import "leaflet/dist/leaflet.css";
 
 /* Default = light. `dark` class on <html> restores the original prodLink night theme. */
+/* Light theme uses warm, muted surfaces — less stark white / glare than pure #fafafa. */
 :root {
-  --background: #fafafa;
-  --foreground: #18181b;
-  --surface: #f4f4f5;
+  --background: #e6e4e1;
+  --foreground: #27272a;
+  --surface: #dcd9d5;
   --accent: #d97706;
 }
 
@@ -27,6 +28,16 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+:root:not(.dark) body {
+  /* Slightly warm wash so large empty areas feel less “clinical white” */
+  background-image: radial-gradient(
+    120% 80% at 50% -10%,
+    rgb(244 240 235 / 0.55),
+    transparent 55%
+  );
+  background-color: var(--background);
 }
 
 /* Accessibility: consistent focus ring across the app */
@@ -94,47 +105,48 @@ body {
     border-color: rgb(239 68 68 / 0.35);
   }
 
+  /* Paper-like neutrals — avoid pure #fff on large panels */
   :root:not(.dark) .bg-zinc-950 {
-    background-color: rgb(255 255 255);
+    background-color: rgb(238 234 229);
   }
   :root:not(.dark) .bg-zinc-950\/30 {
-    background-color: rgb(255 255 255 / 0.92);
+    background-color: rgb(240 236 231 / 0.92);
   }
   :root:not(.dark) .bg-zinc-950\/35 {
-    background-color: rgb(250 250 250 / 0.96);
+    background-color: rgb(239 235 230 / 0.96);
   }
   :root:not(.dark) .bg-zinc-950\/40 {
-    background-color: rgb(250 250 250 / 0.94);
+    background-color: rgb(239 235 230 / 0.94);
   }
   :root:not(.dark) .bg-zinc-950\/50 {
-    background-color: rgb(250 250 250 / 0.9);
+    background-color: rgb(238 234 229 / 0.9);
   }
   :root:not(.dark) .bg-zinc-950\/80 {
-    background-color: rgb(250 250 250 / 0.96);
+    background-color: rgb(237 233 228 / 0.96);
   }
   :root:not(.dark) .bg-zinc-950\/95 {
-    background-color: rgb(250 250 250 / 0.98);
+    background-color: rgb(236 232 227 / 0.97);
   }
   :root:not(.dark) .bg-zinc-950\/97 {
-    background-color: rgb(255 255 255 / 0.98);
+    background-color: rgb(235 231 226 / 0.98);
   }
   :root:not(.dark) .bg-zinc-900\/35 {
-    background-color: rgb(244 244 245 / 0.95);
+    background-color: rgb(232 228 223 / 0.95);
   }
   :root:not(.dark) .bg-zinc-900\/40 {
-    background-color: rgb(244 244 245 / 0.92);
+    background-color: rgb(232 228 223 / 0.92);
   }
   :root:not(.dark) .bg-zinc-900\/45 {
-    background-color: rgb(244 244 245 / 0.9);
+    background-color: rgb(231 227 222 / 0.9);
   }
   :root:not(.dark) .bg-zinc-900\/50 {
-    background-color: rgb(244 244 245 / 0.88);
+    background-color: rgb(230 226 221 / 0.88);
   }
   :root:not(.dark) .bg-zinc-800 {
-    background-color: rgb(228 228 231);
+    background-color: rgb(214 211 206);
   }
   :root:not(.dark) .bg-zinc-800\/60 {
-    background-color: rgb(228 228 231 / 0.75);
+    background-color: rgb(214 211 206 / 0.75);
   }
   :root:not(.dark) .bg-white\/5 {
     background-color: rgb(24 24 27 / 0.04);
